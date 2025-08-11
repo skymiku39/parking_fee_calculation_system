@@ -54,6 +54,7 @@ cd parking_fee_calculation_system
 
 1. **計算停車費**：在主頁面輸入進場和出場時間
 2. **選擇費率方案**：選擇適合的費率方案（預設有多種選項）
+   - UI 僅顯示三個精選內建方案與你的自訂方案；若自訂方案過多，UI 會依系統設定限制顯示數量。
 3. **查看結果**：系統會顯示詳細的計費明細和總費用
 4. **自訂配置**：可在設定頁面自訂費率配置
 
@@ -167,6 +168,11 @@ cd parking_fee_calculation_system
 說明：
 - 使用者自訂（`config/user_defined_plans.json`）的方案仍會完整顯示。
 - 其餘內建模板保留於配置中以供擴充，但不於 UI 列出，避免選項過多造成困惑。
+
+#### 進階設定
+- 於 `config/system_config.json` → `ui_settings` 可調整：
+  - `max_user_plans_display`: 顯示的用戶自訂方案最大數量（預設 5）
+  - `show_only_featured_user_plans`: 僅顯示被標記為 featured 的用戶方案（預設 false）
 
 ### 費率配置範例
 

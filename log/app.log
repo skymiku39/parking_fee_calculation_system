@@ -50,3 +50,36 @@
 2025-08-11 17:59:18,835 INFO __main__ - 多維度標籤計算器載入成功
 2025-08-11 17:59:18,846 WARNING werkzeug -  * Debugger is active!
 2025-08-11 17:59:18,849 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 17:59:59,378 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 17:59:59,397 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:59:59,561 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:59:59,571 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:59:59,574 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:00:26,978 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:00:26,996 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:00:27,166 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:00:27,176 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:00:27,179 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:12:13,663 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:12:14,944 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 18:12:14,945 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 18:12:14,946 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:12:15,126 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:12:15,138 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:12:15,141 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:12:23,825 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:23] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:25,264 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:25] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:25,692 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:25] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:25,839 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:25] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:27,782 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:27] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:27,954 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:27] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:28,165 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:28] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:28,323 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:28] "GET / HTTP/1.1" 200 -
+2025-08-11 18:13:48,421 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:13:48,441 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:13:48,602 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:13:48,612 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:13:48,615 INFO werkzeug -  * Debugger PIN: 623-905-752

@@ -34,6 +34,8 @@
     "time_format_display": "24h",
     "currency_display": "symbol_first",
     "show_calculation_details": true,
-    "enable_advanced_features": true
+    "enable_advanced_features": true,
+    "max_user_plans_display": 5,
+    "show_only_featured_user_plans": false
   }
 }
