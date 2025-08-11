@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>多維度費率方案設計器</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .gradient-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .dimension-card {
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+      }
+      .dimension-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: #007bff;
+      }
+      .dimension-header {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 13px 13px 0 0;
+        padding: 15px 20px;
+      }
+      .segment-item {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .segment-item.valid {
+        border-color: #28a745;
+        background: #f8fff8;
+      }
+      .matrix-cell {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 5px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .matrix-cell:hover {
+        background: #e3f2fd;
+        border-color: #2196f3;
+      }
+      .matrix-cell.configured {
+        background: #d4edda;
+        border-color: #28a745;
+      }
+      .full-day-cell {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+      }
+      .full-day-cell:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        border-color: #5a6fd8;
+        color: white;
+      }
+      .two-segment-cell {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+        border-color: #ff6b6b;
+      }
+      .two-segment-cell:hover {
+        background: linear-gradient(135deg, #ff5252 0%, #e55100 100%);
+        border-color: #ff5252;
+        color: white;
+      }
+      .three-segment-cell {
+        background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        color: white;
+        border-color: #00b894;
+      }
+      .three-segment-cell:hover {
+        background: linear-gradient(135deg, #00a085 0%, #009775 100%);
+        border-color: #00a085;
+        color: white;
+      }
+      .custom-segment-cell {
+        background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        color: white;
+        border-color: #fd79a8;
+      }
+      .custom-segment-cell:hover {
+        background: linear-gradient(135deg, #e84393 0%, #d63384 100%);
+        border-color: #e84393;
+        color: white;
+      }
+
+      .full-day-cap-section {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border: 1px solid #2196f3;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 8px;
+      }
+
+      .full-day-cap-section .form-control {
+        border: 2px solid #2196f3;
+        background: rgba(255, 255, 255, 0.9);
+      }
+
+      .full-day-cap-section .form-control:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <!-- Header -->
+      <div class="gradient-header py-4 mb-4">
+        <div class="container">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <a href="/" class="btn btn-light btn-lg">
+                <i class="fas fa-home"></i> 返回主頁
+              </a>
+            </div>
+            <div class="col text-center">
+              <h1>
+                <i class="fas fa-drafting-compass"></i> 多維度費率方案設計器
+              </h1>
+              <p class="mb-0">
+                時間區段 × 節假日類型 × 累進費率 = 完美計費方案
+              </p>
+            </div>
+            <div class="col-auto">
+              <!-- 佔位符，保持對稱 -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 基本方案資訊 -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="dimension-card">
+            <div class="dimension-header">
+              <h4><i class="fas fa-info-circle"></i> 基本方案資訊</h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <label class="form-label">方案名稱</label>
+                  <input
+                    type="text"
+                    id="plan-name"
+                    class="form-control"
+                    placeholder="例：商圈停車方案"
+                  />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">區段類型</label>
+                  <select
+                    id="segment-type"
+                    class="form-select"
+                    onchange="updateSegmentBuilder()"
+                  >
+                    <option value="全天">全天 (00:00-24:00)</option>
+                    <option value="二段">二段 (日間/夜間)</option>
+                    <option value="三段">三段 (日間/午間/夜間)</option>
+                    <option value="任意段">任意段 (自訂)</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">節假日類型</label>
+                  <select
+                    id="holiday-type"
+                    class="form-select"
+                    onchange="updateRateMatrix()"
+                  >
+                    <option value="無假日">無假日差別</option>
+                    <option value="平日假日">平日/假日</option>
+                    <option value="完整假日">平日/假日/節慶日</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 時間區段設定 -->
+      <div class="row mb-4" id="time-segments-section">
+        <div class="col-12">
+          <div class="dimension-card">
+            <div class="dimension-header">
+              <h4><i class="fas fa-clock"></i> 時間區段設定</h4>
+              <small id="segments-subtitle">所有區段必須連續覆蓋24小時</small>
+            </div>
+            <div class="card-body">
+              <div
+                id="full-day-info"
+                style="display: none"
+                class="alert alert-info"
+              >
+                <i class="fas fa-info-circle"></i>
+                <strong>全天模式</strong
+                >：系統自動設定為24小時連續計費，無需手動配置時間區段。
+              </div>
+              <div id="segments-container">
+                <!-- 動態生成的時間區段 -->
+              </div>
+              <div id="segments-controls">
+                <button class="btn btn-outline-primary" onclick="addSegment()">
+                  <i class="fas fa-plus"></i> 新增區段
+                </button>
+                <button
+                  class="btn btn-success ms-2"
+                  onclick="validateSegments()"
+                >
+                  <i class="fas fa-check"></i> 驗證覆蓋
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 全域收費上限與寬裕時間設定 -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="dimension-card">
+            <div class="dimension-header">
+              <h4><i class="fas fa-cog"></i> 全域收費設定</h4>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="global-daily-cap"
+                      onchange="toggleGlobalDailyCap()"
+                    />
+                    <label class="form-check-label" for="global-daily-cap">
+                      <strong id="global-cap-label">啟用全天收費上限</strong>
+                    </label>
+                  </div>
+                  <div
+                    id="global-daily-cap-section"
+                    style="display: none"
+                    class="mt-2"
+                  >
+                    <input
+                      type="number"
+                      id="global-daily-cap-amount"
+                      class="form-control"
+                      value="200"
+                      min="0"
+                    />
+                    <small class="text-muted" id="global-cap-description"
+                      >全天最高收費金額</small
+                    >
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">全域寬裕時間</label>
+                  <div class="input-group">
+                    <input
+                      type="number"
+                      id="global-grace-time"
+                      class="form-control"
+                      value="15"
+                      min="0"
+                      max="120"
+                    />
+                    <span class="input-group-text">分鐘</span>
+                  </div>
+                  <small class="text-muted">適用於所有時段的免費寬限時間</small>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="segment-caps"
+                      onchange="toggleSegmentCaps()"
+                    />
+                    <label class="form-check-label" for="segment-caps">
+                      <strong>啟用區段收費上限</strong>
+                    </label>
+                  </div>
+                  <small class="text-muted d-block"
+                    >每個時段可設定獨立上限</small
+                  >
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">上限優先級</label>
+                  <select id="cap-priority" class="form-select">
+                    <option value="daily">全天上限優先</option>
+                    <option value="segment">區段上限優先</option>
+                    <option value="lower">取較低值</option>
+                    <option value="higher">取較高值</option>
+                  </select>
+                  <small class="text-muted">當同時啟用時的處理方式</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 費率矩陣 -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="dimension-card">
+            <div class="dimension-header">
+              <h4><i class="fas fa-table"></i> 費率組合矩陣</h4>
+              <small id="matrix-info">點擊格子設定累進費率</small>
+            </div>
+            <div class="card-body">
+              <div id="rate-matrix-grid" class="d-flex flex-wrap">
+                <!-- 動態生成的費率矩陣 -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 方案管理按鈕 -->
+      <div class="row mb-4">
+        <div class="col-12 text-center">
+          <div class="btn-group" role="group">
+            <button class="btn btn-primary btn-lg" onclick="loadPlansList()">
+              <i class="fas fa-folder-open"></i> 載入已存方案
+            </button>
+            <button class="btn btn-success btn-lg" onclick="savePlan()">
+              <i class="fas fa-save"></i> 儲存方案
+            </button>
+            <button class="btn btn-info btn-lg" onclick="exportPlan()">
+              <i class="fas fa-download"></i> 匯出方案
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案載入模態框 -->
+    <div class="modal fade" id="loadPlanModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="fas fa-folder-open"></i> 載入已存方案
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="plans-loading" class="text-center" style="display: none">
+              <div class="spinner-border" role="status"></div>
+              <p class="mt-2">載入方案列表中...</p>
+            </div>
+            <div id="plans-list-container">
+              <div
+                id="no-plans-message"
+                class="alert alert-info"
+                style="display: none"
+              >
+                <i class="fas fa-info-circle"></i> 目前沒有已存的方案
+              </div>
+              <div id="plans-list" class="list-group">
+                <!-- 動態載入的方案列表 -->
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 費率設定模態框 -->
+    <div class="modal fade" id="rateConfigModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              費率設定 - <span id="modal-combination-title"></span>
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label class="form-label">基本單位時間</label>
+                <select id="rate-unit-time" class="form-select">
+                  <option value="30">30分鐘</option>
+                  <option value="60" selected>60分鐘</option>
+                  <option value="120">120分鐘</option>
+                </select>
+                <small class="text-muted">寬裕時間已移至全域設定區塊</small>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check mb-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="progressive-enabled"
+                  onchange="toggleProgressiveRates()"
+                />
+                <label class="form-check-label" for="progressive-enabled">
+                  <strong>啟用累進費率</strong>
+                </label>
+              </div>
+              <div id="progressive-rates-section" style="display: none">
+                <label class="form-label">累進費率階段</label>
+                <div id="progressive-rates-container">
+                  <!-- 動態生成的累進費率 -->
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  onclick="addProgressiveStage()"
+                >
+                  <i class="fas fa-plus"></i> 新增階段
+                </button>
+              </div>
+              <div id="simple-rate-section">
+                <label class="form-label">單一費率</label>
+                <div class="row">
+                  <div class="col-md-6">
+                    <input
+                      type="number"
+                      id="simple-rate"
+                      class="form-control"
+                      value="30"
+                      min="0"
+                    />
+                    <small class="text-muted">元 / 單位時間</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="segment-cap-section" class="mb-3" style="display: none">
+              <div class="form-check mb-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="segment-cap-enabled"
+                  onchange="toggleSegmentCapAmount()"
+                />
+                <label class="form-check-label" for="segment-cap-enabled">
+                  <strong>此區段啟用收費上限</strong>
+                </label>
+              </div>
+              <div id="segment-cap-amount-section" style="display: none">
+                <label class="form-label">區段上限金額</label>
+                <input
+                  type="number"
+                  id="segment-cap-amount"
+                  class="form-control"
+                  value="100"
+                  min="0"
+                />
+                <small class="text-muted">此時段的最高收費金額</small>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="saveRateConfig()"
+            >
+              儲存設定
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // 全域變數
+      let currentSegments = [];
+      let currentMatrix = {};
+      let editingCombination = null;
+
+      // 初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        updateSegmentBuilder();
+        updateRateMatrix();
+      });
+
+      // 更新區段建構器
+      function updateSegmentBuilder() {
+        const segmentType = document.getElementById("segment-type").value;
+        const container = document.getElementById("segments-container");
+        const fullDayInfo = document.getElementById("full-day-info");
+        const segmentsControls = document.getElementById("segments-controls");
+        const segmentsSubtitle = document.getElementById("segments-subtitle");
+
+        // 清空當前區段
+        container.innerHTML = "";
+        currentSegments = [];
+
+        switch (segmentType) {
+          case "全天":
+            fullDayInfo.style.display = "block";
+            segmentsControls.style.display = "none"; // 隱藏控制按鈕
+            segmentsSubtitle.textContent = "全天模式：24小時統一計費";
+
+            // 添加全天區段但不顯示時間控制
+            addSegmentToContainer("全天", "00:00", "24:00", true, true); // 完全隱藏時間
+
+            // 更新全域收費上限的顯示和邏輯
+            updateGlobalCapForFullDay();
+            break;
+
+          case "二段":
+            fullDayInfo.style.display = "none";
+            segmentsControls.style.display = "none"; // 隱藏控制按鈕，因為是預設段數
+            segmentsSubtitle.textContent =
+              "二段時間區段設定（預設日夜分段，可調整時間）";
+
+            addSegmentToContainer("日間", "07:00", "18:00", false);
+            addSegmentToContainer("夜間", "18:00", "07:00", false);
+
+            // 恢復正常的全域收費上限顯示
+            resetGlobalCapDisplay();
+            break;
+
+          case "三段":
+            fullDayInfo.style.display = "none";
+            segmentsControls.style.display = "none"; // 隱藏控制按鈕，因為是預設段數
+            segmentsSubtitle.textContent =
+              "三段時間區段設定（預設三時段，可調整時間）";
+
+            addSegmentToContainer("日間", "07:00", "12:00", false);
+            addSegmentToContainer("午間", "12:00", "18:00", false);
+            addSegmentToContainer("夜間", "18:00", "07:00", false);
+
+            // 恢復正常的全域收費上限顯示
+            resetGlobalCapDisplay();
+            break;
+
+          case "任意段":
+          default:
+            // 任意段 - 允許自由編輯，顯示控制按鈕
+            fullDayInfo.style.display = "none";
+            segmentsControls.style.display = "block"; // 顯示控制按鈕
+            segmentsSubtitle.textContent =
+              "自訂時間區段，所有區段必須連續覆蓋24小時（無重疊、無空隙）";
+
+            // 恢復正常的全域收費上限顯示
+            resetGlobalCapDisplay();
+            break;
+        }
+
+        updateRateMatrix();
+      }
+
+      // 新增區段到容器
+      function addSegmentToContainer(
+        name,
+        start,
+        end,
+        locked = false,
+        hideTime = false
+      ) {
+        const container = document.getElementById("segments-container");
+        const segmentDiv = document.createElement("div");
+        segmentDiv.className = "segment-item";
+
+        const nameReadonly = locked ? "readonly" : "";
+        const timeReadonly = locked ? "readonly" : "";
+        const deleteButton = locked
+          ? ""
+          : `
+            <button class="btn btn-danger btn-sm" onclick="removeSegment(this)">
+                <i class="fas fa-trash"></i> 刪除
+            </button>
+        `;
+
+        // 如果是全天模式，完全隱藏時間設定
+        if (hideTime) {
+          segmentDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-success d-flex align-items-center">
+                            <i class="fas fa-clock me-2"></i>
+                            <div>
+                                <strong>${name}</strong> - 24小時連續計費
+                                <br><small class="text-muted">自動涵蓋 00:00 至 24:00 的完整時段</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+          segmentDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">區段名稱</label>
+                        <input type="text" class="form-control segment-name" value="${name}" ${nameReadonly}>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">開始時間</label>
+                        <input type="time" class="form-control segment-start" value="${start}" ${timeReadonly} onchange="syncSegmentTimes(this)">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">結束時間</label>
+                        <input type="time" class="form-control segment-end" value="${end}" ${timeReadonly} onchange="syncSegmentTimes(this)">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        ${deleteButton}
+                    </div>
+                </div>
+            `;
+        }
+
+        container.appendChild(segmentDiv);
+
+        currentSegments.push({
+          name: name,
+          start: start,
+          end: end,
+          locked: locked,
+          hideTime: hideTime,
+        });
+      }
+
+      // 新增區段
+      function addSegment() {
+        addSegmentToContainer("新區段", "00:00", "01:00");
+        updateRateMatrix();
+      }
+
+      // 移除區段
+      function removeSegment(button) {
+        const segmentDiv = button.closest(".segment-item");
+        const index = Array.from(segmentDiv.parentNode.children).indexOf(
+          segmentDiv
+        );
+
+        segmentDiv.remove();
+        currentSegments.splice(index, 1);
+        updateRateMatrix();
+      }
+
+      // 同步區段時間（二段/三段模式）
+      function syncSegmentTimes(changedInput) {
+        const segmentType = document.getElementById("segment-type").value;
+
+        // 只對二段和三段模式進行時間同步
+        if (segmentType !== "二段" && segmentType !== "三段") {
+          return;
+        }
+
+        const allSegments = document.querySelectorAll(".segment-item");
+        const currentSegment = changedInput.closest(".segment-item");
+        const currentIndex = Array.from(allSegments).indexOf(currentSegment);
+
+        if (changedInput.classList.contains("segment-end")) {
+          // 結束時間改變，同步下一個區段的開始時間
+          const nextIndex = (currentIndex + 1) % allSegments.length;
+          const nextSegment = allSegments[nextIndex];
+          const nextStartInput = nextSegment.querySelector(".segment-start");
+
+          if (nextStartInput && !nextStartInput.readOnly) {
+            nextStartInput.value = changedInput.value;
+          }
+        } else if (changedInput.classList.contains("segment-start")) {
+          // 開始時間改變，同步上一個區段的結束時間
+          const prevIndex =
+            currentIndex === 0 ? allSegments.length - 1 : currentIndex - 1;
+          const prevSegment = allSegments[prevIndex];
+          const prevEndInput = prevSegment.querySelector(".segment-end");
+
+          if (prevEndInput && !prevEndInput.readOnly) {
+            prevEndInput.value = changedInput.value;
+          }
+        }
+
+        // 顯示同步提示
+        console.log(`${segmentType}模式：時間已自動同步`);
+      }
+
+      // 驗證區段覆蓋
+      function validateSegments() {
+        const segmentType = document.getElementById("segment-type").value;
+
+        // 只有任意段模式需要驗證覆蓋
+        if (segmentType !== "任意段") {
+          let message = "";
+          switch (segmentType) {
+            case "全天":
+              message = "✅ 全天模式：24小時連續計費，無需驗證覆蓋";
+              break;
+            case "二段":
+              message = "✅ 二段模式：預設日夜分段，時間已自動同步";
+              break;
+            case "三段":
+              message = "✅ 三段模式：預設三時段，時間已自動同步";
+              break;
+          }
+          alert(message);
+          return;
+        }
+
+        // 收集任意段的區段資料
+        const segments = [];
+        document.querySelectorAll(".segment-item").forEach((item) => {
+          const nameInput = item.querySelector(".segment-name");
+          const startInput = item.querySelector(".segment-start");
+          const endInput = item.querySelector(".segment-end");
+
+          // 只有當元素存在時才讀取值
+          if (nameInput && startInput && endInput) {
+            segments.push({
+              name: nameInput.value,
+              start: startInput.value,
+              end: endInput.value,
+            });
+          }
+        });
+
+        // 檢查是否有區段
+        if (segments.length === 0) {
+          alert("❌ 驗證失敗：請先添加至少一個時間區段");
+          return;
+        }
+
+        // 發送驗證請求
+        fetch("/api/enhanced/segments/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ segments: segments }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // 檢查總時間是否為24小時
+              const totalMinutes = data.total_minutes || 0;
+              if (totalMinutes === 1440) {
+                // 24小時 = 1440分鐘
+                alert(
+                  "✅ 時間區段驗證成功：" +
+                    data.message +
+                    "\n總覆蓋時間：24小時（完整覆蓋）"
+                );
+                document.querySelectorAll(".segment-item").forEach((item) => {
+                  item.classList.add("valid");
+                });
+              } else {
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                const timeDisplay =
+                  hours > 0 ? `${hours}小時${minutes}分鐘` : `${minutes}分鐘`;
+                alert(
+                  `❌ 時間區段驗證失敗：總覆蓋時間為 ${timeDisplay}，必須恰好為24小時\n\n${
+                    data.message || "請調整區段時間確保完整覆蓋24小時且無重疊"
+                  }`
+                );
+              }
+            } else {
+              alert("❌ 時間區段驗證失敗：" + data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("驗證錯誤:", error);
+            alert("驗證請求失敗，請檢查網路連線");
+          });
+      }
+
+      // 更新費率矩陣
+      function updateRateMatrix() {
+        const segmentType = document.getElementById("segment-type").value;
+        const holidayType = document.getElementById("holiday-type").value;
+        const container = document.getElementById("rate-matrix-grid");
+        const matrixInfo = document.getElementById("matrix-info");
+
+        container.innerHTML = "";
+
+        // 獲取當前區段
+        const segments = [];
+        if (segmentType === "全天") {
+          segments.push("全天");
+          matrixInfo.textContent = "全天模式：設定24小時統一費率組合";
+        } else {
+          document.querySelectorAll(".segment-item").forEach((item) => {
+            const nameInput = item.querySelector(".segment-name");
+            if (nameInput && nameInput.value) {
+              segments.push(nameInput.value);
+            }
+          });
+          matrixInfo.textContent = `共 ${segments.length} 個區段的費率組合設定`;
+        }
+
+        // 獲取假日類型
+        let holidayTypes = [];
+        switch (holidayType) {
+          case "無假日":
+            holidayTypes = ["統一"];
+            break;
+          case "平日假日":
+            holidayTypes = ["平日", "假日"];
+            break;
+          case "完整假日":
+            holidayTypes = ["平日", "假日", "節慶日"];
+            break;
+        }
+
+        // 生成矩陣
+        segments.forEach((segment) => {
+          holidayTypes.forEach((holiday) => {
+            const cellDiv = document.createElement("div");
+            cellDiv.className = "matrix-cell";
+
+            // 為不同模式添加特殊樣式
+            if (segmentType === "全天") {
+              cellDiv.classList.add("full-day-cell");
+            } else if (segmentType === "二段") {
+              cellDiv.classList.add("two-segment-cell");
+            } else if (segmentType === "三段") {
+              cellDiv.classList.add("three-segment-cell");
+            } else if (segmentType === "任意段") {
+              cellDiv.classList.add("custom-segment-cell");
+            }
+
+            let iconClass, description;
+            switch (segmentType) {
+              case "全天":
+                iconClass = "clock";
+                description = "24小時費率";
+                break;
+              case "二段":
+                iconClass = "sun";
+                description = "日夜分段";
+                break;
+              case "三段":
+                iconClass = "clock";
+                description = "三時段費率";
+                break;
+              case "任意段":
+                iconClass = "cogs";
+                description = "自訂時段";
+                break;
+              default:
+                iconClass = "cog";
+                description = "點擊設定";
+            }
+
+            cellDiv.innerHTML = `
+                        <h6>${segment}</h6>
+                        <small>${holiday}</small>
+                        <div class="mt-2">
+                            <i class="fas fa-${iconClass}"></i>
+                            <small class="d-block">${description}</small>
+                        </div>
+                    `;
+            cellDiv.onclick = () => openRateConfig(segment, holiday);
+            container.appendChild(cellDiv);
+          });
+        });
+
+        // 更新總計資訊
+        if (segments.length > 0) {
+          matrixInfo.textContent += ` (${segments.length} × ${
+            holidayTypes.length
+          } = ${segments.length * holidayTypes.length} 個組合)`;
+        }
+      }
+
+      // 開啟費率設定
+      function openRateConfig(segment, holiday) {
+        editingCombination = { segment, holiday };
+        document.getElementById(
+          "modal-combination-title"
+        ).textContent = `${segment} - ${holiday}`;
+
+        // 更新模態框的上限區段顯示
+        updateModalCapSection();
+
+        // 載入現有設定
+        const key = `${segment}_${holiday}`;
+        if (currentMatrix[key]) {
+          loadExistingRateConfig(currentMatrix[key]);
+        } else {
+          // 設定預設值
+          resetRateConfigModal();
+        }
+
+        const modal = new bootstrap.Modal(
+          document.getElementById("rateConfigModal")
+        );
+        modal.show();
+      }
+
+      // 重設費率設定模態框
+      function resetRateConfigModal() {
+        document.getElementById("rate-unit-time").value = "60";
+
+        // 重設累進費率開關
+        document.getElementById("progressive-enabled").checked = false;
+        toggleProgressiveRates();
+
+        // 重設單一費率
+        document.getElementById("simple-rate").value = "30";
+
+        // 重設區段上限
+        document.getElementById("segment-cap-enabled").checked = false;
+        toggleSegmentCapAmount();
+        document.getElementById("segment-cap-amount").value = "100";
+
+        // 重設累進費率容器
+        const container = document.getElementById(
+          "progressive-rates-container"
+        );
+        container.innerHTML = "";
+      }
+
+      // 載入現有費率設定
+      function loadExistingRateConfig(config) {
+        document.getElementById("rate-unit-time").value =
+          config.unit_time || "60";
+
+        // 處理舊格式的寬裕時間：如果配置中有 grace_time，將其設定到全域寬裕時間
+        if (config.grace_time !== undefined) {
+          const globalGraceInput = document.getElementById("global-grace-time");
+          if (globalGraceInput) {
+            globalGraceInput.value = config.grace_time;
+          }
+        }
+
+        // 載入累進費率設定
+        const hasProgressiveRates =
+          config.progressive_rates && config.progressive_rates.length > 0;
+        document.getElementById("progressive-enabled").checked =
+          hasProgressiveRates;
+        toggleProgressiveRates();
+
+        if (hasProgressiveRates) {
+          // 載入累進費率階段
+          const container = document.getElementById(
+            "progressive-rates-container"
+          );
+          container.innerHTML = "";
+          config.progressive_rates.forEach((rate) => {
+            addProgressiveStage();
+            const stages = container.children;
+            const lastStage = stages[stages.length - 1];
+            lastStage.querySelector(".stage-duration").value =
+              rate.duration || 60;
+            lastStage.querySelector(".stage-rate").value = rate.rate || 30;
+            lastStage.querySelector(".stage-unit").value = rate.unit || 60;
+          });
+        } else {
+          // 載入單一費率
+          document.getElementById("simple-rate").value =
+            config.simple_rate || "30";
+        }
+
+        // 載入區段上限設定
+        const hasSegmentCap = config.segment_cap_enabled || false;
+        document.getElementById("segment-cap-enabled").checked = hasSegmentCap;
+        toggleSegmentCapAmount();
+
+        if (hasSegmentCap) {
+          document.getElementById("segment-cap-amount").value =
+            config.segment_cap_amount || "100";
+        }
+      }
+
+      // 新增累進階段
+      function addProgressiveStage() {
+        const container = document.getElementById(
+          "progressive-rates-container"
+        );
+        const stageCount = container.children.length + 1;
+
+        const stageDiv = document.createElement("div");
+        stageDiv.className = "progressive-stage mb-2";
+        stageDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">第${stageCount}階段時長</label>
+                        <input type="number" class="form-control stage-duration" value="60" min="1">
+                        <small class="text-muted">分鐘</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">費率</label>
+                        <input type="number" class="form-control stage-rate" value="30" min="0">
+                        <small class="text-muted">元</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">計費單位</label>
+                        <select class="form-select stage-unit">
+                            <option value="30">30分鐘</option>
+                            <option value="60" selected>60分鐘</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeProgressiveStage(this)">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        container.appendChild(stageDiv);
+      }
+
+      // 移除累進階段
+      function removeProgressiveStage(button) {
+        const stageDiv = button.closest(".progressive-stage");
+        stageDiv.remove();
+      }
+
+      // 切換累進費率
+      function toggleProgressiveRates() {
+        const enabled = document.getElementById("progressive-enabled").checked;
+        const progressiveSection = document.getElementById(
+          "progressive-rates-section"
+        );
+        const simpleSection = document.getElementById("simple-rate-section");
+
+        if (enabled) {
+          progressiveSection.style.display = "block";
+          simpleSection.style.display = "none";
+          // 確保至少有一個階段
+          if (
+            document.getElementById("progressive-rates-container").children
+              .length === 0
+          ) {
+            addProgressiveStage();
+          }
+        } else {
+          progressiveSection.style.display = "none";
+          simpleSection.style.display = "block";
+        }
+      }
+
+      // 切換全天收費上限
+      function toggleGlobalDailyCap() {
+        const enabled = document.getElementById("global-daily-cap").checked;
+        const section = document.getElementById("global-daily-cap-section");
+        section.style.display = enabled ? "block" : "none";
+      }
+
+      // 更新全天模式下的全域收費上限顯示
+      function updateGlobalCapForFullDay() {
+        try {
+          const globalCapLabel = document.getElementById("global-cap-label");
+          const globalCapSection = document.getElementById(
+            "global-daily-cap-section"
+          );
+          // 更精確地選擇全域收費上限區塊中的元素
+          const globalCapContainer = document
+            .querySelector("#global-daily-cap")
+            .closest("div.row");
+          const segmentCapsDiv = globalCapContainer
+            ? globalCapContainer.querySelector(".col-md-4:nth-child(2)")
+            : null;
+          const capPriorityDiv = globalCapContainer
+            ? globalCapContainer.querySelector(".col-md-4:nth-child(3)")
+            : null;
+
+          // 更新標籤文字
+          if (globalCapLabel) {
+            globalCapLabel.innerHTML =
+              '<i class="fas fa-clock text-success me-1"></i>啟用24小時收費上限';
+          }
+
+          // 為全天模式添加特殊樣式
+          if (globalCapSection) {
+            globalCapSection.classList.add("full-day-cap-section");
+          }
+
+          // 隱藏區段上限和優先級設定（全天模式下不需要）
+          if (segmentCapsDiv) segmentCapsDiv.style.display = "none";
+          if (capPriorityDiv) capPriorityDiv.style.display = "none";
+
+          // 如果全域上限已啟用，添加全天模式的視覺提示
+          const globalCapCheckbox = document.getElementById("global-daily-cap");
+          if (
+            globalCapCheckbox &&
+            globalCapCheckbox.checked &&
+            globalCapSection
+          ) {
+            globalCapSection.style.display = "block";
+            // 獲取當前值以保持用戶輸入
+            const currentValue =
+              document.getElementById("global-daily-cap-amount")?.value ||
+              "200";
+
+            globalCapSection.innerHTML = `
+              <div class="alert alert-info d-flex align-items-center mb-2">
+                <i class="fas fa-info-circle me-2"></i>
+                <small>全天模式下，此上限將應用於整個24小時計費週期</small>
+              </div>
+              <input
+                type="number"
+                id="global-daily-cap-amount"
+                class="form-control"
+                value="${currentValue}"
+                min="0"
+              />
+              <small class="text-muted" id="global-cap-description">24小時連續計費的最高收費金額</small>
+            `;
+          }
+        } catch (error) {
+          console.error("updateGlobalCapForFullDay error:", error);
+        }
+      }
+
+      // 恢復正常的全域收費上限顯示
+      function resetGlobalCapDisplay() {
+        try {
+          const globalCapLabel = document.getElementById("global-cap-label");
+          const globalCapSection = document.getElementById(
+            "global-daily-cap-section"
+          );
+          // 更精確地選擇全域收費上限區塊中的元素
+          const globalCapContainer = document
+            .querySelector("#global-daily-cap")
+            .closest("div.row");
+          const segmentCapsDiv = globalCapContainer
+            ? globalCapContainer.querySelector(".col-md-4:nth-child(2)")
+            : null;
+          const capPriorityDiv = globalCapContainer
+            ? globalCapContainer.querySelector(".col-md-4:nth-child(3)")
+            : null;
+
+          // 恢復原始標籤
+          if (globalCapLabel) {
+            globalCapLabel.textContent = "啟用全天收費上限";
+          }
+
+          // 移除全天模式的特殊樣式
+          if (globalCapSection) {
+            globalCapSection.classList.remove("full-day-cap-section");
+          }
+
+          // 顯示區段上限和優先級設定
+          if (segmentCapsDiv) segmentCapsDiv.style.display = "block";
+          if (capPriorityDiv) capPriorityDiv.style.display = "block";
+
+          // 恢復原始的HTML結構，但保持現有的輸入框值
+          const globalCapCheckbox = document.getElementById("global-daily-cap");
+          if (
+            globalCapCheckbox &&
+            globalCapCheckbox.checked &&
+            globalCapSection
+          ) {
+            // 獲取當前值
+            const currentValue =
+              document.getElementById("global-daily-cap-amount")?.value ||
+              "200";
+
+            globalCapSection.innerHTML = `
+              <input
+                type="number"
+                id="global-daily-cap-amount"
+                class="form-control"
+                value="${currentValue}"
+                min="0"
+              />
+              <small class="text-muted" id="global-cap-description">全天最高收費金額</small>
+            `;
+          }
+        } catch (error) {
+          console.error("resetGlobalCapDisplay error:", error);
+        }
+      }
+
+      // 切換區段收費上限
+      function toggleSegmentCaps() {
+        const enabled = document.getElementById("segment-caps").checked;
+        const section = document.getElementById("segment-cap-section");
+        section.style.display = enabled ? "block" : "none";
+      }
+
+      // 切換區段上限金額
+      function toggleSegmentCapAmount() {
+        const enabled = document.getElementById("segment-cap-enabled").checked;
+        const section = document.getElementById("segment-cap-amount-section");
+        section.style.display = enabled ? "block" : "none";
+      }
+
+      // 更新模態框上限區段顯示
+      function updateModalCapSection() {
+        const segmentCapsEnabled =
+          document.getElementById("segment-caps").checked;
+        const section = document.getElementById("segment-cap-section");
+
+        if (segmentCapsEnabled) {
+          section.style.display = "block";
+        } else {
+          section.style.display = "none";
+          // 重置區段上限設定
+          document.getElementById("segment-cap-enabled").checked = false;
+          toggleSegmentCapAmount();
+        }
+      }
+
+      // 儲存費率設定
+      function saveRateConfig() {
+        if (!editingCombination) return;
+
+        const isProgressiveEnabled = document.getElementById(
+          "progressive-enabled"
+        ).checked;
+        const config = {
+          unit_time: parseInt(document.getElementById("rate-unit-time").value),
+          progressive_enabled: isProgressiveEnabled,
+          progressive_rates: [],
+          simple_rate: null,
+          segment_cap_enabled: document.getElementById("segment-cap-enabled")
+            .checked,
+          segment_cap_amount: parseInt(
+            document.getElementById("segment-cap-amount").value
+          ),
+        };
+
+        if (isProgressiveEnabled) {
+          // 收集累進費率
+          document.querySelectorAll(".progressive-stage").forEach((stage) => {
+            config.progressive_rates.push({
+              duration: parseInt(stage.querySelector(".stage-duration").value),
+              rate: parseInt(stage.querySelector(".stage-rate").value),
+              unit: parseInt(stage.querySelector(".stage-unit").value),
+            });
+          });
+        } else {
+          // 收集單一費率
+          config.simple_rate = parseInt(
+            document.getElementById("simple-rate").value
+          );
+        }
+
+        const key = `${editingCombination.segment}_${editingCombination.holiday}`;
+        currentMatrix[key] = config;
+
+        // 標記已配置
+        const cells = document.querySelectorAll(".matrix-cell");
+        cells.forEach((cell) => {
+          if (
+            cell.innerHTML.includes(editingCombination.segment) &&
+            cell.innerHTML.includes(editingCombination.holiday)
+          ) {
+            cell.classList.add("configured");
+            // 更新顯示資訊
+            const rateInfo = isProgressiveEnabled
+              ? `累進 (${config.progressive_rates.length}階段)`
+              : `單一 (${config.simple_rate}元)`;
+            const capInfo = config.segment_cap_enabled
+              ? `上限${config.segment_cap_amount}元`
+              : "無上限";
+            cell.innerHTML = cell.innerHTML.replace(
+              /<div class="mt-2">[\s\S]*?<\/div>/,
+              `<div class="mt-2"><small>${rateInfo}<br>${capInfo}</small></div>`
+            );
+          }
+        });
+
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("rateConfigModal")
+        );
+        modal.hide();
+
+        alert("費率設定已儲存");
+      }
+
+      // 儲存方案
+      function savePlan() {
+        try {
+          const planName = document.getElementById("plan-name").value;
+          if (!planName) {
+            alert("請輸入方案名稱");
+            return;
+          }
+
+          // 收集所有區段
+          const segments = [];
+          const segmentType = document.getElementById("segment-type").value;
+
+          if (segmentType === "全天") {
+            // 全天模式下使用固定的區段資訊
+            segments.push({
+              name: "全天",
+              start: "00:00",
+              end: "24:00",
+            });
+          } else {
+            // 其他模式下從DOM元素收集資訊
+            document.querySelectorAll(".segment-item").forEach((item) => {
+              const nameElement = item.querySelector(".segment-name");
+              const startElement = item.querySelector(".segment-start");
+              const endElement = item.querySelector(".segment-end");
+
+              // 只有當元素存在時才添加
+              if (nameElement && startElement && endElement) {
+                segments.push({
+                  name: nameElement.value,
+                  start: startElement.value,
+                  end: endElement.value,
+                });
+              }
+            });
+          }
+
+          // 收集全域收費上限設定
+          const globalCaps = {
+            daily_cap_enabled:
+              document.getElementById("global-daily-cap").checked,
+            daily_cap_amount: document.getElementById("global-daily-cap")
+              .checked
+              ? parseInt(
+                  document.getElementById("global-daily-cap-amount").value
+                )
+              : null,
+            segment_caps_enabled:
+              document.getElementById("segment-caps").checked,
+            cap_priority: document.getElementById("cap-priority").value,
+            global_grace_time: parseInt(
+              document.getElementById("global-grace-time").value || "15"
+            ),
+          };
+
+          const planData = {
+            name: planName,
+            segment_type: document.getElementById("segment-type").value,
+            holiday_type: document.getElementById("holiday-type").value,
+            segments: segments,
+            rate_matrix: currentMatrix,
+            global_caps: globalCaps,
+          };
+
+          console.log("準備儲存方案:", planData);
+
+          // 發送到後端儲存
+          fetch("/api/rate_plans/save", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(planData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                alert(`✅ ${data.message}\n\n方案ID: ${data.plan_id}`);
+                console.log("儲存成功:", data);
+
+                // 清空表單（可選）
+                if (confirm("是否要清空當前表單以建立新方案？")) {
+                  document.getElementById("plan-name").value = "";
+                  currentMatrix = {};
+                  updateRateMatrix();
+                }
+              } else {
+                alert(`❌ 儲存失敗：${data.error}`);
+                console.error("儲存失敗:", data);
+              }
+            })
+            .catch((error) => {
+              console.error("網路錯誤:", error);
+              alert("❌ 網路錯誤，無法儲存方案");
+            });
+        } catch (error) {
+          console.error("儲存方案時發生錯誤:", error);
+          alert("儲存方案時發生錯誤，請檢查控制台以獲取詳細資訊");
+        }
+      }
+
+      // 載入方案列表
+      function loadPlansList() {
+        const modal = new bootstrap.Modal(
+          document.getElementById("loadPlanModal")
+        );
+        modal.show();
+
+        // 顯示載入狀態
+        document.getElementById("plans-loading").style.display = "block";
+        document.getElementById("plans-list-container").style.display = "none";
+
+        fetch("/api/rate_plans/list")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("plans-loading").style.display = "none";
+            document.getElementById("plans-list-container").style.display =
+              "block";
+
+            if (data.success) {
+              const plansList = document.getElementById("plans-list");
+              const noPlansMessage =
+                document.getElementById("no-plans-message");
+
+              if (data.plans.length === 0) {
+                noPlansMessage.style.display = "block";
+                plansList.innerHTML = "";
+              } else {
+                noPlansMessage.style.display = "none";
+                plansList.innerHTML = "";
+
+                data.plans.forEach((plan) => {
+                  const planItem = document.createElement("div");
+                  planItem.className = "list-group-item list-group-item-action";
+
+                  const createdDate = plan.created_date
+                    ? new Date(plan.created_date).toLocaleString()
+                    : "未知";
+
+                  planItem.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between">
+                      <h6 class="mb-1">${plan.name}</h6>
+                      <small class="text-muted">${createdDate}</small>
+                    </div>
+                    <p class="mb-1">
+                      <span class="badge bg-primary">${plan.segment_type}</span>
+                      <span class="badge bg-secondary">${
+                        plan.holiday_type
+                      }</span>
+                      <span class="badge bg-success">${
+                        plan.segments_count
+                      } 個區段</span>
+                      ${
+                        plan.has_rate_matrix
+                          ? '<span class="badge bg-warning">已設定費率</span>'
+                          : ""
+                      }
+                    </p>
+                    <small class="text-muted">${plan.description}</small>
+                  `;
+
+                  planItem.onclick = () => loadPlan(plan.plan_id);
+                  plansList.appendChild(planItem);
+                });
+              }
+            } else {
+              alert(`載入方案列表失敗: ${data.error}`);
+            }
+          })
+          .catch((error) => {
+            console.error("載入方案列表錯誤:", error);
+            document.getElementById("plans-loading").style.display = "none";
+            alert("載入方案列表時發生網路錯誤");
+          });
+      }
+
+      // 載入指定方案
+      function loadPlan(planId) {
+        if (!confirm("載入方案將會覆蓋當前的設定，確定要繼續嗎？")) {
+          return;
+        }
+
+        fetch(`/api/rate_plans/load/${planId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              const plan = data.plan;
+
+              // 載入基本資訊
+              document.getElementById("plan-name").value = plan.name;
+              document.getElementById("segment-type").value = plan.segment_type;
+              document.getElementById("holiday-type").value = plan.holiday_type;
+
+              // 載入費率矩陣
+              currentMatrix = plan.rate_matrix || {};
+
+              // 載入全域收費上限設定
+              const globalCaps = plan.global_caps || {};
+              if (globalCaps.daily_cap_enabled) {
+                document.getElementById("global-daily-cap").checked = true;
+                if (globalCaps.daily_cap_amount) {
+                  document.getElementById("global-daily-cap-amount").value =
+                    globalCaps.daily_cap_amount;
+                }
+                toggleGlobalDailyCap();
+              }
+
+              if (globalCaps.segment_caps_enabled) {
+                document.getElementById("segment-caps").checked = true;
+                toggleSegmentCaps();
+              }
+
+              if (globalCaps.cap_priority) {
+                document.getElementById("cap-priority").value =
+                  globalCaps.cap_priority;
+              }
+
+              // 載入全域寬裕時間
+              if (globalCaps.global_grace_time !== undefined) {
+                document.getElementById("global-grace-time").value =
+                  globalCaps.global_grace_time;
+              }
+
+              // 重新初始化界面
+              updateSegmentBuilder();
+              updateRateMatrix();
+
+              // 關閉模態框
+              const modal = bootstrap.Modal.getInstance(
+                document.getElementById("loadPlanModal")
+              );
+              modal.hide();
+
+              alert(`✅ 已成功載入方案：${plan.name}`);
+            } else {
+              alert(`載入方案失敗: ${data.error}`);
+            }
+          })
+          .catch((error) => {
+            console.error("載入方案錯誤:", error);
+            alert("載入方案時發生網路錯誤");
+          });
+      }
+
+      // 匯出方案
+      function exportPlan() {
+        const planName = document.getElementById("plan-name").value;
+        if (!planName) {
+          alert("請先填寫方案名稱");
+          return;
+        }
+
+        try {
+          const segments = [];
+          const segmentType = document.getElementById("segment-type").value;
+
+          if (segmentType === "全天") {
+            segments.push({
+              name: "全天",
+              start: "00:00",
+              end: "24:00",
+            });
+          } else {
+            document.querySelectorAll(".segment-item").forEach((item) => {
+              const nameElement = item.querySelector(".segment-name");
+              const startElement = item.querySelector(".segment-start");
+              const endElement = item.querySelector(".segment-end");
+
+              if (nameElement && startElement && endElement) {
+                segments.push({
+                  name: nameElement.value,
+                  start: startElement.value,
+                  end: endElement.value,
+                });
+              }
+            });
+          }
+
+          const globalCaps = {
+            daily_cap_enabled:
+              document.getElementById("global-daily-cap").checked,
+            daily_cap_amount: document.getElementById("global-daily-cap")
+              .checked
+              ? parseInt(
+                  document.getElementById("global-daily-cap-amount").value
+                )
+              : null,
+            segment_caps_enabled:
+              document.getElementById("segment-caps").checked,
+            cap_priority: document.getElementById("cap-priority").value,
+            global_grace_time: parseInt(
+              document.getElementById("global-grace-time").value || "15"
+            ),
+          };
+
+          const exportData = {
+            name: planName,
+            segment_type: document.getElementById("segment-type").value,
+            holiday_type: document.getElementById("holiday-type").value,
+            segments: segments,
+            rate_matrix: currentMatrix,
+            global_caps: globalCaps,
+            export_date: new Date().toISOString(),
+            version: "1.0",
+          };
+
+          // 下載JSON文件
+          const dataStr = JSON.stringify(exportData, null, 2);
+          const dataBlob = new Blob([dataStr], { type: "application/json" });
+          const url = URL.createObjectURL(dataBlob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `${planName.replace(/[^a-zA-Z0-9]/g, "_")}_方案.json`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          alert(`✅ 方案已匯出為：${link.download}`);
+        } catch (error) {
+          console.error("匯出方案錯誤:", error);
+          alert("匯出方案時發生錯誤");
+        }
+      }
+
+      // 頁面載入完成後初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("頁面載入完成，開始初始化...");
+
+        try {
+          // 初始化區段建構器
+          updateSegmentBuilder();
+
+          // 初始化費率矩陣
+          updateRateMatrix();
+
+          console.log("初始化完成");
+        } catch (error) {
+          console.error("初始化過程中發生錯誤:", error);
+        }
+      });
+    </script>
+  </body>
+</html>

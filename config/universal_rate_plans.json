@@ -1,0 +1,347 @@
+{
+  "description": "萬用停車場計費模型配置範例 - 支援台灣常見的停車計費模式",
+  "version": "2.0",
+  "rate_plans": [
+    {
+      "rate_plan_id": "universal_mall",
+      "label": "萬用商場停車方案",
+      "description": "支援多車種、多優惠、動態定價的商場停車方案",
+      "date_type": "weekday",
+      "apply_on_holiday": true,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 240,
+      "split_by_timeslot_enabled": true,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": true,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "morning",
+          "label": "上午時段",
+          "start": "08:00",
+          "end": "12:00",
+          "unit_minutes": 30,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 100,
+          "progressive_enabled": true,
+          "default_unit_price": 25,
+          "progressive_rates": [
+            { "start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 25 },
+            { "start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 35 },
+            { "start_min": 120, "end_min": null, "unit_minutes": 30, "unit_price": 40 }
+          ]
+        },
+        {
+          "time_slot_id": "afternoon",
+          "label": "下午時段",
+          "start": "12:00",
+          "end": "18:00",
+          "unit_minutes": 60,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 150,
+          "progressive_enabled": false,
+          "default_unit_price": 30,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "evening",
+          "label": "晚間時段",
+          "start": "18:00",
+          "end": "22:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 120,
+          "progressive_enabled": false,
+          "default_unit_price": 35,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "night",
+          "label": "夜間時段",
+          "start": "22:00",
+          "end": "08:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 80,
+          "progressive_enabled": false,
+          "default_unit_price": 15,
+          "progressive_rates": []
+        }
+      ],
+      "vehicle_type_configs": [
+        {
+          "vehicle_type": "car",
+          "rate_multiplier": 1.0,
+          "daily_cap_multiplier": 1.0,
+          "grace_period_multiplier": 1.0,
+          "applicable_discounts": ["resident", "disabled", "consumption", "credit_card", "member"]
+        },
+        {
+          "vehicle_type": "motorcycle",
+          "rate_multiplier": 0.5,
+          "daily_cap_multiplier": 0.4,
+          "grace_period_multiplier": 1.5,
+          "applicable_discounts": ["resident", "disabled", "consumption"]
+        },
+        {
+          "vehicle_type": "large_vehicle",
+          "rate_multiplier": 1.5,
+          "daily_cap_multiplier": 1.3,
+          "grace_period_multiplier": 0.8,
+          "applicable_discounts": ["consumption", "credit_card"]
+        },
+        {
+          "vehicle_type": "electric_vehicle",
+          "rate_multiplier": 0.8,
+          "daily_cap_multiplier": 1.0,
+          "grace_period_multiplier": 1.2,
+          "applicable_discounts": ["resident", "disabled", "consumption", "credit_card", "member", "ev_discount"]
+        }
+      ],
+      "discount_rules": [
+        {
+          "discount_id": "resident",
+          "discount_type": "resident",
+          "name": "里民優惠",
+          "description": "龍興里居民享有停車優惠",
+          "discount_value": 0.2,
+          "discount_mode": "percentage",
+          "eligibility_conditions": {
+            "required_documents": ["resident_card"],
+            "valid_areas": ["龍興里"]
+          },
+          "daily_limit": 1,
+          "monthly_limit": 30,
+          "max_discount_amount": 50,
+          "stackable": true,
+          "priority": 5
+        },
+        {
+          "discount_id": "disabled",
+          "discount_type": "disabled",
+          "name": "身心障礙優惠",
+          "description": "身心障礙人士免費停車3小時",
+          "discount_value": 90,
+          "discount_mode": "fixed_amount",
+          "eligibility_conditions": {
+            "required_documents": ["disability_card"]
+          },
+          "daily_limit": 1,
+          "monthly_limit": null,
+          "max_discount_amount": null,
+          "stackable": false,
+          "priority": 10
+        },
+        {
+          "discount_id": "consumption",
+          "discount_type": "consumption",
+          "name": "消費折抵",
+          "description": "單筆消費滿500元免費停車2小時",
+          "discount_value": 60,
+          "discount_mode": "fixed_amount",
+          "eligibility_conditions": {
+            "min_consumption": 500
+          },
+          "daily_limit": 3,
+          "monthly_limit": null,
+          "max_discount_amount": 120,
+          "stackable": true,
+          "priority": 3
+        },
+        {
+          "discount_id": "credit_card",
+          "discount_type": "credit_card",
+          "name": "信用卡優惠",
+          "description": "指定信用卡享8折優惠",
+          "discount_value": 0.2,
+          "discount_mode": "percentage",
+          "eligibility_conditions": {
+            "accepted_cards": ["玉山銀行", "中國信託", "台新銀行"]
+          },
+          "daily_limit": 1,
+          "monthly_limit": 30,
+          "max_discount_amount": 40,
+          "stackable": true,
+          "priority": 2
+        },
+        {
+          "discount_id": "member",
+          "discount_type": "member",
+          "name": "會員優惠",
+          "description": "VIP會員享有額外優惠",
+          "discount_value": 30,
+          "discount_mode": "fixed_amount",
+          "eligibility_conditions": {
+            "min_member_level": "VIP"
+          },
+          "daily_limit": 1,
+          "monthly_limit": null,
+          "max_discount_amount": null,
+          "stackable": true,
+          "priority": 4
+        },
+        {
+          "discount_id": "ev_discount",
+          "discount_type": "time_based",
+          "name": "電動車優惠",
+          "description": "電動車充電期間免費停車",
+          "discount_value": 0.5,
+          "discount_mode": "percentage",
+          "eligibility_conditions": {
+            "charging_required": true
+          },
+          "daily_limit": 1,
+          "monthly_limit": null,
+          "max_discount_amount": 100,
+          "stackable": true,
+          "priority": 6
+        }
+      ],
+      "dynamic_pricing": {
+        "enabled": true,
+        "occupancy_thresholds": [
+          { "threshold": 0.0, "multiplier": 0.8 },
+          { "threshold": 0.5, "multiplier": 1.0 },
+          { "threshold": 0.8, "multiplier": 1.2 },
+          { "threshold": 0.95, "multiplier": 1.5 }
+        ],
+        "event_multipliers": {
+          "concert": 1.5,
+          "holiday": 1.2,
+          "festival": 1.3,
+          "sale_event": 1.1
+        },
+        "weather_adjustments": {
+          "rain": 1.1,
+          "typhoon": 0.8,
+          "extreme_heat": 1.05
+        },
+        "time_based_adjustments": {
+          "peak_hours": 1.2,
+          "off_peak": 0.9
+        }
+      }
+    },
+    {
+      "rate_plan_id": "simple_motorcycle",
+      "label": "機車計次收費",
+      "description": "機車簡單計次收費方案",
+      "date_type": "weekday",
+      "apply_on_holiday": true,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 50,
+      "split_by_timeslot_enabled": false,
+      "split_by_day_enabled": false,
+      "night_cross_day_split": false,
+      "enable_zero_fee": true,
+      "round_up_enabled": false,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "all_day",
+          "label": "全日計次",
+          "start": "00:00",
+          "end": "24:00",
+          "unit_minutes": 1440,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 30,
+          "progressive_enabled": false,
+          "default_unit_price": 30,
+          "progressive_rates": []
+        }
+      ],
+      "vehicle_type_configs": [
+        {
+          "vehicle_type": "motorcycle",
+          "rate_multiplier": 1.0,
+          "daily_cap_multiplier": 1.0,
+          "grace_period_multiplier": 1.0,
+          "applicable_discounts": ["resident", "disabled"]
+        }
+      ],
+      "discount_rules": [
+        {
+          "discount_id": "resident",
+          "discount_type": "resident",
+          "name": "里民優惠",
+          "description": "本地居民機車停車優惠",
+          "discount_value": 10,
+          "discount_mode": "fixed_amount",
+          "eligibility_conditions": {
+            "required_documents": ["resident_card"]
+          },
+          "daily_limit": 1,
+          "monthly_limit": 30,
+          "max_discount_amount": null,
+          "stackable": false,
+          "priority": 5
+        },
+        {
+          "discount_id": "disabled",
+          "discount_type": "disabled",
+          "name": "身心障礙免費",
+          "description": "身心障礙人士機車免費停車",
+          "discount_value": 30,
+          "discount_mode": "fixed_amount",
+          "eligibility_conditions": {
+            "required_documents": ["disability_card"]
+          },
+          "daily_limit": 1,
+          "monthly_limit": null,
+          "max_discount_amount": null,
+          "stackable": false,
+          "priority": 10
+        }
+      ],
+      "dynamic_pricing": {
+        "enabled": false
+      }
+    }
+  ],
+  "holiday_calendar": {
+    "description": "假日判定設定",
+    "weekend_as_holiday": true,
+    "custom_holidays": [
+      "2024-01-01",
+      "2024-02-10",
+      "2024-02-11",
+      "2024-02-12",
+      "2024-02-13",
+      "2024-02-14",
+      "2024-02-28",
+      "2024-04-04",
+      "2024-04-05",
+      "2024-05-01",
+      "2024-06-10",
+      "2024-09-17",
+      "2024-10-10",
+      "2024-12-25"
+    ],
+    "custom_workdays": [
+      "2024-02-17"
+    ]
+  },
+  "global_settings": {
+    "currency": "TWD",
+    "timezone": "Asia/Taipei",
+    "rounding_method": "round_up",
+    "minimum_charge": 0,
+    "maximum_daily_charge": 500,
+    "grace_period_global": 15,
+    "support_fractional_units": false
+  }
+} 

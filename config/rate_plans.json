@@ -1,0 +1,466 @@
+{
+  "description": "完整停車費率方案配置 - 確保全年365天24小時完整覆蓋",
+  "version": "3.1",
+  "coverage_guarantee": {
+    "description": "本配置確保全年每一天都有適用的費率方案",
+    "date_types": ["weekday", "weekend", "holiday", "festival", "default"],
+    "fallback_mechanism": "啟用優先順序回退機制，確保系統永不失效"
+  },
+  "rate_plans": [
+    {
+      "rate_plan_id": "weekday_standard",
+      "label": "平日標準方案",
+      "description": "週一至週五的標準費率方案",
+      "date_type": "weekday",
+      "apply_on_holiday": false,
+      "priority": 1,
+      "daily_cap_enabled": false,
+      "daily_cap_amount": null,
+      "split_by_timeslot_enabled": true,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": true,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "day",
+          "label": "日間時段",
+          "start": "08:00",
+          "end": "22:00",
+          "unit_minutes": 60,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 120,
+          "progressive_enabled": false,
+          "default_unit_price": 30,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "night",
+          "label": "夜間時段",
+          "start": "22:00",
+          "end": "08:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 60,
+          "progressive_enabled": true,
+          "default_unit_price": 10,
+          "progressive_rates": [
+            {
+              "start_min": 0,
+              "end_min": 120,
+              "unit_minutes": 60,
+              "unit_price": 10
+            },
+            {
+              "start_min": 120,
+              "end_min": null,
+              "unit_minutes": 60,
+              "unit_price": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rate_plan_id": "weekend_standard", 
+      "label": "週末標準方案",
+      "description": "週六、週日的標準費率方案",
+      "date_type": "weekend",
+      "apply_on_holiday": false,
+      "priority": 2,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 200,
+      "split_by_timeslot_enabled": true,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": true,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "day",
+          "label": "日間時段",
+          "start": "08:00",
+          "end": "22:00",
+          "unit_minutes": 30,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 150,
+          "progressive_enabled": true,
+          "default_unit_price": 25,
+          "progressive_rates": [
+            {"start_min": 0, "end_min": 120, "unit_minutes": 30, "unit_price": 25},
+            {"start_min": 120, "end_min": 240, "unit_minutes": 30, "unit_price": 30},
+            {"start_min": 240, "end_min": null, "unit_minutes": 30, "unit_price": 35}
+          ]
+        },
+        {
+          "time_slot_id": "night",
+          "label": "夜間時段",
+          "start": "22:00",
+          "end": "08:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 80,
+          "progressive_enabled": false,
+          "default_unit_price": 20,
+          "progressive_rates": []
+        }
+      ]
+    },
+    {
+      "rate_plan_id": "holiday_special",
+      "label": "國定假日方案",
+      "description": "國定假日及連續假期的特殊費率方案",
+      "date_type": "holiday",
+      "apply_on_holiday": true,
+      "priority": 3,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 180,
+      "split_by_timeslot_enabled": true,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": true,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "day",
+          "label": "假日日間",
+          "start": "08:00",
+          "end": "22:00",
+          "unit_minutes": 30,
+          "grace_minutes": 10,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 100,
+          "progressive_enabled": false,
+          "default_unit_price": 20,
+          "progressive_rates": [],
+          "custom_enabled": false,
+          "custom_config": null,
+          "apply_on_festival": true,
+          "holiday_rate_multiplier": 1.2,
+          "festival_rate_multiplier": 1.5
+        },
+        {
+          "time_slot_id": "night",
+          "label": "假日夜間",
+          "start": "22:00",
+          "end": "08:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 50,
+          "progressive_enabled": false,
+          "default_unit_price": 10,
+          "progressive_rates": [],
+          "custom_enabled": true,
+          "custom_config": {
+            "type": "time_based",
+            "description": "深夜時段特殊優惠",
+            "time_adjustments": {
+              "00:00-06:00": 0.8,
+              "22:00-24:00": 1.0
+            }
+          },
+          "apply_on_festival": false,
+          "holiday_rate_multiplier": 1.0,
+          "festival_rate_multiplier": 1.0
+        }
+      ]
+    },
+    {
+      "rate_plan_id": "mall_complex",
+      "label": "商場複合方案",
+      "description": "商場多時段複雜費率，支援累進計費",
+      "date_type": "weekday",
+      "apply_on_holiday": false,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 300,
+      "split_by_timeslot_enabled": true,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": false,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "early_morning",
+          "label": "早晨優惠",
+          "start": "06:00",
+          "end": "09:00",
+          "unit_minutes": 60,
+          "grace_minutes": 30,
+          "grace_enabled": true,
+          "cap_enabled": false,
+          "cap_amount": 0,
+          "progressive_enabled": false,
+          "default_unit_price": 15,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "morning_peak",
+          "label": "上午尖峰",
+          "start": "09:00",
+          "end": "12:00",
+          "unit_minutes": 30,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 90,
+          "progressive_enabled": true,
+          "default_unit_price": 25,
+          "progressive_rates": [
+            {
+              "start_min": 0,
+              "end_min": 60,
+              "unit_minutes": 30,
+              "unit_price": 25
+            },
+            {
+              "start_min": 60,
+              "end_min": 120,
+              "unit_minutes": 30,
+              "unit_price": 35
+            },
+            {
+              "start_min": 120,
+              "end_min": null,
+              "unit_minutes": 30,
+              "unit_price": 40
+            }
+          ]
+        },
+        {
+          "time_slot_id": "lunch_time",
+          "label": "午餐時段",
+          "start": "12:00",
+          "end": "14:00",
+          "unit_minutes": 60,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 80,
+          "progressive_enabled": false,
+          "default_unit_price": 40,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "afternoon",
+          "label": "下午時段",
+          "start": "14:00",
+          "end": "18:00",
+          "unit_minutes": 30,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 120,
+          "progressive_enabled": false,
+          "default_unit_price": 30,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "evening",
+          "label": "晚間時段",
+          "start": "18:00",
+          "end": "22:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 100,
+          "progressive_enabled": false,
+          "default_unit_price": 35,
+          "progressive_rates": []
+        },
+        {
+          "time_slot_id": "night",
+          "label": "夜間時段",
+          "start": "22:00",
+          "end": "06:00",
+          "unit_minutes": 60,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 60,
+          "progressive_enabled": false,
+          "default_unit_price": 15,
+          "progressive_rates": []
+        }
+      ]
+    },
+    {
+      "rate_plan_id": "festival_premium",
+      "label": "重大節慶方案",
+      "description": "春節、中秋節等重大節慶的特殊費率方案",
+      "date_type": "festival",
+      "apply_on_holiday": true,
+      "priority": 4,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 300,
+      "split_by_timeslot_enabled": false,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": false,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "festival_all_day",
+          "label": "節慶全日時段",
+          "start": "00:00",
+          "end": "24:00",
+          "unit_minutes": 30,
+          "grace_minutes": 0,
+          "grace_enabled": false,
+          "cap_enabled": true,
+          "cap_amount": 300,
+          "progressive_enabled": true,
+          "default_unit_price": 50,
+          "progressive_rates": [
+            {"start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 50},
+            {"start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 55},
+            {"start_min": 120, "end_min": 240, "unit_minutes": 30, "unit_price": 60},
+            {"start_min": 240, "end_min": null, "unit_minutes": 60, "unit_price": 40}
+          ]
+        }
+      ]
+    },
+    {
+      "rate_plan_id": "universal_default",
+      "label": "萬用預設方案",
+      "description": "系統保底方案，確保任何情況下都有適用的費率",
+      "date_type": "default",
+      "apply_on_holiday": true,
+      "priority": 999,
+      "daily_cap_enabled": true,
+      "daily_cap_amount": 200,
+      "split_by_timeslot_enabled": false,
+      "split_by_day_enabled": true,
+      "night_cross_day_split": false,
+      "enable_zero_fee": true,
+      "round_up_enabled": true,
+      "skip_fee_when_total_free": true,
+      "manual_override_enabled": true,
+      "time_slots": [
+        {
+          "time_slot_id": "default_24h",
+          "label": "預設全天時段",
+          "start": "00:00",
+          "end": "24:00",
+          "unit_minutes": 60,
+          "grace_minutes": 15,
+          "grace_enabled": true,
+          "cap_enabled": true,
+          "cap_amount": 200,
+          "progressive_enabled": false,
+          "default_unit_price": 30,
+          "progressive_rates": []
+        }
+      ]
+    }
+  ],
+  "holiday_calendar": {
+    "description": "完整的台灣假日行事曆配置 - 確保全年365天完整覆蓋",
+    "weekend_as_holiday": true,
+    "custom_holidays": [
+      "2024-01-01",
+      "2024-02-10",
+      "2024-02-11",
+      "2024-02-12",
+      "2024-02-13",
+      "2024-02-14",
+      "2024-02-28",
+      "2024-04-04",
+      "2024-04-05",
+      "2024-05-01",
+      "2024-06-10",
+      "2024-09-17",
+      "2024-10-10",
+      "2025-01-01",
+      "2025-01-29",
+      "2025-01-30",
+      "2025-01-31",
+      "2025-02-01",
+      "2025-02-02",
+      "2025-02-28",
+      "2025-04-04",
+      "2025-04-05",
+      "2025-05-01",
+      "2025-05-30",
+      "2025-10-10"
+    ],
+    "custom_workdays": [
+      "2024-02-17",
+      "2024-06-08",
+      "2024-09-14",
+      "2025-02-08"
+    ],
+    "festival_holidays": [
+      "2024-12-25",
+      "2024-12-31",
+      "2025-01-01",
+      "2025-01-29",
+      "2025-01-30",
+      "2025-02-14",
+      "2025-05-01",
+      "2025-06-01",
+      "2025-10-01",
+      "2025-10-31",
+      "2025-12-25",
+      "2025-12-31"
+    ],
+    "lunar_festivals": [
+      {
+        "name": "春節",
+        "description": "農曆新年",
+        "lunar_month": 1,
+        "lunar_day": 1,
+        "duration_days": 3
+      },
+      {
+        "name": "元宵節",
+        "description": "農曆正月十五",
+        "lunar_month": 1,
+        "lunar_day": 15,
+        "duration_days": 1
+      },
+      {
+        "name": "中秋節",
+        "description": "農曆八月十五",
+        "lunar_month": 8,
+        "lunar_day": 15,
+        "duration_days": 1
+      }
+    ],
+    "special_events": [
+      {
+        "name": "台北車展",
+        "start_date": "2024-12-28",
+        "end_date": "2025-01-05",
+        "rate_multiplier": 1.5
+      },
+      {
+        "name": "跨年活動",
+        "start_date": "2024-12-31",
+        "end_date": "2025-01-01",
+        "rate_multiplier": 2.0
+      }
+    ]
+  }
+}

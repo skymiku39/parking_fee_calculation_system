@@ -1,0 +1,98 @@
+{
+  "templates": {
+    "basic_hourly": {
+      "name": "基本時段費率範本",
+      "description": "適用於一般停車場的基本時段計費",
+      "template_type": "traditional",
+      "time_slots": [
+        {
+          "time_slot_id": "day",
+          "label": "日間時段",
+          "start": "08:00",
+          "end": "22:00",
+          "unit_minutes": 60,
+          "default_unit_price": 30,
+          "grace_minutes": 15,
+          "grace_enabled": true
+        },
+        {
+          "time_slot_id": "night",
+          "label": "夜間時段",
+          "start": "22:00",
+          "end": "08:00",
+          "unit_minutes": 60,
+          "default_unit_price": 20,
+          "grace_minutes": 0,
+          "grace_enabled": false
+        }
+      ]
+    },
+    "progressive_pricing": {
+      "name": "累進計費範本",
+      "description": "適用於商場等需要累進計費的場所",
+      "template_type": "traditional",
+      "time_slots": [
+        {
+          "time_slot_id": "all_day",
+          "label": "全天時段",
+          "start": "00:00",
+          "end": "24:00",
+          "unit_minutes": 30,
+          "progressive_enabled": true,
+          "progressive_rates": [
+            {
+              "start_min": 0,
+              "end_min": 120,
+              "unit_minutes": 30,
+              "unit_price": 25
+            },
+            {
+              "start_min": 120,
+              "end_min": 240,
+              "unit_minutes": 30,
+              "unit_price": 30
+            },
+            {
+              "start_min": 240,
+              "end_min": null,
+              "unit_minutes": 30,
+              "unit_price": 35
+            }
+          ]
+        }
+      ]
+    },
+    "multidimensional_basic": {
+      "name": "基本多維度範本",
+      "description": "多維度標籤計費基本範本",
+      "template_type": "multidimensional",
+      "time_segment_types": [
+        "全天",
+        "兩段",
+        "三段",
+        "四段"
+      ],
+      "holiday_types": [
+        "無假日費率",
+        "六日費率",
+        "國定假費率"
+      ]
+    }
+  },
+  "validation_rules": {
+    "time_coverage": "必須覆蓋24小時",
+    "price_range": {
+      "min": 0,
+      "max": 1000
+    },
+    "time_slot_min_duration": 15,
+    "max_time_slots_per_plan": 10
+  },
+  "default_settings": {
+    "currency": "NT$",
+    "precision": 0,
+    "round_up": true,
+    "grace_period_max": 30,
+    "daily_cap_max": 500
+  }
+}

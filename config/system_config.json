@@ -1,0 +1,39 @@
+{
+  "system_mode": "multidimensional",
+  "default_calculation_engine": "multidimensional",
+  "enable_plan_switching": true,
+  "enable_manual_override": true,
+  "calculation_precision": 2,
+  "currency_symbol": "NT$",
+  "date_format": "%Y-%m-%d",
+  "time_format": "%H:%M",
+  "system_timezone": "Asia/Taipei",
+  "default_rate_plan": "萬華西園",
+  "version": "2.0",
+  "last_updated": "2024-12-30T12:00:00",
+  "features": {
+    "rate_plan_designer": true,
+    "multidimensional_calculator": true,
+    "settlement_center": true,
+    "comprehensive_validation": true,
+    "real_time_calculation": true,
+    "manual_adjustments": true,
+    "historical_records": true
+  },
+  "validation_rules": {
+    "max_parking_duration_hours": 720,
+    "min_parking_duration_minutes": 1,
+    "max_manual_adjustment": 10000,
+    "min_manual_adjustment": -10000,
+    "require_plan_activation": true,
+    "validate_time_ranges": true
+  },
+  "ui_settings": {
+    "theme": "modern",
+    "language": "zh-TW",
+    "time_format_display": "24h",
+    "currency_display": "symbol_first",
+    "show_calculation_details": true,
+    "enable_advanced_features": true
+  }
+}

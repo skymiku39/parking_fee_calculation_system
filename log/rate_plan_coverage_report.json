@@ -1,0 +1,45 @@
+{
+  "report_date": "2025-06-19 19:27:39",
+  "analyzed_year": 2024,
+  "coverage_statistics": {
+    "year": 2024,
+    "total_days": 366,
+    "full_coverage_days": 366,
+    "partial_coverage_days": 0,
+    "no_coverage_days": 0,
+    "fallback_coverage_days": 0,
+    "problematic_dates": [],
+    "date_type_stats": {
+      "weekday": {
+        "total": 262,
+        "covered": 262
+      },
+      "weekend": {
+        "total": 104,
+        "covered": 104
+      },
+      "holiday": {
+        "total": 0,
+        "covered": 0
+      },
+      "festival": {
+        "total": 0,
+        "covered": 0
+      }
+    },
+    "missing_coverage_summary": {},
+    "coverage_percentage": 100.0
+  },
+  "improvement_suggestions": [],
+  "plan_summary": {
+    "total_plans": 6,
+    "plan_types": {
+      "weekday": 2,
+      "weekend": 1,
+      "holiday": 1,
+      "festival": 1,
+      "default": 1
+    },
+    "plans_with_issues": []
+  }
+}

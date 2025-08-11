@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能停車費率計算系統</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Microsoft JhengHei", Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .header-content h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        font-weight: 300;
+      }
+
+      .header-content p {
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
+
+      .nav-buttons {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .nav-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: all 0.3s;
+        font-size: 0.9em;
+      }
+
+      .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        text-decoration: none;
+        color: white;
+      }
+
+      .nav-btn.active {
+        background: rgba(255, 255, 255, 0.4);
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+
+      .content {
+        padding: 40px;
+      }
+
+      .system-status {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border-left: 4px solid #4facfe;
+      }
+
+      .system-status h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.3em;
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+      }
+
+      .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .status-label {
+        font-weight: 600;
+        color: #555;
+      }
+
+      .status-value {
+        font-weight: bold;
+        color: #4facfe;
+      }
+
+      .plan-selection {
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 30px;
+      }
+
+      .plan-selection h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.4em;
+      }
+
+      .form-group {
+        margin-bottom: 25px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 1.1em;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #4facfe;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .form-row-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+      }
+
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        font-size: 1.1em;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+        font-weight: 600;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-full {
+        width: 100%;
+      }
+
+      .result {
+        margin-top: 30px;
+        padding: 25px;
+        border-radius: 10px;
+        border: 2px solid #4facfe;
+        background: #f8f9fa;
+      }
+
+      .result h3 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.3em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .result-summary {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4facfe;
+      }
+
+      .calculation-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: #555;
+      }
+
+      .info-value {
+        font-weight: bold;
+        color: #333;
+      }
+
+      .total-amount {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      .total-amount .amount {
+        font-size: 3em;
+        font-weight: bold;
+        color: #e74c3c;
+      }
+
+      .total-amount .currency {
+        font-size: 1.2em;
+        color: #666;
+      }
+
+      .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #4facfe;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .form-row,
+        .form-row-3 {
+          grid-template-columns: 1fr;
+        }
+
+        .header {
+          flex-direction: column;
+          gap: 20px;
+          text-align: center;
+        }
+
+        .calculation-info {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          <h1><i class="fas fa-car"></i> 智能停車費率計算系統</h1>
+          <p>提供完整的費率方案管理和多維度計費功能</p>
+        </div>
+        <div class="nav-buttons">
+          <a href="/system_settings" class="nav-btn">
+            <i class="fas fa-cogs"></i> 系統設定
+          </a>
+          <a href="/rate_plan_designer" class="nav-btn">
+            <i class="fas fa-tools"></i> 方案設計器
+          </a>
+          <a href="/multidimensional_config" class="nav-btn">
+            <i class="fas fa-cube"></i> 多維度配置
+          </a>
+          <a href="/settlement_center" class="nav-btn">
+            <i class="fas fa-calculator"></i> 結算中心
+          </a>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- 系統狀態區域 -->
+        <div class="system-status">
+          <h3><i class="fas fa-info-circle"></i> 系統狀態</h3>
+          <div class="status-grid">
+            <div class="status-item">
+              <span class="status-label">系統模式</span>
+              <span class="status-value" id="systemMode">多維度</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">計算引擎</span>
+              <span class="status-value" id="calculationEngine">智能計算</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">可用方案數</span>
+              <span class="status-value" id="availablePlans">{{ rate_plans|length }}</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">當前時區</span>
+              <span class="status-value">Asia/Taipei</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 費率方案選擇區域 -->
+        <div class="plan-selection">
+          <h3><i class="fas fa-list-alt"></i> 費率方案選擇與設定</h3>
+          
+          <div class="form-group">
+            <label for="ratePlanSelect">
+              <i class="fas fa-cog"></i> 選擇費率方案
+            </label>
+            <select id="ratePlanSelect" onchange="handlePlanSelection()">
+              <option value="">請選擇費率方案</option>
+              {% for plan in rate_plans %}
+              <option value="{{ plan.rate_plan_id or plan.template_id }}" 
+                      data-type="{{ plan.type }}"
+                      data-segment-type="{{ plan.segment_type or '' }}"
+                      data-holiday-type="{{ plan.holiday_type or '' }}"
+                      data-segments-count="{{ plan.segments_count or '' }}"
+                      data-has-rate-matrix="{{ plan.has_rate_matrix or '' }}"
+                      data-created-date="{{ plan.created_date or '' }}"
+                      {% if current_active_plan and (plan.rate_plan_id == current_active_plan or plan.template_id == current_active_plan) %}selected{% endif %}>
+                {% if plan.type == 'user_defined' %}
+                  🎨 {{ plan.label }} (自訂方案)
+                {% elif plan.type == 'multidimensional' %}
+                  🔬 {{ plan.label }} (多維度)
+                {% else %}
+                  📋 {{ plan.label }} (傳統)
+                {% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div id="planInfo" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div class="info-item">
+              <span class="info-label">方案名稱</span>
+              <span class="info-value" id="selectedPlanName">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">方案類型</span>
+              <span class="info-value" id="selectedPlanType">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">方案說明</span>
+              <span class="info-value" id="selectedPlanDescription">-</span>
+            </div>
+          </div>
+          
+          <div style="margin-top: 15px;">
+            <button class="btn" onclick="activateSelectedPlan()" id="activatePlanBtn" disabled>
+              <i class="fas fa-check"></i> 啟用選擇的方案
+            </button>
+          </div>
+        </div>
+
+        <!-- 停車費計算表單 -->
+        <div class="plan-selection">
+          <h3><i class="fas fa-calculator"></i> 停車費計算</h3>
+          
+          <form id="calculationForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="enterTime">
+                  <i class="fas fa-sign-in-alt"></i> 進場時間
+                </label>
+                <input type="datetime-local" id="enterTime" name="enter_time" required />
+              </div>
+              
+              <div class="form-group">
+                <label for="exitTime">
+                  <i class="fas fa-sign-out-alt"></i> 出場時間
+                </label>
+                <input type="datetime-local" id="exitTime" name="exit_time" required />
+              </div>
+            </div>
+            
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="vehicleType">
+                  <i class="fas fa-car"></i> 車輛類型
+                </label>
+                <select id="vehicleType" name="vehicle_type">
+                  <option value="car">汽車</option>
+                  <option value="motorcycle">機車</option>
+                  <option value="truck">貨車</option>
+                  <option value="van">廂型車</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="manualAdjustment">
+                  <i class="fas fa-edit"></i> 手動調整 (元)
+                </label>
+                <input type="number" id="manualAdjustment" name="manual_adjustment" value="0" step="1" />
+              </div>
+              
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-full" id="calculateBtn" disabled>
+                  <i class="fas fa-calculator"></i> 計算費用
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- 計算結果區域 -->
+        <div id="calculationResult" style="display: none;"></div>
+      </div>
+    </div>
+
+    <script>
+      let selectedPlanId = '{{ current_active_plan or "" }}';
+      // 安全地初始化可用方案數據
+      let availablePlans = [];
+{% if rate_plans %}
+      availablePlans = {{ rate_plans|tojson|safe }};
+{% endif %}
+
+      // 初始化頁面
+      document.addEventListener('DOMContentLoaded', function() {
+        // 設定預設時間
+        const now = new Date();
+        const enterTime = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2小時前
+        
+        document.getElementById('enterTime').value = formatDateTimeLocal(enterTime);
+        document.getElementById('exitTime').value = formatDateTimeLocal(now);
+        
+        // 如果有當前方案，啟用計算按鈕
+        if (selectedPlanId) {
+          document.getElementById('calculateBtn').disabled = false;
+          updatePlanInfo();
+        }
+      });
+
+      function formatDateTimeLocal(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      function handlePlanSelection() {
+        const select = document.getElementById('ratePlanSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption.value) {
+          selectedPlanId = selectedOption.value;
+          document.getElementById('activatePlanBtn').disabled = false;
+          updatePlanInfo();
+        } else {
+          selectedPlanId = '';
+          document.getElementById('activatePlanBtn').disabled = true;
+          document.getElementById('planInfo').style.display = 'none';
+        }
+      }
+
+      function updatePlanInfo() {
+        const select = document.getElementById('ratePlanSelect');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (selectedOption && selectedOption.value) {
+          const planType = selectedOption.getAttribute('data-type') || 'unknown';
+          
+          // 更新基本資訊
+          document.getElementById('selectedPlanName').textContent = selectedOption.textContent;
+          document.getElementById('selectedPlanType').textContent = getTypeDisplayName(planType);
+          
+          // 根據方案類型顯示不同的詳細資訊
+          let description = '完整的費率配置方案';
+          if (planType === 'user_defined') {
+            const segmentType = selectedOption.getAttribute('data-segment-type') || '';
+            const holidayType = selectedOption.getAttribute('data-holiday-type') || '';
+            const segmentsCount = selectedOption.getAttribute('data-segments-count') || '';
+            const hasRateMatrix = selectedOption.getAttribute('data-has-rate-matrix') === 'True';
+            const createdDate = selectedOption.getAttribute('data-created-date') || '';
+            
+            description = `
+              區段類型: ${segmentType} | 假日類型: ${holidayType} | 
+              區段數: ${segmentsCount} | 費率設定: ${hasRateMatrix ? '✅ 已完成' : '⚠️ 未設定'}
+              ${createdDate ? `| 建立: ${new Date(createdDate).toLocaleDateString()}` : ''}
+            `.trim();
+          } else if (planType === 'multidimensional') {
+            description = '🔬 支援多維度時間區段和假日類型的智能計費方案';
+          }
+          
+          document.getElementById('selectedPlanDescription').textContent = description;
+          
+          // 根據方案類型設定不同的視覺樣式
+          const planInfo = document.getElementById('planInfo');
+          planInfo.style.display = 'block';
+          
+          if (planType === 'user_defined') {
+            planInfo.style.borderLeft = '4px solid #ff9500';
+            planInfo.style.background = 'linear-gradient(135deg, #fff8f0 0%, #ffefd5 100%)';
+          } else if (planType === 'multidimensional') {
+            planInfo.style.borderLeft = '4px solid #007bff';
+            planInfo.style.background = 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)';
+          } else {
+            planInfo.style.borderLeft = '4px solid #28a745';
+            planInfo.style.background = 'linear-gradient(135deg, #f0fff0 0%, #e6ffe6 100%)';
+          }
+        }
+      }
+
+      function getTypeDisplayName(type) {
+        const typeMap = {
+          'user_defined': '🎨 自訂方案',
+          'multidimensional': '🔬 多維度方案'
+        };
+        return typeMap[type] || type;
+      }
+
+      function activateSelectedPlan() {
+        if (!selectedPlanId) {
+          alert('請先選擇一個費率方案');
+          return;
+        }
+        
+        const activateBtn = document.getElementById('activatePlanBtn');
+        activateBtn.disabled = true;
+        activateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 啟用中...';
+        
+        fetch('/api/plans/activate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            plan_id: selectedPlanId
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('費率方案啟用成功！');
+            document.getElementById('calculateBtn').disabled = false;
+          } else {
+            alert('啟用失敗：' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('啟用過程中發生錯誤');
+        })
+        .finally(() => {
+          activateBtn.disabled = false;
+          activateBtn.innerHTML = '<i class="fas fa-check"></i> 啟用選擇的方案';
+        });
+      }
+
+      document.getElementById('calculationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+          enter_time: formData.get('enter_time'),
+          exit_time: formData.get('exit_time'),
+          vehicle_type: formData.get('vehicle_type'),
+          manual_adjustment: parseInt(formData.get('manual_adjustment')) || 0,
+          plan_id: selectedPlanId
+        };
+        
+        // 驗證輸入
+        if (!data.enter_time || !data.exit_time) {
+          alert('請填寫完整的進場和出場時間');
+          return;
+        }
+        
+        if (new Date(data.enter_time) >= new Date(data.exit_time)) {
+          alert('出場時間必須晚於進場時間');
+          return;
+        }
+        
+        if (!selectedPlanId) {
+          alert('請先選擇並啟用一個費率方案');
+          return;
+        }
+        
+        // 顯示載入狀態
+        showLoading();
+        
+        fetch('/api/calculate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+          hideLoading();
+          if (result.success) {
+            displayResult(result);
+          } else {
+            displayError(result.error || '計算失敗');
+          }
+        })
+        .catch(error => {
+          hideLoading();
+          console.error('Error:', error);
+          displayError('計算過程中發生網路錯誤');
+        });
+      });
+
+      function showLoading() {
+        const resultDiv = document.getElementById('calculationResult');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+          <div class="loading">
+            <div class="spinner"></div>
+            <p>正在計算停車費用...</p>
+          </div>
+        `;
+      }
+
+      function hideLoading() {
+        // Loading will be replaced by result or error
+      }
+
+      function displayResult(result) {
+        const resultDiv = document.getElementById('calculationResult');
+        
+        let sessionDetailsHtml = '';
+        if (result.session_details && result.session_details.length > 0) {
+          sessionDetailsHtml = `
+            <div style="margin-top: 20px;">
+              <h4><i class="fas fa-list"></i> 計費明細</h4>
+              <div style="background: white; border-radius: 8px; overflow: hidden; border: 1px solid #ddd;">
+                ${result.session_details.map(session => `
+                  <div style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
+                    <div>
+                      <strong>${session.period || session.time_slot || '時段'}</strong><br>
+                      <small>${session.duration || '時長'} | ${session.rate || session.unit_price || '未知費率'}</small>
+                    </div>
+                    <div style="text-align: right;">
+                      <strong style="color: #e74c3c;">${session.amount || session.fee || 0} 元</strong>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+        
+        resultDiv.innerHTML = `
+          <div class="result">
+            <h3>
+              <i class="fas fa-receipt"></i> 計算結果
+              <small style="margin-left: auto; font-size: 0.8em; color: #666;">
+                引擎: ${result.calculation_engine || 'unknown'}
+              </small>
+            </h3>
+            
+            <div class="result-summary">
+              <div class="calculation-info">
+                <div class="info-item">
+                  <span class="info-label">進場時間</span>
+                  <span class="info-value">${result.enter_time_display || result.enter_time}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">出場時間</span>
+                  <span class="info-value">${result.exit_time_display || result.exit_time}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">停車時長</span>
+                  <span class="info-value">${result.total_duration_display || '未知'}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">適用方案</span>
+                  <span class="info-value">${result.applied_rate_plan || selectedPlanId}</span>
+                </div>
+                ${result.date_category ? `
+                <div class="info-item">
+                  <span class="info-label">日期類別</span>
+                  <span class="info-value">${result.date_category}</span>
+                </div>
+                ` : ''}
+                ${result.time_segment_type ? `
+                <div class="info-item">
+                  <span class="info-label">時段類型</span>
+                  <span class="info-value">${result.time_segment_type}</span>
+                </div>
+                ` : ''}
+              </div>
+              
+              <div class="total-amount">
+                <div class="amount">${result.total_amount || 0}</div>
+                <div class="currency">新台幣 元</div>
+                ${result.manual_adjustment ? `<small style="color: #666;">含手動調整: ${result.manual_adjustment} 元</small>` : ''}
+              </div>
+              
+              ${result.calculation_summary ? `
+              <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em; color: #666;">
+                ${result.calculation_summary}
+              </div>
+              ` : ''}
+            </div>
+            
+            ${sessionDetailsHtml}
+          </div>
+        `;
+        
+        resultDiv.style.display = 'block';
+      }
+
+      function displayError(error) {
+        const resultDiv = document.getElementById('calculationResult');
+        resultDiv.innerHTML = `
+          <div class="error-message">
+            <strong><i class="fas fa-exclamation-triangle"></i> 計算錯誤</strong><br>
+            ${error}
+          </div>
+        `;
+        resultDiv.style.display = 'block';
+      }
+    </script>
+  </body>
+</html>

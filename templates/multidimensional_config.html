@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>多維度標籤停車收費系統配置</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .gradient-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .dimension-card {
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+      }
+      .dimension-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: #007bff;
+      }
+      .dimension-header {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 13px 13px 0 0;
+        padding: 15px 20px;
+      }
+      .combination-badge {
+        display: inline-block;
+        padding: 8px 15px;
+        margin: 5px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .combination-badge.selected {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+        transform: scale(1.05);
+      }
+      .combination-badge:not(.selected) {
+        background: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+      }
+      .dimension-multiplier {
+        font-size: 0.8em;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-left: 10px;
+      }
+      .time-segment-preview {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .time-slot {
+        display: inline-block;
+        background: linear-gradient(45deg, #17a2b8, #138496);
+        color: white;
+        padding: 8px 12px;
+        margin: 3px;
+        border-radius: 15px;
+        font-size: 0.85em;
+      }
+      .holiday-indicator {
+        display: inline-flex;
+        align-items: center;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 10px;
+        padding: 5px 10px;
+        margin: 3px;
+        font-size: 0.85em;
+      }
+      .holiday-indicator.weekend {
+        background: #d4edda;
+        border-color: #c3e6cb;
+      }
+      .holiday-indicator.national {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+      }
+      .holiday-indicator.custom {
+        background: #e2e3e5;
+        border-color: #d6d8db;
+      }
+      .matrix-display {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .matrix-cell {
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+      .matrix-cell:hover {
+        border-color: #007bff;
+        background: #f8f9fa;
+      }
+      .matrix-cell.active {
+        border-color: #28a745;
+        background: linear-gradient(45deg, #d4edda, #c3e6cb);
+      }
+      .calculation-demo {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .result-badge {
+        background: linear-gradient(45deg, #ffc107, #e0a800);
+        color: #212529;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        display: inline-block;
+        margin: 10px 5px;
+      }
+      .nav-pills .nav-link {
+        border-radius: 25px;
+        margin: 0 5px;
+      }
+      .nav-pills .nav-link.active {
+        background: linear-gradient(45deg, #007bff, #0056b3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <!-- Header -->
+      <div class="gradient-header text-center py-4 mb-4">
+        <h1><i class="fas fa-tags"></i> 多維度標籤停車收費系統</h1>
+        <p class="mb-0">時段選擇 × 假日類型 = 彈性收費方案</p>
+      </div>
+
+      <!-- Navigation -->
+      <ul class="nav nav-pills justify-content-center mb-4">
+        <li class="nav-item">
+          <a
+            class="nav-link active"
+            href="#dimension-config"
+            data-bs-toggle="pill"
+          >
+            <i class="fas fa-cogs"></i> 維度配置
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#combination-matrix" data-bs-toggle="pill">
+            <i class="fas fa-th"></i> 組合矩陣
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#calculation-demo" data-bs-toggle="pill">
+            <i class="fas fa-calculator"></i> 計算演示
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#template-manager" data-bs-toggle="pill">
+            <i class="fas fa-templates"></i> 範本管理
+          </a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- 維度配置頁面 -->
+        <div class="tab-pane fade show active" id="dimension-config">
+          <div class="row">
+            <!-- 時段維度 -->
+            <div class="col-lg-6">
+              <div class="dimension-card">
+                <div class="dimension-header">
+                  <h4><i class="fas fa-clock"></i> 時段維度配置</h4>
+                  <small>定義不同的時段分割方案</small>
+                </div>
+                <div class="card-body">
+                  <div id="time-segments-config">
+                    <div class="time-segment-item mb-3" data-type="全天">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="time-segment"
+                          value="全天"
+                          class="form-check-input me-2"
+                        />
+                        <strong>全天時段</strong>
+                        <span class="dimension-multiplier">1段</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="time-slot">00:00-24:00 全天</span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i>
+                          24小時統一費率，適合簡單場所
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="time-segment-item mb-3" data-type="兩段">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="time-segment"
+                          value="兩段"
+                          class="form-check-input me-2"
+                          checked
+                        />
+                        <strong>日間夜間</strong>
+                        <span class="dimension-multiplier">2段</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="time-slot">08:00-22:00 日間</span>
+                        <span class="time-slot">22:00-08:00 夜間</span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i>
+                          日間夜間差別費率，最常見的方案
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="time-segment-item mb-3" data-type="三段">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="time-segment"
+                          value="三段"
+                          class="form-check-input me-2"
+                        />
+                        <strong>上午下午夜間</strong>
+                        <span class="dimension-multiplier">3段</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="time-slot">08:00-14:00 上午</span>
+                        <span class="time-slot">14:00-22:00 下午</span>
+                        <span class="time-slot">22:00-08:00 夜間</span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i>
+                          三段式計費，適合商業區域
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="time-segment-item mb-3" data-type="四段">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="time-segment"
+                          value="四段"
+                          class="form-check-input me-2"
+                        />
+                        <strong>上午下午傍晚夜間</strong>
+                        <span class="dimension-multiplier">4段</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="time-slot">08:00-12:00 上午</span>
+                        <span class="time-slot">12:00-18:00 下午</span>
+                        <span class="time-slot">18:00-22:00 傍晚</span>
+                        <span class="time-slot">22:00-08:00 夜間</span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i>
+                          精細四段計費，適合繁忙商場
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="time-segment-item mb-3" data-type="自訂">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="time-segment"
+                          value="自訂"
+                          class="form-check-input me-2"
+                        />
+                        <strong>自訂時段</strong>
+                        <span class="dimension-multiplier">N段</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <div class="text-muted">
+                          <i class="fas fa-edit"></i>
+                          可自由定義時段數量和時間範圍
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 假日維度 -->
+            <div class="col-lg-6">
+              <div class="dimension-card">
+                <div class="dimension-header">
+                  <h4><i class="fas fa-calendar-alt"></i> 假日維度配置</h4>
+                  <small>定義不同的假日費率方案</small>
+                </div>
+                <div class="card-body">
+                  <div id="holiday-types-config">
+                    <div class="holiday-type-item mb-3" data-type="無假日費率">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="holiday-type"
+                          value="無假日費率"
+                          class="form-check-input me-2"
+                        />
+                        <strong>統一費率</strong>
+                        <span class="dimension-multiplier">×1</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="holiday-indicator">
+                          <i class="fas fa-equals"></i> 平日假日同一費率
+                        </span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i>
+                          不區分平日假日，管理簡單
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="holiday-type-item mb-3" data-type="六日費率">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="holiday-type"
+                          value="六日費率"
+                          class="form-check-input me-2"
+                          checked
+                        />
+                        <strong>週末差別費率</strong>
+                        <span class="dimension-multiplier">×2</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="holiday-indicator">
+                          <i class="fas fa-briefcase"></i> 平日費率
+                        </span>
+                        <span class="holiday-indicator weekend">
+                          <i class="fas fa-calendar-week"></i> 週末費率 (+20%)
+                        </span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i> 平日與週末不同費率
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="holiday-type-item mb-3" data-type="國定假費率">
+                      <div class="d-flex align-items-center mb-2">
+                        <input
+                          type="radio"
+                          name="holiday-type"
+                          value="國定假費率"
+                          class="form-check-input me-2"
+                        />
+                        <strong>完整假日差別費率</strong>
+                        <span class="dimension-multiplier">×3</span>
+                      </div>
+                      <div class="time-segment-preview">
+                        <span class="holiday-indicator">
+                          <i class="fas fa-briefcase"></i> 平日費率
+                        </span>
+                        <span class="holiday-indicator weekend">
+                          <i class="fas fa-calendar-week"></i> 週末費率 (+20%)
+                        </span>
+                        <span class="holiday-indicator national">
+                          <i class="fas fa-flag"></i> 國定假日 (+50%)
+                        </span>
+                        <span class="holiday-indicator custom">
+                          <i class="fas fa-star"></i> 客製假日 (+80%)
+                        </span>
+                        <div class="text-muted mt-2">
+                          <i class="fas fa-info-circle"></i>
+                          平日、週末、國定假日、客製假日分別計費
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 組合矩陣頁面 -->
+        <div class="tab-pane fade" id="combination-matrix">
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header bg-primary text-white">
+                  <h4><i class="fas fa-th"></i> 維度組合矩陣</h4>
+                  <small>顯示所有可能的時段與假日類型組合</small>
+                </div>
+                <div class="card-body">
+                  <div id="combination-matrix-display">
+                    <!-- 動態生成的組合矩陣 -->
+                  </div>
+                  <div class="mt-4">
+                    <h5>組合說明</h5>
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="alert alert-info">
+                          <strong>總組合數計算：</strong><br />
+                          時段數量 × 假日類型變體數 = 總變體數<br />
+                          例如：4段 × 3種假日類型 = 12種變體
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="alert alert-success">
+                          <strong>推薦組合：</strong><br />
+                          • 簡單場所：全天 × 無假日費率<br />
+                          • 一般場所：兩段 × 六日費率<br />
+                          • 繁忙場所：四段 × 國定假費率
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 計算演示頁面 -->
+        <div class="tab-pane fade" id="calculation-demo">
+          <div class="row">
+            <div class="col-lg-8">
+              <div class="card">
+                <div class="card-header bg-success text-white">
+                  <h4><i class="fas fa-calculator"></i> 計算演示</h4>
+                </div>
+                <div class="card-body">
+                  <form id="calculation-form">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">選擇費率範本</label>
+                          <select class="form-select" id="template-select">
+                            <option value="全天_無假日費率">
+                              全天統一費率方案
+                            </option>
+                            <option value="兩段_六日費率" selected>
+                              日夜分段週末差別費率
+                            </option>
+                            <option value="四段_國定假費率">
+                              四段精細時段完整假日費率
+                            </option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">停車日期</label>
+                          <input
+                            type="date"
+                            class="form-control"
+                            id="park-date"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">進場時間</label>
+                          <input
+                            type="datetime-local"
+                            class="form-control"
+                            id="enter-time"
+                          />
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">出場時間</label>
+                          <input
+                            type="datetime-local"
+                            class="form-control"
+                            id="exit-time"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-success btn-lg"
+                      onclick="calculateDemo()"
+                    >
+                      <i class="fas fa-calculator"></i> 計算停車費
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="calculation-demo">
+                <h5><i class="fas fa-chart-bar"></i> 計算結果</h5>
+                <div id="calculation-result">
+                  <div class="text-center text-muted">
+                    <i class="fas fa-arrow-left"></i> 請填寫左側資料並點擊計算
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 範本管理頁面 -->
+        <div class="tab-pane fade" id="template-manager">
+          <div class="row">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header bg-warning text-dark">
+                  <h4><i class="fas fa-templates"></i> 範本管理</h4>
+                  <small>管理多維度費率範本</small>
+                </div>
+                <div class="card-body">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-3"
+                  >
+                    <h5>現有範本</h5>
+                    <button
+                      class="btn btn-primary"
+                      data-bs-toggle="modal"
+                      data-bs-target="#newTemplateModal"
+                    >
+                      <i class="fas fa-plus"></i> 新增範本
+                    </button>
+                  </div>
+                  <div id="template-list">
+                    <!-- 動態生成的範本列表 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新增範本模態框 -->
+    <div class="modal fade" id="newTemplateModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">新增多維度費率範本</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="new-template-form">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">範本名稱</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="template-name"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">範本描述</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="template-description"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">時段類型</label>
+                    <select
+                      class="form-select"
+                      id="template-time-segment"
+                      onchange="updateTimeSlotPricing()"
+                    >
+                      <option value="全天">全天時段</option>
+                      <option value="兩段">日間夜間</option>
+                      <option value="三段">上午下午夜間</option>
+                      <option value="四段">上午下午傍晚夜間</option>
+                      <option value="自訂">自訂時段</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">假日類型</label>
+                    <select class="form-select" id="template-holiday-type">
+                      <option value="無假日費率">統一費率</option>
+                      <option value="六日費率">週末差別費率</option>
+                      <option value="國定假費率">完整假日差別費率</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="createTemplate()"
+            >
+              建立範本
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // 初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        initializePage();
+        loadCombinationMatrix();
+        loadTemplateList();
+        setDefaultDateTime();
+      });
+
+      function initializePage() {
+        // 監聽維度選擇變化
+        document
+          .querySelectorAll('input[name="time-segment"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", updateCombinationMatrix);
+          });
+
+        document
+          .querySelectorAll('input[name="holiday-type"]')
+          .forEach((radio) => {
+            radio.addEventListener("change", updateCombinationMatrix);
+          });
+      }
+
+      function setDefaultDateTime() {
+        const now = new Date();
+        const today = now.toISOString().split("T")[0];
+        const currentTime = now.toISOString().slice(0, 16);
+        const exitTime = new Date(now.getTime() + 4 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 16);
+
+        document.getElementById("park-date").value = today;
+        document.getElementById("enter-time").value = currentTime;
+        document.getElementById("exit-time").value = exitTime;
+      }
+
+      function loadCombinationMatrix() {
+        const matrixContainer = document.getElementById(
+          "combination-matrix-display"
+        );
+        const combinations = [
+          { time: "全天", holiday: "無假日費率", variants: 1 },
+          { time: "全天", holiday: "六日費率", variants: 2 },
+          { time: "全天", holiday: "國定假費率", variants: 3 },
+          { time: "兩段", holiday: "無假日費率", variants: 2 },
+          { time: "兩段", holiday: "六日費率", variants: 4 },
+          { time: "兩段", holiday: "國定假費率", variants: 6 },
+          { time: "三段", holiday: "無假日費率", variants: 3 },
+          { time: "三段", holiday: "六日費率", variants: 6 },
+          { time: "三段", holiday: "國定假費率", variants: 9 },
+          { time: "四段", holiday: "無假日費率", variants: 4 },
+          { time: "四段", holiday: "六日費率", variants: 8 },
+          { time: "四段", holiday: "國定假費率", variants: 12 },
+        ];
+
+        matrixContainer.style.gridTemplateColumns = "repeat(4, 1fr)";
+        matrixContainer.innerHTML = combinations
+          .map(
+            (combo) => `
+                <div class="matrix-cell" onclick="selectCombination('${combo.time}_${combo.holiday}')">
+                    <h6>${combo.time} × ${combo.holiday}</h6>
+                    <div class="text-muted">${combo.variants} 種變體</div>
+                    <div class="mt-2">
+                        <span class="badge bg-primary">${combo.time}</span>
+                        <span class="badge bg-secondary">${combo.holiday}</span>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function selectCombination(combinationId) {
+        // 移除所有活動狀態
+        document.querySelectorAll(".matrix-cell").forEach((cell) => {
+          cell.classList.remove("active");
+        });
+
+        // 添加到點擊的組合
+        event.target.closest(".matrix-cell").classList.add("active");
+
+        // 更新表單選擇
+        const [timeSegment, holidayType] = combinationId.split("_");
+        const templateSelect = document.getElementById("template-select");
+        if (templateSelect) {
+          templateSelect.value = combinationId;
+        }
+      }
+
+      function updateCombinationMatrix() {
+        const selectedTime = document.querySelector(
+          'input[name="time-segment"]:checked'
+        )?.value;
+        const selectedHoliday = document.querySelector(
+          'input[name="holiday-type"]:checked'
+        )?.value;
+
+        if (selectedTime && selectedHoliday) {
+          const combinationId = `${selectedTime}_${selectedHoliday}`;
+          // 高亮對應的矩陣格
+          document.querySelectorAll(".matrix-cell").forEach((cell) => {
+            cell.classList.remove("active");
+          });
+
+          const targetCell = document.querySelector(
+            `[onclick="selectCombination('${combinationId}')"]`
+          );
+          if (targetCell) {
+            targetCell.classList.add("active");
+          }
+        }
+      }
+
+      function calculateDemo() {
+        const templateId = document.getElementById("template-select").value;
+        const enterTime = document.getElementById("enter-time").value;
+        const exitTime = document.getElementById("exit-time").value;
+
+        if (!enterTime || !exitTime) {
+          alert("請填寫完整的進出場時間");
+          return;
+        }
+
+        // 模擬計算結果（實際應該調用後端API）
+        const duration = Math.floor(
+          (new Date(exitTime) - new Date(enterTime)) / 60000
+        );
+        const mockResult = {
+          totalAmount: Math.floor(duration / 60) * 30,
+          duration: duration,
+          template: templateId,
+          dateCategory: "平日",
+          timeSegments: [
+            {
+              label: "日間時段",
+              duration: Math.min(duration, 300),
+              fee: (Math.min(duration, 300) / 60) * 30,
+            },
+          ],
+        };
+
+        displayCalculationResult(mockResult);
+      }
+
+      function displayCalculationResult(result) {
+        const resultContainer = document.getElementById("calculation-result");
+        resultContainer.innerHTML = `
+                <div class="result-badge">總費用: ${result.totalAmount}元</div>
+                <div class="mt-3">
+                    <h6>計算詳情</h6>
+                    <div class="small text-muted">
+                        停車時間: ${result.duration}分鐘<br>
+                        日期類別: ${result.dateCategory}<br>
+                        使用範本: ${result.template}
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h6>時段明細</h6>
+                    ${result.timeSegments
+                      .map(
+                        (segment) => `
+                        <div class="small">
+                            ${segment.label}: ${segment.duration}分鐘 = ${segment.fee}元
+                        </div>
+                    `
+                      )
+                      .join("")}
+                </div>
+            `;
+      }
+
+      function loadTemplateList() {
+        const templateList = document.getElementById("template-list");
+        const templates = [
+          {
+            id: "全天_無假日費率",
+            name: "全天統一費率方案",
+            description: "24小時統一費率，無假日差別",
+          },
+          {
+            id: "兩段_六日費率",
+            name: "日夜分段週末差別費率",
+            description: "日間夜間分段，週末加價",
+          },
+          {
+            id: "四段_國定假費率",
+            name: "四段精細時段完整假日費率",
+            description: "四個時段精細計費，完整假日差別費率",
+          },
+        ];
+
+        templateList.innerHTML = templates
+          .map(
+            (template) => `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title">${template.name}</h6>
+                                <p class="card-text text-muted">${template.description}</p>
+                                <span class="badge bg-info">${template.id}</span>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTemplate('${template.id}')">
+                                    <i class="fas fa-edit"></i> 編輯
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="duplicateTemplate('${template.id}')">
+                                    <i class="fas fa-copy"></i> 複製
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTemplate('${template.id}')">
+                                    <i class="fas fa-trash"></i> 刪除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function createTemplate() {
+        const name = document.getElementById("template-name").value;
+        const description = document.getElementById(
+          "template-description"
+        ).value;
+        const timeSegment = document.getElementById(
+          "template-time-segment"
+        ).value;
+        const holidayType = document.getElementById(
+          "template-holiday-type"
+        ).value;
+
+        if (!name) {
+          alert("請輸入範本名稱");
+          return;
+        }
+
+        // 實際應該調用後端API
+        alert(
+          `範本建立成功！\n名稱: ${name}\n時段: ${timeSegment}\n假日: ${holidayType}`
+        );
+
+        // 關閉模態框
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("newTemplateModal")
+        );
+        modal.hide();
+
+        // 重新載入範本列表
+        loadTemplateList();
+      }
+
+      function editTemplate(templateId) {
+        alert(`編輯範本: ${templateId}`);
+      }
+
+      function duplicateTemplate(templateId) {
+        alert(`複製範本: ${templateId}`);
+      }
+
+      function deleteTemplate(templateId) {
+        if (confirm(`確認刪除範本: ${templateId}？`)) {
+          alert(`範本已刪除: ${templateId}`);
+          loadTemplateList();
+        }
+      }
+    </script>
+  </body>
+</html>

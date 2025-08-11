@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能停車系統 - 系統設定</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      .settings-card {
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 15px;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+      }
+      .settings-card:hover {
+        transform: translateY(-2px);
+      }
+      .settings-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 20px;
+      }
+      .nav-pills .nav-link {
+        border-radius: 25px;
+        margin-right: 10px;
+        transition: all 0.3s;
+      }
+      .nav-pills .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .form-switch .form-check-input {
+        width: 3em;
+        height: 1.5em;
+      }
+      .status-badge {
+        font-size: 0.8em;
+        padding: 0.4em 0.8em;
+        border-radius: 20px;
+      }
+      .config-group {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container-fluid py-4">
+      <!-- 標題列 -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h1 class="h3 mb-0">
+                <i class="fas fa-cogs text-primary"></i> 系統設定
+              </h1>
+              <small class="text-muted">智能停車費率計算系統配置中心</small>
+            </div>
+            <div>
+              <button class="btn btn-primary" onclick="saveAllSettings()">
+                <i class="fas fa-save"></i> 儲存所有設定
+              </button>
+              <a href="/" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-arrow-left"></i> 返回主頁
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 設定分頁 -->
+      <div class="row">
+        <div class="col-12">
+          <ul class="nav nav-pills mb-4" id="settingsTabs">
+            <li class="nav-item">
+              <a
+                class="nav-link active"
+                data-bs-toggle="pill"
+                href="#system-config"
+              >
+                <i class="fas fa-server"></i> 系統配置
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="pill" href="#engine-config">
+                <i class="fas fa-calculator"></i> 計算引擎
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" data-bs-toggle="pill" href="#plan-management">
+                <i class="fas fa-list-alt"></i> 方案管理
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 設定內容 -->
+      <div class="tab-content">
+        <!-- 系統配置 -->
+        <div class="tab-pane fade show active" id="system-config">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0"><i class="fas fa-cog"></i> 基本系統設定</h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label">系統模式</label>
+                    <select id="system-mode" class="form-select">
+                      <option value="multidimensional">多維度標籤模式</option>
+                      <option value="traditional">傳統計費模式</option>
+                    </select>
+                    <small class="text-muted">選擇主要的計費模式</small>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">預設計算引擎</label>
+                    <select id="default-engine" class="form-select">
+                      <option value="multidimensional">多維度計算器</option>
+                      <option value="traditional">傳統計算器</option>
+                      <option value="enhanced">增強版計算器</option>
+                    </select>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">計算精度 (小數位數)</label>
+                    <select id="calculation-precision" class="form-select">
+                      <option value="0">整數</option>
+                      <option value="1">1位小數</option>
+                      <option value="2">2位小數</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0">
+                    <i class="fas fa-toggle-on"></i> 功能開關
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="form-check form-switch mb-3">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="enable-plan-switching"
+                    />
+                    <label class="form-check-label" for="enable-plan-switching">
+                      啟用方案切換功能
+                    </label>
+                  </div>
+
+                  <div class="form-check form-switch mb-3">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="enable-manual-override"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="enable-manual-override"
+                    >
+                      允許手動調整費用
+                    </label>
+                  </div>
+
+                  <div class="form-check form-switch mb-3">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="enable-enhanced-calculator"
+                    />
+                    <label
+                      class="form-check-label"
+                      for="enable-enhanced-calculator"
+                    >
+                      啟用增強版計算器
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 系統狀態 -->
+          <div class="row">
+            <div class="col-12">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0">
+                    <i class="fas fa-heartbeat"></i> 系統狀態
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="row" id="system-status">
+                    <!-- 動態載入系統狀態 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 計算引擎配置 -->
+        <div class="tab-pane fade" id="engine-config">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0">
+                    <i class="fas fa-calculator"></i> 傳統計算器
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <span class="status-badge bg-success">運行中</span>
+                  </div>
+                  <p class="text-muted">基於固定費率表的傳統計費模式</p>
+                  <button
+                    class="btn btn-outline-primary btn-sm"
+                    onclick="alert('傳統計算器使用現有費率方案')"
+                  >
+                    <i class="fas fa-info"></i> 說明
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0"><i class="fas fa-tags"></i> 多維度計算器</h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <span class="status-badge bg-success">運行中</span>
+                  </div>
+                  <p class="text-muted">基於多維度標籤的智能計費模式</p>
+                  <button
+                    class="btn btn-outline-primary btn-sm"
+                    onclick="window.location.href='/rate_plan_designer'"
+                  >
+                    <i class="fas fa-cog"></i> 設計方案
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0">
+                    <i class="fas fa-rocket"></i> 增強版計算器
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <span
+                      id="enhanced-engine-status"
+                      class="status-badge bg-warning"
+                      >檢查中</span
+                    >
+                  </div>
+                  <p class="text-muted">具備時段切換和動態費率的進階計費模式</p>
+                  <button
+                    class="btn btn-outline-primary btn-sm"
+                    onclick="window.location.href='/rate_plan_designer'"
+                  >
+                    <i class="fas fa-cog"></i> 設計方案
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 方案管理 -->
+        <div class="tab-pane fade" id="plan-management">
+          <div class="row">
+            <div class="col-12">
+              <div class="settings-card">
+                <div class="settings-header">
+                  <h5 class="mb-0">
+                    <i class="fas fa-list-alt"></i> 費率方案管理
+                  </h5>
+                </div>
+                <div class="card-body">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">當前啟用方案</label>
+                      <select id="active-plan" class="form-select">
+                        <!-- 動態載入方案列表 -->
+                      </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                      <button
+                        class="btn btn-primary me-2"
+                        onclick="window.location.href='/rate_plan_designer'"
+                      >
+                        <i class="fas fa-plus"></i> 新增方案
+                      </button>
+                      <button
+                        class="btn btn-outline-secondary"
+                        onclick="refreshPlanList()"
+                      >
+                        <i class="fas fa-sync"></i> 重新載入
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-hover" id="plans-table">
+                      <thead>
+                        <tr>
+                          <th>方案名稱</th>
+                          <th>類型</th>
+                          <th>狀態</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- 動態載入方案列表 -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // 全域變數
+      let systemConfig = {};
+      let availablePlans = [];
+
+      // 初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        loadSystemConfig();
+        loadSystemStatus();
+        loadPlanList();
+        checkEnhancedEngineStatus();
+      });
+
+      // 載入系統配置
+      async function loadSystemConfig() {
+        try {
+          const response = await fetch("/api/system/config");
+          const data = await response.json();
+
+          if (data.success) {
+            systemConfig = data.config;
+            populateConfigForm();
+          }
+        } catch (error) {
+          console.error("載入系統配置失敗:", error);
+        }
+      }
+
+      // 填充配置表單
+      function populateConfigForm() {
+        document.getElementById("system-mode").value =
+          systemConfig.system_mode || "multidimensional";
+        document.getElementById("default-engine").value =
+          systemConfig.default_calculation_engine || "multidimensional";
+        document.getElementById("calculation-precision").value =
+          systemConfig.calculation_precision || 2;
+
+        document.getElementById("enable-plan-switching").checked =
+          systemConfig.enable_plan_switching !== false;
+        document.getElementById("enable-manual-override").checked =
+          systemConfig.enable_manual_override !== false;
+        document.getElementById("enable-enhanced-calculator").checked =
+          systemConfig.enable_enhanced_calculator !== false;
+      }
+
+      // 載入系統狀態
+      async function loadSystemStatus() {
+        const statusContainer = document.getElementById("system-status");
+
+        const statusItems = [
+          { name: "傳統計算器", status: "success", icon: "calculator" },
+          { name: "多維度計算器", status: "success", icon: "tags" },
+          { name: "增強版計算器", status: "warning", icon: "rocket" },
+          { name: "配置文件", status: "success", icon: "file-alt" },
+        ];
+
+        statusContainer.innerHTML = statusItems
+          .map(
+            (item) => `
+          <div class="col-md-3 mb-3">
+            <div class="text-center">
+              <i class="fas fa-${item.icon} fa-2x text-${
+              item.status === "success" ? "success" : "warning"
+            } mb-2"></i>
+              <h6>${item.name}</h6>
+              <span class="status-badge bg-${
+                item.status === "success" ? "success" : "warning"
+              }">
+                ${item.status === "success" ? "正常" : "檢查中"}
+              </span>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      // 載入方案列表
+      async function loadPlanList() {
+        try {
+          const response = await fetch("/api/plans");
+          const data = await response.json();
+
+          if (data.success) {
+            availablePlans = data.plans;
+            populatePlanSelect();
+            populatePlanTable();
+          }
+        } catch (error) {
+          console.error("載入方案列表失敗:", error);
+        }
+      }
+
+      // 填充方案選擇器
+      function populatePlanSelect() {
+        const select = document.getElementById("active-plan");
+        select.innerHTML = availablePlans
+          .map(
+            (plan) =>
+              `<option value="${plan.rate_plan_id}">${plan.label} (${plan.type})</option>`
+          )
+          .join("");
+      }
+
+      // 填充方案表格
+      function populatePlanTable() {
+        const tbody = document.querySelector("#plans-table tbody");
+        tbody.innerHTML = availablePlans
+          .map(
+            (plan) => `
+          <tr>
+            <td>${plan.label}</td>
+            <td>
+              <span class="badge bg-${
+                plan.type === "multidimensional" ? "primary" : "secondary"
+              }">
+                ${plan.type === "multidimensional" ? "多維度" : "傳統"}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge bg-success">可用</span>
+            </td>
+            <td>
+              <button class="btn btn-outline-primary btn-sm me-1" onclick="activatePlan('${
+                plan.rate_plan_id
+              }')">
+                <i class="fas fa-play"></i> 啟用
+              </button>
+            </td>
+          </tr>
+        `
+          )
+          .join("");
+      }
+
+      // 檢查增強版引擎狀態
+      async function checkEnhancedEngineStatus() {
+        try {
+          const response = await fetch("/api/enhanced/templates");
+          const statusBadge = document.getElementById("enhanced-engine-status");
+
+          if (response.ok) {
+            statusBadge.className = "status-badge bg-success";
+            statusBadge.textContent = "運行中";
+          } else {
+            statusBadge.className = "status-badge bg-danger";
+            statusBadge.textContent = "未啟用";
+          }
+        } catch (error) {
+          const statusBadge = document.getElementById("enhanced-engine-status");
+          statusBadge.className = "status-badge bg-danger";
+          statusBadge.textContent = "錯誤";
+        }
+      }
+
+      // 儲存所有設定
+      async function saveAllSettings() {
+        const config = {
+          system_mode: document.getElementById("system-mode").value,
+          default_calculation_engine:
+            document.getElementById("default-engine").value,
+          calculation_precision: parseInt(
+            document.getElementById("calculation-precision").value
+          ),
+          enable_plan_switching: document.getElementById(
+            "enable-plan-switching"
+          ).checked,
+          enable_manual_override: document.getElementById(
+            "enable-manual-override"
+          ).checked,
+          enable_enhanced_calculator: document.getElementById(
+            "enable-enhanced-calculator"
+          ).checked,
+        };
+
+        try {
+          const response = await fetch("/api/system/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(config),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            alert("設定已儲存成功！");
+            systemConfig = { ...systemConfig, ...config };
+          } else {
+            alert("儲存設定失敗：" + data.error);
+          }
+        } catch (error) {
+          alert("儲存設定時發生錯誤：" + error.message);
+        }
+      }
+
+      // 啟用方案
+      async function activatePlan(planId) {
+        try {
+          const response = await fetch("/api/plans/activate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ plan_id: planId }),
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            alert("方案已啟用成功！");
+            document.getElementById("active-plan").value = planId;
+          } else {
+            alert("啟用方案失敗：" + data.error);
+          }
+        } catch (error) {
+          alert("啟用方案時發生錯誤：" + error.message);
+        }
+      }
+
+      // 重新載入方案列表
+      function refreshPlanList() {
+        loadPlanList();
+      }
+    </script>
+  </body>
+</html>
