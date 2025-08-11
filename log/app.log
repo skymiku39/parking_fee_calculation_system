@@ -83,3 +83,27 @@
 2025-08-11 18:13:48,602 INFO __main__ - 多維度標籤計算器載入成功
 2025-08-11 18:13:48,612 WARNING werkzeug -  * Debugger is active!
 2025-08-11 18:13:48,615 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:15:27,017 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:15:27,036 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:15:27,211 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:15:27,223 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:15:27,226 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:15:51,569 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:15:51,590 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:15:51,756 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:15:51,766 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:15:51,768 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:23:50,769 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:23:50] "GET / HTTP/1.1" 200 -
+2025-08-11 18:23:59,438 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:23:59] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-11 18:25:30,403 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:25:31,692 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 18:25:31,692 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 18:25:31,693 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:25:31,870 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:25:31,881 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:25:31,884 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:29:45,311 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:29:45] "GET / HTTP/1.1" 200 -
+2025-08-11 18:29:51,613 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:29:51] "POST /api/plans/activate HTTP/1.1" 200 -
