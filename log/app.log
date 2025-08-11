@@ -45,3 +45,8 @@
 2025-08-11 17:50:57,062 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:50:57] "POST /api/calculate HTTP/1.1" 200 -
 2025-08-11 17:51:04,946 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:51:04] "GET /rate_plan_designer HTTP/1.1" 200 -
 2025-08-11 17:51:15,725 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:51:15] "GET / HTTP/1.1" 200 -
+2025-08-11 17:59:18,632 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 17:59:18,654 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:59:18,835 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:59:18,846 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:59:18,849 INFO werkzeug -  * Debugger PIN: 623-905-752

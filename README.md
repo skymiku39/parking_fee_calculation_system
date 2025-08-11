@@ -156,7 +156,17 @@ cd parking_fee_calculation_system
 |------|------|------|
 | `config/system_config.json` | 系統設定 | 全域參數配置 |
 | `config/user_defined_plans.json` | 用戶方案 | 自訂費率方案 |
-| `config/multidimensional_rate_plans.json` | 多維度配置 | 標籤組合配置 |
+| `config/multidimensional_rate_plans.json` | 多維度配置 | 標準模板與精選方案 |
+
+### 精選方案版本（UI 僅顯示以下內建選項）
+
+- 全天統一：`全天_無假日費率`
+- 兩段週末：`兩段_六日費率`
+- 四段國定：`四段_國定假費率`
+
+說明：
+- 使用者自訂（`config/user_defined_plans.json`）的方案仍會完整顯示。
+- 其餘內建模板保留於配置中以供擴充，但不於 UI 列出，避免選項過多造成困惑。
 
 ### 費率配置範例
 

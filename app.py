@@ -1187,6 +1187,9 @@ def get_all_available_plans() -> List[Dict]:
     """獲取所有可用的費率方案"""
     plans = []
 
+    # 精選多維度方案（UI 只顯示這些內建方案，避免過多選項）
+    SELECTED_TEMPLATE_IDS = {"全天_無假日費率", "兩段_六日費率", "四段_國定假費率"}
+
     # 添加用戶自訂方案
     try:
         with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
@@ -1261,6 +1264,8 @@ def get_all_available_plans() -> List[Dict]:
             parking_system.multidimensional_calculator.get_available_templates()
         )
         for template_id, label in multidimensional_templates.items():
+            if template_id not in SELECTED_TEMPLATE_IDS:
+                continue
             plans.append(
                 {
                     "rate_plan_id": template_id,
