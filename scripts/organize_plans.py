@@ -107,6 +107,24 @@ def organize():
     with open(INVENTORY_PATH, "w", encoding="utf-8") as f:
         json.dump({"plans": inventory}, f, ensure_ascii=False, indent=2)
 
+    # 更新 docs/plan_catalog.md 區塊（簡單覆蓋，避免注入）
+    try:
+        docs_dir = os.path.join(ROOT, "docs")
+        os.makedirs(docs_dir, exist_ok=True)
+        catalog_md = os.path.join(docs_dir, "plan_catalog.md")
+        with open(catalog_md, "w", encoding="utf-8") as f:
+            f.write("# 方案屬性清單（自動產生）\n\n")
+            f.write("本清單依據 `log/plan_inventory.json` 產生，列出目前用戶自訂方案的關鍵屬性，方便檢視與比對。\n\n")
+            f.write(
+                "> 若要更新本表，請執行：\n>\n> ```powershell\n> python scripts/organize_plans.py\n> ```\n\n"
+            )
+            f.write("## 方案列表\n\n")
+            f.write("```json\n")
+            json.dump({"plans": inventory}, f, ensure_ascii=False, indent=2)
+            f.write("\n``""\n")
+    except Exception as e:
+        print(f"更新 docs/plan_catalog.md 失敗: {e}")
+
     print(f"已更新: {USER_PLANS_PATH}")
     print(f"已產生: {INVENTORY_PATH}")
     return True
