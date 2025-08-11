@@ -12,6 +12,7 @@ import sys
 import shutil
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
+import logging
 
 # 加入模組路徑
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -28,6 +29,18 @@ from src.rate_plan_manager import RatePlanManager
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False  # 支援中文JSON
+
+# 設定日誌
+os.makedirs("log", exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    handlers=[
+        logging.FileHandler("log/app.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 
 # 初始化核心組件
@@ -66,7 +79,7 @@ class SmartParkingSystem:
                 }
                 self.save_system_config()
         except Exception as e:
-            print(f"載入系統配置失敗: {e}")
+            logger.exception("載入系統配置失敗: %s", e)
             self.system_config = {}
 
     def save_system_config(self):
@@ -77,7 +90,7 @@ class SmartParkingSystem:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(self.system_config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"儲存系統配置失敗: {e}")
+            logger.exception("儲存系統配置失敗: %s", e)
 
     def init_multidimensional_calculator(self):
         """初始化多維度計算器"""
@@ -85,9 +98,9 @@ class SmartParkingSystem:
             self.multidimensional_calculator = MultidimensionalParkingCalculator(
                 "config/multidimensional_rate_plans.json"
             )
-            print("多維度標籤計算器載入成功")
+            logger.info("多維度標籤計算器載入成功")
         except Exception as e:
-            print(f"多維度標籤計算器載入失敗: {e}")
+            logger.exception("多維度標籤計算器載入失敗: %s", e)
 
     def get_active_plan_id(self) -> Optional[str]:
         """獲取當前啟用的費率方案ID"""
@@ -1314,6 +1327,13 @@ def api_calculate_fee():
             )
             result["enter_time_display"] = enter_time.strftime("%Y年%m月%d日 %H:%M")
             result["exit_time_display"] = exit_time.strftime("%Y年%m月%d日 %H:%M")
+
+        # 序列化 datetime 欄位，避免 JSON 轉換問題
+        if isinstance(result, dict):
+            if isinstance(result.get("enter_time"), datetime):
+                result["enter_time"] = result["enter_time"].strftime("%Y-%m-%d %H:%M")
+            if isinstance(result.get("exit_time"), datetime):
+                result["exit_time"] = result["exit_time"].strftime("%Y-%m-%d %H:%M")
 
         return jsonify(result)
 

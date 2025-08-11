@@ -197,11 +197,8 @@ cd parking_fee_calculation_system
 python -m pytest tests/ -v
 
 # 運行特定測試
-python test_billing_cycle_fix.py
 python tests/test_calculator.py
-
-# 測試收費週期邏輯
-python test_billing_cycle_fix.py
+python examples/test_billing_cycle_fix.py
 ```
 
 ---
