@@ -1,5 +1,6 @@
 param(
-  [switch]$NoInstall
+  [switch]$NoInstall,
+  [switch]$NoRun
 )
 
 Set-StrictMode -Version Latest
@@ -23,7 +24,9 @@ if (-not $NoInstall) {
   pip install -r requirements.txt
 }
 
-Write-Host '啟動 Flask 應用 ...'
-python app.py
+if (-not $NoRun) {
+  Write-Host '啟動 Flask 應用 ...'
+  python app.py
+}
 
 

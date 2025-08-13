@@ -1523,6 +1523,37 @@ def api_calculate_fee():
 @app.route("/api/system/config", methods=["GET", "POST"])
 def api_system_config():
     """系統配置API"""
+    """
+    ---
+    get:
+      description: 取得系統配置
+      responses:
+        200:
+          description: 成功
+    post:
+      description: 更新系統配置（部分欄位）
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            properties:
+              system_mode:
+                type: string
+              default_calculation_engine:
+                type: string
+              calculation_precision:
+                type: integer
+      responses:
+        200:
+          description: 成功
+        400:
+          description: 格式錯誤
+        500:
+          description: 伺服器錯誤
+    """
     if request.method == "GET":
         return jsonify({"success": True, "config": parking_system.system_config})
 
@@ -1552,6 +1583,16 @@ def api_system_config():
 @app.route("/api/plans", methods=["GET"])
 def api_get_all_plans():
     """獲取所有費率方案API"""
+    """
+    ---
+    get:
+      description: 取得可用費率方案清單
+      responses:
+        200:
+          description: 成功
+        500:
+          description: 伺服器錯誤
+    """
     try:
         plans = get_all_available_plans()
         current_plan = parking_system.get_active_plan_id()
@@ -1573,6 +1614,29 @@ def api_get_all_plans():
 @app.route("/api/plans/activate", methods=["POST"])
 def api_activate_plan():
     """啟用費率方案API"""
+    """
+    ---
+    post:
+      description: 啟用指定的費率方案
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            required: [plan_id]
+            properties:
+              plan_id:
+                type: string
+      responses:
+        200:
+          description: 成功
+        400:
+          description: 輸入錯誤或方案不存在
+        500:
+          description: 伺服器錯誤
+    """
     try:
         data = request.get_json()
         plan_id = data.get("plan_id")
@@ -1606,6 +1670,16 @@ def api_activate_plan():
 @app.route("/api/multidimensional/combinations")
 def api_get_dimension_combinations():
     """獲取多維度組合API"""
+    """
+    ---
+    get:
+      description: 取得多維度可用組合
+      responses:
+        200:
+          description: 成功
+        500:
+          description: 伺服器錯誤
+    """
     try:
         if not parking_system.multidimensional_calculator:
             return error_response(
@@ -1628,6 +1702,41 @@ def api_get_dimension_combinations():
 @app.route("/api/rate_plans/save", methods=["POST"])
 def api_save_rate_plan():
     """儲存用戶自定義費率方案"""
+    """
+    ---
+    post:
+      description: 儲存一個新的用戶自定義費率方案
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            required: [name, segment_type, holiday_type, segments]
+            properties:
+              name: { type: string }
+              segment_type: { type: string }
+              holiday_type: { type: string }
+              segments:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    start: { type: string }
+                    end: { type: string }
+              rate_matrix: { type: object }
+              global_caps: { type: object }
+              global_grace_time: { type: integer }
+      responses:
+        200:
+          description: 成功
+        400:
+          description: 輸入或配置錯誤
+        500:
+          description: 伺服器錯誤
+    """
     try:
         data = request.get_json() or {}
 
@@ -1728,6 +1837,16 @@ def api_save_rate_plan():
 @app.route("/api/rate_plans/list", methods=["GET"])
 def api_list_user_rate_plans():
     """獲取用戶自定義費率方案列表"""
+    """
+    ---
+    get:
+      description: 取得用戶自定義方案列表
+      responses:
+        200:
+          description: 成功
+        500:
+          description: 伺服器錯誤
+    """
     try:
         user_plans_file = "config/user_defined_plans.json"
         try:
@@ -1764,6 +1883,23 @@ def api_list_user_rate_plans():
 @app.route("/api/rate_plans/load/<plan_id>", methods=["GET"])
 def api_load_rate_plan(plan_id):
     """載入指定的用戶自定義費率方案"""
+    """
+    ---
+    get:
+      description: 取得指定 ID 的用戶方案
+      parameters:
+        - name: plan_id
+          in: path
+          type: string
+          required: true
+      responses:
+        200:
+          description: 成功
+        404:
+          description: 找不到方案
+        500:
+          description: 伺服器錯誤
+    """
     try:
         user_plans_file = "config/user_defined_plans.json"
         try:

@@ -36,4 +36,18 @@ def test_calculate_error_model(client=None):
         assert data2.get("code") == "INVALID_DATETIME_FORMAT"
         assert "request_id" in data2
 
+        # 正確請求但缺方案（若無預設方案）仍應返回成功字段或統一錯誤
+        resp3 = c.post(
+            "/api/calculate",
+            data=json.dumps({
+                "enter_time": "2025-06-20T10:00",
+                "exit_time": "2025-06-20T12:00"
+            }),
+            content_type="application/json",
+        )
+        # 允許200（業務錯誤）或400，重點是結構一致
+        assert resp3.status_code in (200, 400)
+        data3 = resp3.get_json()
+        assert "success" in data3
+
 

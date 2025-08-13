@@ -46,6 +46,9 @@ cd parking_fee_calculation_system
 
 # 若已安裝依賴且只想啟動（略過安裝）
 ./scripts/start.ps1 -NoInstall
+
+# 只安裝依賴，不啟動（CI/自動化可用）
+./scripts/start.ps1 -NoRun
 ```
 
 啟動後，開啟瀏覽器：`http://127.0.0.1:5000`
