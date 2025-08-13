@@ -1,0 +1,109 @@
+2025-08-11 17:17:08,762 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:17:10,100 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 17:17:10,100 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 17:17:10,102 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:17:10,284 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:17:10,296 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:17:10,299 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 17:17:25,229 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:17:25] "GET / HTTP/1.1" 200 -
+2025-08-11 17:17:25,942 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:17:25] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-08-11 17:17:33,749 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:17:33] "POST /api/plans/activate HTTP/1.1" 200 -
+2025-08-11 17:17:39,036 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:20:12,172 INFO app - 多維度標籤計算器載入成功
+2025-08-11 17:20:12,177 INFO app - 多維度標籤計算器載入成功
+2025-08-11 17:49:59,378 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:49:59,396 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 17:49:59,396 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 17:49:59,397 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:49:59,553 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:49:59,563 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:49:59,566 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 17:50:23,168 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:50:23,188 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 17:50:23,188 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 17:50:23,189 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:50:23,359 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:50:23,369 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:50:23,371 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 17:50:26,433 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 17:50:26,452 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:50:26,648 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:50:26,659 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:50:26,662 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 17:50:27,607 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:50:27] "GET / HTTP/1.1" 200 -
+2025-08-11 17:50:40,443 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:50:40] "POST /api/plans/activate HTTP/1.1" 200 -
+2025-08-11 17:50:44,734 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:50:44] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-11 17:50:57,062 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:50:57] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-11 17:51:04,946 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:51:04] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-11 17:51:15,725 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 17:51:15] "GET / HTTP/1.1" 200 -
+2025-08-11 17:59:18,632 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 17:59:18,654 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:59:18,835 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:59:18,846 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:59:18,849 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 17:59:59,378 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 17:59:59,397 INFO werkzeug -  * Restarting with stat
+2025-08-11 17:59:59,561 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 17:59:59,571 WARNING werkzeug -  * Debugger is active!
+2025-08-11 17:59:59,574 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:00:26,978 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:00:26,996 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:00:27,166 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:00:27,176 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:00:27,179 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:12:13,663 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:12:14,944 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 18:12:14,945 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 18:12:14,946 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:12:15,126 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:12:15,138 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:12:15,141 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:12:23,825 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:23] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:25,264 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:25] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:25,692 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:25] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:25,839 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:25] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:27,782 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:27] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:27,954 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:27] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:28,165 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:28] "GET / HTTP/1.1" 200 -
+2025-08-11 18:12:28,323 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:12:28] "GET / HTTP/1.1" 200 -
+2025-08-11 18:13:48,421 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:13:48,441 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:13:48,602 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:13:48,612 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:13:48,615 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:15:27,017 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:15:27,036 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:15:27,211 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:15:27,223 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:15:27,226 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:15:51,569 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-11 18:15:51,590 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:15:51,756 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:15:51,766 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:15:51,768 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:23:50,769 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:23:50] "GET / HTTP/1.1" 200 -
+2025-08-11 18:23:59,438 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:23:59] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-11 18:25:30,403 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:25:31,692 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-11 18:25:31,692 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-11 18:25:31,693 INFO werkzeug -  * Restarting with stat
+2025-08-11 18:25:31,870 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-11 18:25:31,881 WARNING werkzeug -  * Debugger is active!
+2025-08-11 18:25:31,884 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-11 18:29:45,311 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:29:45] "GET / HTTP/1.1" 200 -
+2025-08-11 18:29:51,613 INFO werkzeug - 127.0.0.1 - - [11/Aug/2025 18:29:51] "POST /api/plans/activate HTTP/1.1" 200 -

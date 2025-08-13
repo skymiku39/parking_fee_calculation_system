@@ -12,6 +12,7 @@ import sys
 import shutil
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
+import logging
 
 # 加入模組路徑
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -28,6 +29,18 @@ from src.rate_plan_manager import RatePlanManager
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False  # 支援中文JSON
+
+# 設定日誌
+os.makedirs("log", exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    handlers=[
+        logging.FileHandler("log/app.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 
 # 初始化核心組件
@@ -66,7 +79,7 @@ class SmartParkingSystem:
                 }
                 self.save_system_config()
         except Exception as e:
-            print(f"載入系統配置失敗: {e}")
+            logger.exception("載入系統配置失敗: %s", e)
             self.system_config = {}
 
     def save_system_config(self):
@@ -77,7 +90,7 @@ class SmartParkingSystem:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(self.system_config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"儲存系統配置失敗: {e}")
+            logger.exception("儲存系統配置失敗: %s", e)
 
     def init_multidimensional_calculator(self):
         """初始化多維度計算器"""
@@ -85,9 +98,9 @@ class SmartParkingSystem:
             self.multidimensional_calculator = MultidimensionalParkingCalculator(
                 "config/multidimensional_rate_plans.json"
             )
-            print("多維度標籤計算器載入成功")
+            logger.info("多維度標籤計算器載入成功")
         except Exception as e:
-            print(f"多維度標籤計算器載入失敗: {e}")
+            logger.exception("多維度標籤計算器載入失敗: %s", e)
 
     def get_active_plan_id(self) -> Optional[str]:
         """獲取當前啟用的費率方案ID"""
@@ -1174,71 +1187,98 @@ def get_all_available_plans() -> List[Dict]:
     """獲取所有可用的費率方案"""
     plans = []
 
+    # 從系統設定讀取 UI 顯示限制（提供預設值以避免缺欄位）
+    ui_cfg = parking_system.system_config.get("ui_settings", {}) if isinstance(parking_system.system_config, dict) else {}
+    max_user_plans_display = int(ui_cfg.get("max_user_plans_display", 5))
+    show_only_featured_user_plans = bool(ui_cfg.get("show_only_featured_user_plans", False))
+
+    # 精選多維度方案（UI 只顯示這些內建方案，避免過多選項）
+    SELECTED_TEMPLATE_IDS = {"全天_無假日費率", "兩段_六日費率", "四段_國定假費率"}
+
     # 添加用戶自訂方案
     try:
         with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
             user_plans = json.load(f)
+            featured_items: List[Dict] = []
+            normal_items: List[Dict] = []
+
             for plan_id, plan_data in user_plans.get("plans", {}).items():
-                if plan_data.get("active", True):
-                    # 分析費率資訊
-                    rate_matrix = plan_data.get("rate_matrix", {})
-                    segments = plan_data.get("segments", [])
+                if not plan_data.get("active", True):
+                    continue
 
-                    # 提取費率摘要
-                    rate_summary = []
-                    if rate_matrix:
-                        for rate_key, rate_config in rate_matrix.items():
-                            simple_rate = rate_config.get("simple_rate", 0)
-                            unit_time = rate_config.get("unit_time", 60)
-                            rate_summary.append(
-                                f"{rate_key}: {simple_rate}元/{unit_time}分鐘"
-                            )
+                # 分析費率資訊
+                rate_matrix = plan_data.get("rate_matrix", {})
+                segments = plan_data.get("segments", [])
 
-                    # 提取時段資訊
-                    segments_info = []
-                    for segment in segments:
-                        segments_info.append(
-                            f"{segment['name']} ({segment['start']}-{segment['end']})"
-                        )
+                # 提取費率摘要
+                rate_summary = []
+                if rate_matrix:
+                    for rate_key, rate_config in rate_matrix.items():
+                        simple_rate = rate_config.get("simple_rate", 0)
+                        unit_time = rate_config.get("unit_time", 60)
+                        rate_summary.append(f"{rate_key}: {simple_rate}元/{unit_time}分鐘")
 
-                    # 全局上限資訊
-                    global_caps = plan_data.get("global_caps", {})
-                    cap_info = ""
-                    if global_caps.get("daily_cap_enabled"):
-                        cap_info = f"日上限: {global_caps.get('daily_cap_amount', 0)}元"
+                # 提取時段資訊
+                segments_info = [
+                    f"{segment['name']} ({segment['start']}-{segment['end']})"
+                    for segment in segments
+                ]
 
-                    # 免費時間資訊
-                    grace_time = plan_data.get("global_grace_time", 0)
-                    grace_info = f"免費時間: {grace_time}分鐘" if grace_time > 0 else ""
+                # 全局上限資訊
+                global_caps = plan_data.get("global_caps", {})
+                cap_info = "日上限: {0}元".format(global_caps.get("daily_cap_amount", 0)) if global_caps.get("daily_cap_enabled") else ""
 
-                    plans.append(
-                        {
-                            "rate_plan_id": plan_id,
-                            "label": plan_data.get("name", plan_id),
-                            "type": "user_defined",
-                            "description": plan_data.get("description", ""),
-                            "segment_type": plan_data.get("segment_type", ""),
-                            "holiday_type": plan_data.get("holiday_type", ""),
-                            "segments_count": len(segments),
-                            "segments_info": segments_info,
-                            "has_rate_matrix": bool(rate_matrix),
-                            "rate_summary": rate_summary,
-                            "cap_info": cap_info,
-                            "grace_info": grace_info,
-                            "created_date": plan_data.get("created_date", ""),
-                            "modified_date": plan_data.get("modified_date", ""),
-                            "version": plan_data.get("version", ""),
-                            # 詳細配置預覽
-                            "config_preview": {
-                                "segments": len(segments),
-                                "rates": len(rate_matrix),
-                                "has_caps": bool(global_caps.get("daily_cap_enabled")),
-                                "has_grace": grace_time > 0,
-                                "holiday_support": plan_data.get("holiday_type", "")
-                                != "無假日",
-                            },
-                        }
-                    )
+                # 免費時間資訊
+                grace_time = plan_data.get("global_grace_time", 0)
+                grace_info = f"免費時間: {grace_time}分鐘" if grace_time > 0 else ""
+
+                item = {
+                    "rate_plan_id": plan_id,
+                    "label": plan_data.get("name", plan_id),
+                    "type": "user_defined",
+                    "description": plan_data.get("description", ""),
+                    "segment_type": plan_data.get("segment_type", ""),
+                    "holiday_type": plan_data.get("holiday_type", ""),
+                    "segments_count": len(segments),
+                    "segments_info": segments_info,
+                    "has_rate_matrix": bool(rate_matrix),
+                    "rate_summary": rate_summary,
+                    "cap_info": cap_info,
+                    "grace_info": grace_info,
+                    "created_date": plan_data.get("created_date", ""),
+                    "modified_date": plan_data.get("modified_date", ""),
+                    "version": plan_data.get("version", ""),
+                    # 詳細配置預覽
+                    "config_preview": {
+                        "segments": len(segments),
+                        "rates": len(rate_matrix),
+                        "has_caps": bool(global_caps.get("daily_cap_enabled")),
+                        "has_grace": grace_time > 0,
+                        "holiday_support": plan_data.get("holiday_type", "") != "無假日",
+                    },
+                }
+
+                is_featured = bool(plan_data.get("featured", False)) or (
+                    isinstance(plan_data.get("tags"), list) and ("featured" in plan_data.get("tags"))
+                )
+
+                if is_featured:
+                    featured_items.append(item)
+                else:
+                    normal_items.append(item)
+
+            # 按設定產出顯示清單
+            if show_only_featured_user_plans:
+                selected_user_items = featured_items
+            else:
+                selected_user_items = featured_items + normal_items
+
+            if max_user_plans_display > 0:
+                selected_user_items = selected_user_items[: max_user_plans_display]
+            else:
+                selected_user_items = []
+
+            plans.extend(selected_user_items)
     except FileNotFoundError:
         pass
 
@@ -1248,6 +1288,8 @@ def get_all_available_plans() -> List[Dict]:
             parking_system.multidimensional_calculator.get_available_templates()
         )
         for template_id, label in multidimensional_templates.items():
+            if template_id not in SELECTED_TEMPLATE_IDS:
+                continue
             plans.append(
                 {
                     "rate_plan_id": template_id,
@@ -1314,6 +1356,13 @@ def api_calculate_fee():
             )
             result["enter_time_display"] = enter_time.strftime("%Y年%m月%d日 %H:%M")
             result["exit_time_display"] = exit_time.strftime("%Y年%m月%d日 %H:%M")
+
+        # 序列化 datetime 欄位，避免 JSON 轉換問題
+        if isinstance(result, dict):
+            if isinstance(result.get("enter_time"), datetime):
+                result["enter_time"] = result["enter_time"].strftime("%Y-%m-%d %H:%M")
+            if isinstance(result.get("exit_time"), datetime):
+                result["exit_time"] = result["exit_time"].strftime("%Y-%m-%d %H:%M")
 
         return jsonify(result)
 

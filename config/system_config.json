@@ -8,7 +8,7 @@
   "date_format": "%Y-%m-%d",
   "time_format": "%H:%M",
   "system_timezone": "Asia/Taipei",
-  "default_rate_plan": "萬華西園",
+  "default_rate_plan": "兩段_六日費率",
   "version": "2.0",
   "last_updated": "2024-12-30T12:00:00",
   "features": {
@@ -34,6 +34,8 @@
     "time_format_display": "24h",
     "currency_display": "symbol_first",
     "show_calculation_details": true,
-    "enable_advanced_features": true
+    "enable_advanced_features": true,
+    "max_user_plans_display": 5,
+    "show_only_featured_user_plans": false
   }
 }
