@@ -15,6 +15,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import logging
+from os import getenv
 from utils.config_validator import (
     validate_user_defined_plans_json,
     validate_multidimensional_config_json,
@@ -36,6 +37,22 @@ from src.managers.rate_plan_manager import RatePlanManager
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False  # 支援中文JSON
+try:
+    from flasgger import Swagger
+
+    swagger = Swagger(
+        app,
+        template={
+            "swagger": "2.0",
+            "info": {
+                "title": "智能停車費率計算系統 API",
+                "version": "1.0.0",
+                "description": "統一錯誤模型與時間格式的 API 規格",
+            },
+        },
+    )
+except Exception:
+    swagger = None
 
 # 設定日誌
 os.makedirs("log", exist_ok=True)
@@ -93,6 +110,37 @@ class SmartParkingSystem:
                     "system_timezone": "Asia/Taipei",
                 }
                 self.save_system_config()
+
+            # 環境變數覆寫（不修改檔案）
+            env_overrides = {
+                "system_mode": getenv("PARK_SYS_MODE"),
+                "default_calculation_engine": getenv("PARK_DEFAULT_ENGINE"),
+                "currency_symbol": getenv("PARK_CURRENCY_SYMBOL"),
+                "system_timezone": getenv("PARK_TIMEZONE"),
+            }
+            calc_precision = getenv("PARK_CALC_PRECISION")
+            if calc_precision is not None and calc_precision.isdigit():
+                env_overrides["calculation_precision"] = int(calc_precision)
+
+            # UI 設定覆寫
+            ui_max = getenv("PARK_UI_MAX_USER_PLANS_DISPLAY")
+            ui_featured = getenv("PARK_UI_SHOW_ONLY_FEATURED")
+            if ui_max is not None:
+                self.system_config.setdefault("ui_settings", {})
+                try:
+                    self.system_config["ui_settings"]["max_user_plans_display"] = int(ui_max)
+                except ValueError:
+                    pass
+            if ui_featured is not None:
+                self.system_config.setdefault("ui_settings", {})
+                self.system_config["ui_settings"]["show_only_featured_user_plans"] = (
+                    ui_featured.lower() in {"1", "true", "yes"}
+                )
+
+            # 套用一般覆寫
+            for k, v in env_overrides.items():
+                if v is not None:
+                    self.system_config[k] = v
         except Exception as e:
             logger.exception("載入系統配置失敗: %s", e)
             self.system_config = {}
@@ -1338,6 +1386,40 @@ def get_all_available_plans() -> List[Dict]:
 @app.route("/api/calculate", methods=["POST"])
 def api_calculate_fee():
     """統一的費用計算API"""
+    """
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required: [enter_time, exit_time]
+          properties:
+            enter_time:
+              type: string
+              example: "2025-06-20T21:52"
+            exit_time:
+              type: string
+              example: "2025-06-21T08:30"
+            plan_id:
+              type: string
+              example: "全天_無假日費率"
+            manual_adjustment:
+              type: integer
+              example: 0
+            vehicle_type:
+              type: string
+              enum: [car, motorcycle, truck, van]
+    responses:
+      200:
+        description: 成功或業務錯誤
+      400:
+        description: 格式錯誤或輸入錯誤
+      500:
+        description: 伺服器錯誤
+    """
     request_id = str(uuid.uuid4())
     start_ts = _pytime.perf_counter()
     try:
