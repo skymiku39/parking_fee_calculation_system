@@ -212,12 +212,11 @@ cd parking_fee_calculation_system
 ### 運行測試
 
 ```bash
-# 運行所有測試
-python -m pytest tests/ -v
+# 運行所有單元測試
+python -m pytest -q
 
-# 運行特定測試
-python tests/test_calculator.py
-python examples/test_billing_cycle_fix.py
+# 手動範例（不屬於單元測試，已移至 examples_manual/）
+python examples_manual/test_billing_cycle_fix.py
 ```
 
 ---
