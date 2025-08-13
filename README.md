@@ -233,14 +233,16 @@ python examples/test_billing_cycle_fix.py
 ### 計算API使用範例
 
 ```javascript
-// 計算停車費
+// 計算停車費（使用 ISO-like 本地時間格式 YYYY-MM-DDTHH:MM）
 fetch('/api/calculate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    entry_time: '2024-06-20 21:52',
-    exit_time: '2024-06-21 08:30',
-    rate_plan: 'test_billing_cycle'
+    enter_time: '2024-06-20T21:52',
+    exit_time: '2024-06-21T08:30',
+    plan_id: '全天_無假日費率',
+    vehicle_type: 'car',
+    manual_adjustment: 0
   })
 }).then(response => response.json())
   .then(data => console.log(data));
@@ -344,9 +346,11 @@ A: 檢查 `config/` 目錄寫入權限和檔案格式
 - **API文檔**：[API Documentation](docs/api.md)
 - **用戶手冊**：[User Guide](docs/user_guide.md)
 
+> 注意：上述連結如不存在，請參考 `log/` 目錄之技術報告或以 `/api/*` 端點自我探索。
+
 ---
 
-**最後更新**：2024年12月  
+**最後更新**：2024年12月
 **當前版本**：v2.0  
 **系統狀態**：🟢 生產就緒
 

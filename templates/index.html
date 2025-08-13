@@ -663,7 +663,9 @@
           if (result.success) {
             displayResult(result);
           } else {
-            displayError(result.error || '計算失敗');
+            const msg = result.message || result.error || '計算失敗';
+            const rid = result.request_id ? ` (請求ID: ${result.request_id})` : '';
+            displayError(msg + rid);
           }
         })
         .catch(error => {

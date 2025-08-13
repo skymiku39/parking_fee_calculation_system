@@ -7,23 +7,30 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from datetime import datetime, date, time, timedelta
 import json
+import uuid
+import time as _pytime
 import os
 import sys
 import shutil
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import logging
+from utils.config_validator import (
+    validate_user_defined_plans_json,
+    validate_multidimensional_config_json,
+    ConfigValidationError,
+)
 
 # 加入模組路徑
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from src.parking_calculator import ParkingCalculator, VehicleType
-from src.multidimensional_calculator import (
+from src.engines.parking_calculator import ParkingCalculator, VehicleType
+from src.engines.multidimensional_calculator import (
     MultidimensionalParkingCalculator,
     TimeSegmentType,
     HolidayType,
     DateCategory,
 )
-from src.rate_plan_manager import RatePlanManager
+from src.managers.rate_plan_manager import RatePlanManager
 
 # 移除增強版多維度計算器以簡化系統
 
@@ -41,6 +48,14 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
+# 統一錯誤回應工具
+def error_response(code: str, message: str, http_status: int = 400, extra: Dict = None):
+    payload = {"success": False, "code": code, "message": message}
+    if isinstance(extra, dict):
+        payload.update(extra)
+    return jsonify(payload), http_status
+
+
 
 
 # 初始化核心組件
@@ -95,6 +110,13 @@ class SmartParkingSystem:
     def init_multidimensional_calculator(self):
         """初始化多維度計算器"""
         try:
+            # 啟動前驗證配置
+            cfg_path = Path("config/multidimensional_rate_plans.json")
+            if cfg_path.exists():
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    _cfg = json.load(f)
+                validate_multidimensional_config_json(_cfg)
+
             self.multidimensional_calculator = MultidimensionalParkingCalculator(
                 "config/multidimensional_rate_plans.json"
             )
@@ -189,6 +211,15 @@ class SmartParkingSystem:
             # 載入用戶自訂方案
             with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
                 user_plans = json.load(f)
+            # 讀取後進行 schema 驗證
+            try:
+                validate_user_defined_plans_json(user_plans)
+            except ConfigValidationError as ve:
+                return {
+                    "success": False,
+                    "code": "INVALID_CONFIG",
+                    "message": f"用戶方案配置不合法: {', '.join(ve.errors) if ve.errors else str(ve)}",
+                }
 
             if plan_id not in user_plans.get("plans", {}):
                 raise ValueError(f"找不到用戶自訂方案: {plan_id}")
@@ -1307,8 +1338,10 @@ def get_all_available_plans() -> List[Dict]:
 @app.route("/api/calculate", methods=["POST"])
 def api_calculate_fee():
     """統一的費用計算API"""
+    request_id = str(uuid.uuid4())
+    start_ts = _pytime.perf_counter()
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
 
         # 解析輸入資料
         enter_time_str = data.get("enter_time")
@@ -1319,9 +1352,11 @@ def api_calculate_fee():
         context = data.get("context", {})
 
         if not all([enter_time_str, exit_time_str]):
-            return (
-                jsonify({"success": False, "error": "請填寫完整的進場時間和出場時間"}),
-                400,
+            return error_response(
+                code="INVALID_INPUT",
+                message="請填寫完整的進場時間和出場時間",
+                http_status=400,
+                extra={"request_id": request_id},
             )
 
         # 轉換時間格式
@@ -1329,11 +1364,21 @@ def api_calculate_fee():
             enter_time = datetime.strptime(enter_time_str, "%Y-%m-%dT%H:%M")
             exit_time = datetime.strptime(exit_time_str, "%Y-%m-%dT%H:%M")
         except ValueError:
-            return jsonify({"success": False, "error": "時間格式錯誤"}), 400
+            return error_response(
+                code="INVALID_DATETIME_FORMAT",
+                message="時間格式錯誤，請使用 YYYY-MM-DDTHH:MM",
+                http_status=400,
+                extra={"request_id": request_id},
+            )
 
         # 驗證時間邏輯
         if enter_time >= exit_time:
-            return jsonify({"success": False, "error": "出場時間必須晚於進場時間"}), 400
+            return error_response(
+                code="INVALID_TIME_RANGE",
+                message="出場時間必須晚於進場時間",
+                http_status=400,
+                extra={"request_id": request_id},
+            )
 
         # 轉換車輛類型
         try:
@@ -1364,10 +1409,33 @@ def api_calculate_fee():
             if isinstance(result.get("exit_time"), datetime):
                 result["exit_time"] = result["exit_time"].strftime("%Y-%m-%d %H:%M")
 
-        return jsonify(result)
+        duration_ms = int((_pytime.perf_counter() - start_ts) * 1000)
+        logger.info(
+            "calc_request result=%s plan_id=%s ms=%s request_id=%s",
+            "success" if result.get("success") else "fail",
+            plan_id,
+            duration_ms,
+            request_id,
+        )
+
+        # 成功或業務錯誤一律200回傳內容；致命錯誤走except
+        return jsonify({"request_id": request_id, **result})
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"計算錯誤: {str(e)}"}), 500
+        duration_ms = int((_pytime.perf_counter() - start_ts) * 1000)
+        logger.exception(
+            "calc_request exception plan_id=%s ms=%s request_id=%s error=%s",
+            request.json.get("plan_id") if request.is_json else None,
+            duration_ms,
+            request_id,
+            str(e),
+        )
+        return error_response(
+            code="INTERNAL_ERROR",
+            message=f"計算錯誤: {str(e)}",
+            http_status=500,
+            extra={"request_id": request_id},
+        )
 
 
 @app.route("/api/system/config", methods=["GET", "POST"])
@@ -1378,7 +1446,13 @@ def api_system_config():
 
     elif request.method == "POST":
         try:
-            new_config = request.get_json()
+            new_config = request.get_json() or {}
+            if not isinstance(new_config, dict):
+                return error_response(
+                    code="INVALID_INPUT",
+                    message="請提供正確的JSON物件",
+                    http_status=400,
+                )
             parking_system.system_config.update(new_config)
             parking_system.save_system_config()
 
@@ -1388,7 +1462,9 @@ def api_system_config():
 
             return jsonify({"success": True, "message": "系統配置已更新"})
         except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 500
+            return error_response(
+                code="INTERNAL_ERROR", message=str(e), http_status=500
+            )
 
 
 @app.route("/api/plans", methods=["GET"])
@@ -1409,7 +1485,7 @@ def api_get_all_plans():
             }
         )
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
 @app.route("/api/plans/activate", methods=["POST"])
@@ -1420,7 +1496,9 @@ def api_activate_plan():
         plan_id = data.get("plan_id")
 
         if not plan_id:
-            return jsonify({"success": False, "error": "請指定要啟用的方案ID"}), 400
+            return error_response(
+                code="INVALID_INPUT", message="請指定要啟用的方案ID", http_status=400
+            )
 
         success = parking_system.set_active_plan(plan_id)
 
@@ -1433,15 +1511,14 @@ def api_activate_plan():
                 }
             )
         else:
-            return (
-                jsonify(
-                    {"success": False, "error": "啟用費率方案失敗，方案不存在或無效"}
-                ),
-                400,
+            return error_response(
+                code="PLAN_NOT_FOUND",
+                message="啟用費率方案失敗，方案不存在或無效",
+                http_status=400,
             )
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
 @app.route("/api/multidimensional/combinations")
@@ -1449,14 +1526,18 @@ def api_get_dimension_combinations():
     """獲取多維度組合API"""
     try:
         if not parking_system.multidimensional_calculator:
-            return jsonify({"success": False, "error": "多維度計算器未初始化"}), 500
+            return error_response(
+                code="ENGINE_NOT_READY",
+                message="多維度計算器未初始化",
+                http_status=500,
+            )
 
         combinations = (
             parking_system.multidimensional_calculator.get_dimension_combinations()
         )
         return jsonify({"success": True, "combinations": combinations})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
 # 移除增強版計算器相關API以簡化系統
@@ -1466,15 +1547,16 @@ def api_get_dimension_combinations():
 def api_save_rate_plan():
     """儲存用戶自定義費率方案"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
 
         # 驗證必要欄位
         required_fields = ["name", "segment_type", "holiday_type", "segments"]
         for field in required_fields:
             if field not in data:
-                return (
-                    jsonify({"success": False, "error": f"缺少必要欄位: {field}"}),
-                    400,
+                return error_response(
+                    code="INVALID_INPUT",
+                    message=f"缺少必要欄位: {field}",
+                    http_status=400,
                 )
 
         # 生成方案ID（清理特殊字符）
@@ -1530,6 +1612,16 @@ def api_save_rate_plan():
         user_plans["plans"][plan_id] = new_plan
         user_plans["metadata"]["last_modified"] = datetime.now().isoformat()
 
+        # 寫入文件前進行schema驗證
+        try:
+            validate_user_defined_plans_json(user_plans)
+        except ConfigValidationError as ve:
+            return error_response(
+                code="INVALID_CONFIG",
+                message=f"用戶方案配置不合法: {', '.join(ve.errors) if ve.errors else str(ve)}",
+                http_status=400,
+            )
+
         # 寫入文件
         with open(user_plans_file, "w", encoding="utf-8") as f:
             json.dump(user_plans, f, ensure_ascii=False, indent=2)
@@ -1544,9 +1636,10 @@ def api_save_rate_plan():
         )
 
     except Exception as e:
-        return (
-            jsonify({"success": False, "error": f"儲存方案時發生錯誤: {str(e)}"}),
-            500,
+        return error_response(
+            code="INTERNAL_ERROR",
+            message=f"儲存方案時發生錯誤: {str(e)}",
+            http_status=500,
         )
 
 
@@ -1583,7 +1676,7 @@ def api_list_user_rate_plans():
             return jsonify({"success": True, "plans": [], "total_count": 0})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
 @app.route("/api/rate_plans/load/<plan_id>", methods=["GET"])
@@ -1596,17 +1689,21 @@ def api_load_rate_plan(plan_id):
                 user_plans = json.load(f)
 
             if plan_id not in user_plans.get("plans", {}):
-                return jsonify({"success": False, "error": "找不到指定的方案"}), 404
+                return error_response(
+                    code="PLAN_NOT_FOUND", message="找不到指定的方案", http_status=404
+                )
 
             plan_data = user_plans["plans"][plan_id]
 
             return jsonify({"success": True, "plan": plan_data})
 
         except FileNotFoundError:
-            return jsonify({"success": False, "error": "找不到用戶方案文件"}), 404
+            return error_response(
+                code="PLAN_FILE_MISSING", message="找不到用戶方案文件", http_status=404
+            )
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
 if __name__ == "__main__":
