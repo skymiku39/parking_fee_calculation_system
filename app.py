@@ -1924,6 +1924,48 @@ def api_load_rate_plan(plan_id):
         return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
+@app.route("/api/rate_plans/<plan_id>", methods=["DELETE"])
+def api_delete_rate_plan(plan_id):
+    """刪除指定的用戶自定義費率方案"""
+    try:
+        user_plans_file = "config/user_defined_plans.json"
+        try:
+            with open(user_plans_file, "r", encoding="utf-8") as f:
+                user_plans = json.load(f)
+        except FileNotFoundError:
+            return error_response(
+                code="PLAN_FILE_MISSING", message="找不到用戶方案文件", http_status=404
+            )
+
+        plans_dict = user_plans.get("plans", {})
+        if plan_id not in plans_dict:
+            return error_response(
+                code="PLAN_NOT_FOUND", message="方案不存在", http_status=404
+            )
+
+        # 刪除方案
+        del plans_dict[plan_id]
+
+        # 更新中繼資料
+        user_plans.setdefault("metadata", {})
+        user_plans["metadata"]["last_modified"] = datetime.now().isoformat()
+
+        # 寫回檔案
+        with open(user_plans_file, "w", encoding="utf-8") as f:
+            json.dump(user_plans, f, ensure_ascii=False, indent=2)
+
+        # 若刪除的是目前啟用或預設方案，清空設定
+        if parking_system.current_active_plan == plan_id:
+            parking_system.current_active_plan = None
+        if parking_system.system_config.get("default_rate_plan") == plan_id:
+            parking_system.system_config["default_rate_plan"] = None
+            parking_system.save_system_config()
+
+        return jsonify({"success": True, "message": f"成功刪除方案: {plan_id}"})
+    except Exception as e:
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
+
+
 if __name__ == "__main__":
     # 確保模板目錄存在
     if not os.path.exists("templates"):
