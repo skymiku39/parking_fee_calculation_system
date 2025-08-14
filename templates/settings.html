@@ -1,9 +1,7 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>費率設定 - 停車費計算系統</title>
+{% extends "layout/base.html" %}
+{% block title %}費率設定 - 智能停車系統{% endblock %}
+{% block page_title %}<i class="fas fa-sliders-h me-2"></i> 費率設定{% endblock %}
+{% block head %}
     <style>
       * {
         margin: 0;
@@ -316,21 +314,9 @@
         border: 1px solid #f5c6cb;
       }
     </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="header-content">
-          <h1><i class="fas fa-cog"></i> 費率設定管理</h1>
-        </div>
-        <div class="nav-buttons">
-          <a href="/" class="nav-btn">
-            <i class="fas fa-calculator"></i> 計算器
-          </a>
-        </div>
-      </div>
-
-      <div class="content">
+{% endblock %}
+{% block content %}
+      <div class="container">
         <div class="section">
           <div class="section-title">
             <i class="fas fa-list"></i> 現有費率方案
@@ -343,8 +329,7 @@
           </button>
         </div>
       </div>
-    </div>
-
+    
     <!-- 方案編輯模態框 -->
     <div id="planModal" class="modal">
       <div class="modal-content">
@@ -534,6 +519,8 @@
       </div>
     </div>
 
+{% endblock %}
+{% block scripts %}
     <script>
       let currentSlotType = "full_day";
 
@@ -1364,5 +1351,4 @@
         }
       };
     </script>
-  </body>
-</html>
+{% endblock %}

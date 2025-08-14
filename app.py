@@ -1237,6 +1237,19 @@ def rate_plan_designer_test():
     return render_template("rate_plan_designer_test.html")
 
 
+# 新增統一版側欄布局頁面
+@app.route("/plan_manager")
+def plan_manager_page():
+    """方案管理頁（整合列表、預覽與快速操作）"""
+    return render_template("plan_manager.html")
+
+
+@app.route("/calendar_manager")
+def calendar_manager_page():
+    """行事曆與假日管理頁"""
+    return render_template("calendar_manager.html")
+
+
 # 保留向後相容的路由
 @app.route("/system_management")
 def system_management():
