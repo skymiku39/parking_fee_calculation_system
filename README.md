@@ -46,6 +46,9 @@ cd parking_fee_calculation_system
 
 # 若已安裝依賴且只想啟動（略過安裝）
 ./scripts/start.ps1 -NoInstall
+
+# 只安裝依賴，不啟動（CI/自動化可用）
+./scripts/start.ps1 -NoRun
 ```
 
 啟動後，開啟瀏覽器：`http://127.0.0.1:5000`
@@ -209,12 +212,11 @@ cd parking_fee_calculation_system
 ### 運行測試
 
 ```bash
-# 運行所有測試
-python -m pytest tests/ -v
+# 運行所有單元測試
+python -m pytest -q
 
-# 運行特定測試
-python tests/test_calculator.py
-python examples/test_billing_cycle_fix.py
+# 手動範例（不屬於單元測試，已移至 examples_manual/）
+python examples_manual/test_billing_cycle_fix.py
 ```
 
 ---
@@ -233,14 +235,16 @@ python examples/test_billing_cycle_fix.py
 ### 計算API使用範例
 
 ```javascript
-// 計算停車費
+// 計算停車費（使用 ISO-like 本地時間格式 YYYY-MM-DDTHH:MM）
 fetch('/api/calculate', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    entry_time: '2024-06-20 21:52',
-    exit_time: '2024-06-21 08:30',
-    rate_plan: 'test_billing_cycle'
+    enter_time: '2024-06-20T21:52',
+    exit_time: '2024-06-21T08:30',
+    plan_id: '全天_無假日費率',
+    vehicle_type: 'car',
+    manual_adjustment: 0
   })
 }).then(response => response.json())
   .then(data => console.log(data));
@@ -344,9 +348,11 @@ A: 檢查 `config/` 目錄寫入權限和檔案格式
 - **API文檔**：[API Documentation](docs/api.md)
 - **用戶手冊**：[User Guide](docs/user_guide.md)
 
+> 注意：上述連結如不存在，請參考 `log/` 目錄之技術報告或以 `/api/*` 端點自我探索。
+
 ---
 
-**最後更新**：2024年12月  
+**最後更新**：2024年12月
 **當前版本**：v2.0  
 **系統狀態**：🟢 生產就緒
 

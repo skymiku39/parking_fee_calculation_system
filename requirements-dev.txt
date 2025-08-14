@@ -1,0 +1,6 @@
+pytest==7.4.3
+pytest-cov==4.1.0
+pandas==2.1.4
+openpyxl==3.1.2
+
+

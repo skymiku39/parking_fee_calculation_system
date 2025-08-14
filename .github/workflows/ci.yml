@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, AI優化 ]
+  pull_request:
+    branches: [ main, master, AI優化 ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies (NoRun)
+        shell: pwsh
+        run: |
+          ./scripts/start.ps1 -NoRun
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          python -m pytest -q
+
+      - name: Validate configuration JSONs
+        shell: pwsh
+        run: |
+          python ./scripts/validate_configs.py
+
+
+
+
+
+
