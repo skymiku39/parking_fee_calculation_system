@@ -431,6 +431,15 @@
           <button class="btn" onclick="loadCalendar()">
             <i class="fas fa-sync-alt"></i> 重新載入
           </button>
+          <span style="display: inline-block; margin: 0 10px;">
+            <input type="number" id="syncYear" min="2000" max="2100" style="width: 110px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
+          </span>
+          <button class="btn" onclick="syncOfficialHolidays()" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: #fff;">
+            <i class="fas fa-cloud-download-alt"></i> 同步官方假日
+          </button>
+          <button class="btn" onclick="generateWeekendHolidays()" style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: #fff;">
+            <i class="fas fa-calendar-week"></i> 產生六日假日
+          </button>
           <button class="btn btn-danger" onclick="resetCalendar()">
             <i class="fas fa-trash"></i> 重設為預設值
           </button>
@@ -696,6 +705,9 @@
       // 頁面載入完成後執行
       document.addEventListener("DOMContentLoaded", function () {
         loadCalendar();
+        const y = new Date().getFullYear();
+        const syncYearInput = document.getElementById("syncYear");
+        if (syncYearInput) syncYearInput.value = y;
       });
 
       // 載入萬年曆資料
@@ -733,9 +745,11 @@
 
       // 更新統計數據
       function updateStats() {
+        const weekendCount = (calendarData.weekend_holidays?.length || 0);
+        const customCount = (calendarData.custom_holidays?.length || 0);
+        const workdayCount = (calendarData.custom_workdays?.length || 0);
         document.getElementById("holidayCount").textContent =
-          (calendarData.custom_holidays?.length || 0) +
-          (calendarData.custom_workdays?.length || 0);
+          (customCount - Math.min(customCount, weekendCount)) + workdayCount;
         document.getElementById("festivalCount").textContent =
           calendarData.festival_holidays?.length || 0;
         document.getElementById("lunarCount").textContent =
@@ -752,18 +766,21 @@
         customHolidays.innerHTML = "";
         customWorkdays.innerHTML = "";
 
-        // 顯示自訂假日
-        (calendarData.custom_holidays || []).forEach((date) => {
-          const item = document.createElement("div");
-          item.className = "holiday-item";
-          item.innerHTML = `
-                    <span class="date-badge">${date}</span>
-                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8em;" onclick="removeHoliday('${date}')">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-          customHolidays.appendChild(item);
-        });
+        // 顯示自訂假日（不顯示六日產生的假日）
+        const weekendSet = new Set(calendarData.weekend_holidays || []);
+        (calendarData.custom_holidays || [])
+          .filter((d) => !weekendSet.has(d))
+          .forEach((date) => {
+            const item = document.createElement("div");
+            item.className = "holiday-item";
+            item.innerHTML = `
+                      <span class="date-badge">${date}</span>
+                      <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8em;" onclick="removeHoliday('${date}')">
+                          <i class="fas fa-times"></i>
+                      </button>
+                  `;
+            customHolidays.appendChild(item);
+          });
 
         // 顯示自訂工作日
         (calendarData.custom_workdays || []).forEach((date) => {
@@ -1089,6 +1106,52 @@
           }
         } catch (error) {
           showError("儲存失敗: " + error.message);
+        }
+      }
+
+      // 同步官方假日
+      async function syncOfficialHolidays() {
+        try {
+          const input = document.getElementById("syncYear");
+          const year = parseInt(input && input.value ? input.value : new Date().getFullYear());
+          const resp = await fetch("/api/calendar/sync_official", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ year })
+          });
+          const data = await resp.json();
+          if (data && data.success) {
+            showSuccess(`已同步 ${data.synced_year} 年官方假日（來源：${data.source_used}）`);
+            await loadCalendar();
+            updateStats();
+          } else {
+            showError(`同步失敗：${(data && (data.message || data.error)) || '未知錯誤'}`);
+          }
+        } catch (e) {
+          showError(`同步失敗：${e && e.message ? e.message : e}`);
+        }
+      }
+
+      // 產生六日假日
+      async function generateWeekendHolidays() {
+        try {
+          const input = document.getElementById("syncYear");
+          const year = parseInt(input && input.value ? input.value : new Date().getFullYear());
+          const resp = await fetch("/api/calendar/generate_weekends", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ year })
+          });
+          const data = await resp.json();
+          if (data && data.success) {
+            showSuccess(`已產生 ${data.generated_year} 年六日假日，共新增 ${data.added} 日`);
+            await loadCalendar();
+            updateStats();
+          } else {
+            showError(`產生失敗：${(data && (data.message || data.error)) || '未知錯誤'}`);
+          }
+        } catch (e) {
+          showError(`產生失敗：${e && e.message ? e.message : e}`);
         }
       }
 

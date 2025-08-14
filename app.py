@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 import logging
 from os import getenv
+import urllib.request
+import ssl
 from utils.config_validator import (
     validate_user_defined_plans_json,
     validate_multidimensional_config_json,
@@ -1893,6 +1895,253 @@ def api_list_user_rate_plans():
         return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
+@app.route("/api/calendar", methods=["GET", "POST"])
+def api_calendar():
+    """萬年曆資料（本地檔）讀寫端點"""
+    calendar_file = Path("config/system_calendar.json")
+    if request.method == "GET":
+        if calendar_file.exists():
+            try:
+                return jsonify({
+                    "success": True,
+                    "calendar": json.loads(calendar_file.read_text(encoding="utf-8")),
+                })
+            except Exception as e:
+                return error_response("CAL_READ_ERROR", str(e), 500)
+        # 預設空結構
+        return jsonify(
+            {
+                "success": True,
+                "calendar": {
+                    "description": "",
+                    "weekend_as_holiday": True,
+                    "custom_holidays": [],
+                    "custom_workdays": [],
+                    "festival_holidays": [],
+                    "national_holidays": [],
+                    "weekend_holidays": [],
+                    "lunar_festivals": [],
+                    "special_events": [],
+                },
+            }
+        )
+    else:
+        try:
+            data = request.get_json() or {}
+            calendar_file.parent.mkdir(parents=True, exist_ok=True)
+            calendar_file.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            return jsonify({"success": True, "message": "calendar saved"})
+        except Exception as e:
+            return error_response("CAL_WRITE_ERROR", str(e), 500)
+
+
+def _fetch_gov_tw_official_holidays(year: int) -> Optional[List[Dict[str, Any]]]:
+    """嘗試從系統配置的官方來源抓取假日JSON。
+
+    需在 system_config 設定 official_calendar_api（政府資料開放平臺的 JSON 端點）。
+    若未設定，返回 None。
+    回傳格式為 list[ {"date": "YYYY-MM-DD", "name": "..."} ] 或 None。
+    """
+    api_url = parking_system.system_config.get("official_calendar_api") if isinstance(parking_system.system_config, dict) else None
+    if not api_url:
+        return None
+    def _fetch(ctx: ssl.SSLContext) -> Optional[List[Dict[str, Any]]]:
+        with urllib.request.urlopen(f"{api_url}?year={year}", context=ctx, timeout=20) as resp:
+            raw = resp.read().decode("utf-8")
+        data = json.loads(raw)
+        items: List[Dict[str, Any]] = []
+        for row in (data if isinstance(data, list) else data.get("result", [])):
+            d = row.get("date") or row.get("Date") or row.get("date_str")
+            nm = row.get("name") or row.get("Name") or row.get("holiday_name")
+            if d:
+                items.append({"date": d, "name": nm or "假日"})
+        return items
+
+    try:
+        # 正常驗證
+        return _fetch(ssl.create_default_context())
+    except Exception:
+        try:
+            # 非驗證模式（應對企業代理/憑證問題）
+            insecure = ssl.create_default_context()
+            insecure.check_hostname = False
+            insecure.verify_mode = ssl.CERT_NONE
+            return _fetch(insecure)
+        except Exception:
+            return None
+
+
+@app.route("/api/calendar/sync_official", methods=["POST"])
+def api_calendar_sync_official():
+    """一鍵同步官方假日。
+
+    預設優先使用政府資料來源（若在 system_config 設定 official_calendar_api）。
+    若未設定或失敗，退回使用 Nager.Date（TW）。
+    Body: {"year": 2025} 可選。
+    """
+    try:
+        payload = request.get_json() or {}
+        year = int(payload.get("year") or datetime.now().year)
+
+        # 1) 先試官方（依系統設定的 official_calendar_api）
+        official_items = _fetch_gov_tw_official_holidays(year)
+
+        source_used = "gov_tw" if official_items is not None else "nager"
+        holidays: List[Dict[str, Any]] = []
+
+        if official_items is not None:
+            holidays = official_items
+        else:
+            # 2) 退回 Nager.Date（非官方）
+            def _fetch_nager(ctx: ssl.SSLContext):
+                with urllib.request.urlopen(
+                    f"https://date.nager.at/api/v3/PublicHolidays/{year}/TW",
+                    context=ctx,
+                    timeout=20,
+                ) as resp:
+                    raw = resp.read().decode("utf-8")
+                data = json.loads(raw)
+                for it in data:
+                    d = it.get("date")
+                    nm = it.get("localName") or it.get("name")
+                    if d:
+                        holidays.append({"date": d, "name": nm or "假日"})
+            try:
+                _fetch_nager(ssl.create_default_context())
+            except Exception:
+                try:
+                    insecure = ssl.create_default_context()
+                    insecure.check_hostname = False
+                    insecure.verify_mode = ssl.CERT_NONE
+                    _fetch_nager(insecure)
+                except Exception as e:
+                    return error_response("SYNC_FETCH_ERROR", f"抓取假日失敗: {e}", 500)
+
+        # 映射到 calendar 結構
+        custom_holidays: List[str] = []
+        festival_holidays: List[Any] = []
+        national_holidays: List[Any] = []
+        for h in holidays:
+            d = h.get("date")
+            if d:
+                custom_holidays.append(d)
+                entry = {"date": d, "name": h.get("name")}
+                festival_holidays.append(entry)
+                national_holidays.append(entry)
+
+        # 合併寫入本地
+        calendar_file = Path("config/system_calendar.json")
+        if calendar_file.exists():
+            try:
+                cal = json.loads(calendar_file.read_text(encoding="utf-8"))
+            except Exception:
+                cal = {}
+        else:
+            cal = {}
+
+        cal.setdefault("description", f"{('政府資料' if source_used=='gov_tw' else 'Nager.Date')} TW {year} 公眾假期")
+        cal.setdefault("weekend_as_holiday", True)
+        cal.setdefault("custom_holidays", [])
+        cal.setdefault("custom_workdays", [])
+        cal.setdefault("festival_holidays", [])
+        cal.setdefault("lunar_festivals", [])
+        cal.setdefault("national_holidays", [])
+        cal.setdefault("weekend_holidays", [])
+        cal.setdefault("special_events", [])
+
+        # 去重合併
+        existing_h = set(cal.get("custom_holidays", []))
+        for d in custom_holidays:
+            if d not in existing_h:
+                cal["custom_holidays"].append(d)
+
+        existing_f = {
+            (f["date"] if isinstance(f, dict) and "date" in f else f)
+            for f in cal.get("festival_holidays", [])
+        }
+        for f in festival_holidays:
+            key = f.get("date")
+            if key and key not in existing_f:
+                cal["festival_holidays"].append(f)
+
+        # 國定假日（分開存）
+        existing_n = {
+            (f["date"] if isinstance(f, dict) and "date" in f else f)
+            for f in cal.get("national_holidays", [])
+        }
+        for f in national_holidays:
+            key = f.get("date")
+            if key and key not in existing_n:
+                cal["national_holidays"].append(f)
+
+        calendar_file.parent.mkdir(parents=True, exist_ok=True)
+        calendar_file.write_text(
+            json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "synced_year": year,
+                "source_used": source_used,
+                "added_holidays": len(custom_holidays),
+            }
+        )
+    except Exception as e:
+        return error_response("SYNC_INTERNAL_ERROR", str(e), 500)
+
+
+@app.route("/api/calendar/generate_weekends", methods=["POST"])
+def api_calendar_generate_weekends():
+    """產生指定年度的週末日期並存入 weekend_holidays（不覆蓋現有）。Body: {"year": 2025} 可選。"""
+    try:
+        payload = request.get_json() or {}
+        year = int(payload.get("year") or datetime.now().year)
+
+        # 產生該年度所有週六週日日期字串
+        first_day = datetime(year, 1, 1)
+        last_day = datetime(year, 12, 31)
+        d = first_day
+        weekends: List[str] = []
+        while d <= last_day:
+            if d.weekday() >= 5:  # 5=Saturday, 6=Sunday
+                weekends.append(d.strftime("%Y-%m-%d"))
+            d += timedelta(days=1)
+
+        calendar_file = Path("config/system_calendar.json")
+        if calendar_file.exists():
+            try:
+                cal = json.loads(calendar_file.read_text(encoding="utf-8"))
+            except Exception:
+                cal = {}
+        else:
+            cal = {}
+
+        cal.setdefault("description", cal.get("description", ""))
+        cal.setdefault("weekend_as_holiday", True)
+        cal.setdefault("custom_holidays", [])
+        cal.setdefault("custom_workdays", [])
+        cal.setdefault("festival_holidays", [])
+        cal.setdefault("national_holidays", [])
+        cal.setdefault("weekend_holidays", [])
+        cal.setdefault("lunar_festivals", [])
+        cal.setdefault("special_events", [])
+
+        existing_w = set(cal.get("weekend_holidays", []))
+        added = 0
+        for dt in weekends:
+            if dt not in existing_w:
+                cal["weekend_holidays"].append(dt)
+                added += 1
+
+        calendar_file.parent.mkdir(parents=True, exist_ok=True)
+        calendar_file.write_text(json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        return jsonify({"success": True, "generated_year": year, "added": added})
+    except Exception as e:
+        return error_response("WEEKEND_GEN_ERROR", str(e), 500)
 @app.route("/api/rate_plans/load/<plan_id>", methods=["GET"])
 def api_load_rate_plan(plan_id):
     """載入指定的用戶自定義費率方案"""
