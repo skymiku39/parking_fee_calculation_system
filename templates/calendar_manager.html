@@ -285,6 +285,27 @@
 {% block content %}
     <div class="container">
       <div class="content">
+        <!-- 工具列 -->
+        <div class="toolbar" style="position: sticky; top: 0; z-index: 5; background: #fff; padding: 12px 0 8px; border-bottom: 1px solid #eee; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label for="syncYear" style="color:#555; font-weight:600;">年份</label>
+            <input type="number" id="syncYear" min="2000" max="2100" style="width: 110px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
+          </div>
+          <button class="btn" onclick="syncOfficialHolidays()" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: #fff;">
+            <i class="fas fa-cloud-download-alt"></i> 同步官方假日
+          </button>
+          <button class="btn" onclick="generateWeekendHolidays()" style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: #fff;">
+            <i class="fas fa-calendar-week"></i> 產生六日假日
+          </button>
+          <div style="flex:1; min-width: 200px;"></div>
+          <input id="holidaySearch" type="text" placeholder="搜尋假日名稱或日期…" style="flex:0 1 260px; padding: 8px 10px; border:1px solid #ddd; border-radius: 6px;" />
+          <label style="display:flex; align-items:center; gap:6px; color:#555;">
+            <input id="toggleWeekendView" type="checkbox" /> 顯示六日
+          </label>
+          <button class="btn" onclick="saveCalendar()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff;">
+            <i class="fas fa-save"></i> 儲存
+          </button>
+        </div>
         <!-- 統計概覽 -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -302,6 +323,14 @@
           <div class="stat-card">
             <div class="stat-number" id="eventCount">0</div>
             <div class="stat-label">特殊活動</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="weekendCount">0</div>
+            <div class="stat-label">六日數量</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="duplicateCount">0</div>
+            <div class="stat-label">重複假日</div>
           </div>
         </div>
 
@@ -348,6 +377,18 @@
             <div class="holiday-card">
               <h4>自訂工作日</h4>
               <div id="customWorkdays">
+                <!-- 動態載入 -->
+              </div>
+            </div>
+            <div class="holiday-card">
+              <h4>國定假日（只讀）</h4>
+              <div id="nationalHolidays">
+                <!-- 動態載入 -->
+              </div>
+            </div>
+            <div class="holiday-card">
+              <h4>重複假日</h4>
+              <div id="duplicateHolidays">
                 <!-- 動態載入 -->
               </div>
             </div>
@@ -424,26 +465,7 @@
         </div>
 
         <!-- 操作按鈕 -->
-        <div style="text-align: center; margin-top: 40px">
-          <button class="btn btn-success" onclick="saveCalendar()">
-            <i class="fas fa-save"></i> 儲存設定
-          </button>
-          <button class="btn" onclick="loadCalendar()">
-            <i class="fas fa-sync-alt"></i> 重新載入
-          </button>
-          <span style="display: inline-block; margin: 0 10px;">
-            <input type="number" id="syncYear" min="2000" max="2100" style="width: 110px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
-          </span>
-          <button class="btn" onclick="syncOfficialHolidays()" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: #fff;">
-            <i class="fas fa-cloud-download-alt"></i> 同步官方假日
-          </button>
-          <button class="btn" onclick="generateWeekendHolidays()" style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: #fff;">
-            <i class="fas fa-calendar-week"></i> 產生六日假日
-          </button>
-          <button class="btn btn-danger" onclick="resetCalendar()">
-            <i class="fas fa-trash"></i> 重設為預設值
-          </button>
-        </div>
+        <div style="text-align: center; margin-top: 40px"></div>
       </div>
     </div>
 
@@ -708,6 +730,22 @@
         const y = new Date().getFullYear();
         const syncYearInput = document.getElementById("syncYear");
         if (syncYearInput) syncYearInput.value = y;
+        const search = document.getElementById("holidaySearch");
+        if (search) {
+          search.addEventListener('input', () => {
+            updateHolidayList();
+            updateFestivalList();
+            updateLunarList();
+            updateEventList();
+            updateNationalList();
+          });
+        }
+        const toggleWeekend = document.getElementById("toggleWeekendView");
+        if (toggleWeekend) {
+          toggleWeekend.addEventListener('change', () => {
+            updateHolidayList();
+          });
+        }
       });
 
       // 載入萬年曆資料
@@ -741,6 +779,7 @@
         updateFestivalList();
         updateLunarList();
         updateEventList();
+        updateNationalList();
       }
 
       // 更新統計數據
@@ -756,6 +795,41 @@
           calendarData.lunar_festivals?.length || 0;
         document.getElementById("eventCount").textContent =
           calendarData.special_events?.length || 0;
+        // 六日數量
+        const weekendNumEl = document.getElementById("weekendCount");
+        if (weekendNumEl) weekendNumEl.textContent = weekendCount;
+        // 重複假日
+        const natDates = new Set((calendarData.national_holidays || []).map(it => (typeof it === 'string' ? it : (it.date || ''))));
+        const weekendDates = new Set(calendarData.weekend_holidays || []);
+        const customDates = new Set(calendarData.custom_holidays || []);
+        const duplicates = new Set();
+        (calendarData.custom_holidays || []).forEach(d => { if (natDates.has(d)) duplicates.add(d); });
+        (calendarData.custom_holidays || []).forEach(d => { if (weekendDates.has(d)) duplicates.add(d); });
+        (calendarData.national_holidays || []).forEach(it => {
+          const d = typeof it === 'string' ? it : (it.date || '');
+          if (d && weekendDates.has(d)) duplicates.add(d);
+        });
+        const dupNumEl = document.getElementById("duplicateCount");
+        if (dupNumEl) dupNumEl.textContent = duplicates.size;
+        const dupBox = document.getElementById("duplicateHolidays");
+        if (dupBox) {
+          dupBox.innerHTML = '';
+          const q = (document.getElementById("holidaySearch")?.value || "").toLowerCase();
+          Array.from(duplicates).sort().forEach(d => {
+            if (q && !d.toLowerCase().includes(q)) return;
+            const item = document.createElement('div');
+            item.className = 'holiday-item';
+            const tags = [];
+            if (customDates.has(d)) tags.push('<span class="badge bg-primary">自訂</span>');
+            if (natDates.has(d)) tags.push('<span class="badge bg-warning text-dark">國定</span>');
+            if (weekendDates.has(d)) tags.push('<span class="badge bg-success">六日</span>');
+            item.innerHTML = `
+              <span class="date-badge">${d}</span>
+              <span>${tags.join(' ')}</span>
+            `;
+            dupBox.appendChild(item);
+          });
+        }
       }
 
       // 更新假日列表
@@ -768,8 +842,13 @@
 
         // 顯示自訂假日（不顯示六日產生的假日）
         const weekendSet = new Set(calendarData.weekend_holidays || []);
+        const showWeekend = document.getElementById('toggleWeekendView')?.checked;
         (calendarData.custom_holidays || [])
-          .filter((d) => !weekendSet.has(d))
+          .filter((d) => showWeekend ? true : !weekendSet.has(d))
+          .filter((d) => {
+            const q = (document.getElementById("holidaySearch")?.value || "").toLowerCase();
+            return !q || d.toLowerCase().includes(q);
+          })
           .forEach((date) => {
             const item = document.createElement("div");
             item.className = "holiday-item";
@@ -793,6 +872,26 @@
                     </button>
                 `;
           customWorkdays.appendChild(item);
+        });
+      }
+
+      // 國定假日（只讀）
+      function updateNationalList() {
+        const box = document.getElementById("nationalHolidays");
+        if (!box) return;
+        box.innerHTML = "";
+        const q = (document.getElementById("holidaySearch")?.value || "").toLowerCase();
+        (calendarData.national_holidays || []).forEach((it) => {
+          const d = typeof it === 'string' ? it : (it.date || "");
+          const name = typeof it === 'string' ? '' : (it.name || '');
+          if (q && !(d.toLowerCase().includes(q) || name.toLowerCase().includes(q))) return;
+          const item = document.createElement("div");
+          item.className = "holiday-item";
+          item.innerHTML = `
+            <span class="date-badge">${d}</span>
+            <span class="badge" style="background:#fff3cd; color:#856404; border:1px solid #ffeaa7;">${name}</span>
+          `;
+          box.appendChild(item);
         });
       }
 
