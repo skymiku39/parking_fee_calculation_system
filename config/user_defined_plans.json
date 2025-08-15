@@ -365,20 +365,22 @@
       ],
       "rate_matrix": {
         "夜間_假日": {
+          "unit_time": 60,
           "progressive_enabled": false,
           "progressive_rates": [],
-          "segment_cap_amount": 50,
-          "segment_cap_enabled": true,
           "simple_rate": 10,
-          "unit_time": 60
+          "segment_cap_enabled": false,
+          "segment_cap_amount": 50,
+          "grace_time": 0
         },
         "夜間_平日": {
+          "unit_time": 60,
           "progressive_enabled": false,
           "progressive_rates": [],
-          "segment_cap_amount": 50,
-          "segment_cap_enabled": true,
           "simple_rate": 10,
-          "unit_time": 60
+          "segment_cap_enabled": false,
+          "segment_cap_amount": 50,
+          "grace_time": 0
         },
         "夜間_統一": {
           "progressive_enabled": false,
@@ -393,16 +395,18 @@
           "progressive_enabled": false,
           "progressive_rates": [],
           "simple_rate": 40,
-          "segment_cap_enabled": true,
-          "segment_cap_amount": 400
+          "segment_cap_enabled": false,
+          "segment_cap_amount": 400,
+          "grace_time": 0
         },
         "日間_平日": {
           "unit_time": 30,
           "progressive_enabled": false,
           "progressive_rates": [],
           "simple_rate": 30,
-          "segment_cap_enabled": true,
-          "segment_cap_amount": 300
+          "segment_cap_enabled": false,
+          "segment_cap_amount": 300,
+          "grace_time": 0
         },
         "日間_統一": {
           "progressive_enabled": false,
@@ -421,20 +425,10 @@
         "global_grace_time": 0
       },
       "global_grace_time": 0,
-      "created_date": "2025-06-20T18:02:51.354809",
-      "modified_date": "2025-06-20T18:02:51.354809",
-      "version": "1.0",
-      "active": true,
-      "tags": [
-        "二段",
-        "分段上限",
-        "單一",
-        "平日假日",
-        "推薦",
-        "無全局寬裕",
-        "無日上限"
-      ],
-      "featured": true
+      "created_date": "2025-08-15T15:54:05.394387",
+      "modified_date": "2025-08-15T15:54:05.394387",
+      "version": "2.0",
+      "active": true
     },
     "全局寬裕時間測試": {
       "name": "全局寬裕時間測試",
@@ -545,6 +539,6 @@
   "metadata": {
     "created": "2025-06-20T14:30:00.000000",
     "version": "1.0",
-    "last_modified": "2025-08-14T12:53:26.828311"
+    "last_modified": "2025-08-15T15:54:05.394387"
   }
 }

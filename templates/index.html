@@ -1,6 +1,6 @@
 {% extends "layout/base.html" %}
-{% block title %}控制台 - 智能停車系統{% endblock %}
-{% block page_title %}<i class="fas fa-gauge me-2"></i> 控制台{% endblock %}
+{% block title %}價格試算 - 智能停車系統{% endblock %}
+{% block page_title %}<i class="fas fa-calculator me-2"></i> 價格試算{% endblock %}
 {% block head %}
     <style>
       * {
@@ -374,11 +374,7 @@
             </div>
           </div>
           
-          <div style="margin-top: 15px;">
-            <button class="btn" onclick="activateSelectedPlan()" id="activatePlanBtn" disabled>
-              <i class="fas fa-check"></i> 啟用選擇的方案
-            </button>
-          </div>
+          <!-- 本地計算機模式：移除「啟用方案」概念，直接試算或使用設計器 inline -->
         </div>
 
         <!-- 停車費計算表單 -->
@@ -455,10 +451,7 @@
         document.getElementById('exitTime').value = formatDateTimeLocal(now);
         
         // 如果有當前方案，啟用計算按鈕
-        if (selectedPlanId) {
-          document.getElementById('calculateBtn').disabled = false;
-          updatePlanInfo();
-        }
+        if (selectedPlanId) { updatePlanInfo(); }
       });
 
       function formatDateTimeLocal(date) {
@@ -477,11 +470,9 @@
         
         if (selectedOption.value) {
           selectedPlanId = selectedOption.value;
-          document.getElementById('activatePlanBtn').disabled = false;
           updatePlanInfo();
         } else {
           selectedPlanId = '';
-          document.getElementById('activatePlanBtn').disabled = true;
           document.getElementById('planInfo').style.display = 'none';
         }
       }
@@ -542,43 +533,7 @@
         return typeMap[type] || type;
       }
 
-      function activateSelectedPlan() {
-        if (!selectedPlanId) {
-          alert('請先選擇一個費率方案');
-          return;
-        }
-        
-        const activateBtn = document.getElementById('activatePlanBtn');
-        activateBtn.disabled = true;
-        activateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 啟用中...';
-        
-        fetch('/api/plans/activate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            plan_id: selectedPlanId
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            alert('費率方案啟用成功！');
-            document.getElementById('calculateBtn').disabled = false;
-          } else {
-            alert('啟用失敗：' + data.error);
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('啟用過程中發生錯誤');
-        })
-        .finally(() => {
-          activateBtn.disabled = false;
-          activateBtn.innerHTML = '<i class="fas fa-check"></i> 啟用選擇的方案';
-        });
-      }
+      // 本地計算機模式：移除啟用流程
 
       document.getElementById('calculationForm').addEventListener('submit', function(e) {
         e.preventDefault();

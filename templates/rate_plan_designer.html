@@ -39,11 +39,14 @@
         background: white;
         border: 1px solid #dee2e6;
         border-radius: 5px;
-        padding: 15px;
+        padding: 12px;
         margin: 5px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
+        min-width: 180px;
+        min-height: 110px;
+        position: relative;
       }
       .matrix-cell:hover {
         background: #e3f2fd;
@@ -53,6 +56,19 @@
         background: #d4edda;
         border-color: #28a745;
       }
+      .matrix-cell .chip {
+        display: inline-block;
+        border-radius: 6px;
+        padding: 2px 6px;
+        font-size: 12px;
+        margin: 2px 3px 0 3px;
+        background: #eef2f7;
+        color: #334155;
+      }
+      .matrix-cell .chip-primary { background: #e8f0fe; color: #1d4ed8; }
+      .matrix-cell .chip-success { background: #dcfce7; color: #166534; }
+      .matrix-cell .chip-warning { background: #fef3c7; color: #92400e; }
+      .matrix-cell .chip-muted { background: #f1f5f9; color: #475569; }
       .full-day-cell {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -314,6 +330,9 @@
             <button class="btn btn-success btn-lg" onclick="savePlan()">
               <i class="fas fa-save"></i> 儲存方案
             </button>
+            <button class="btn btn-warning btn-lg" onclick="openInlinePreview()">
+              <i class="fas fa-calculator"></i> 即時試算
+            </button>
             <button class="btn btn-info btn-lg" onclick="exportPlan()">
               <i class="fas fa-download"></i> 匯出方案
             </button>
@@ -391,6 +410,17 @@
                   <option value="120">120分鐘</option>
                 </select>
                 <small class="text-muted">寬裕時間已移至全域設定區塊</small>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">區段免費時間</label>
+                <div class="input-group">
+                  <input type="number" id="segment-grace-time" class="form-control" value="0" min="0" />
+                  <span class="input-group-text">分鐘</span>
+                </div>
+                <small class="text-muted">此矩陣格的免費時間（留 0 表示不啟用）</small>
               </div>
             </div>
 
@@ -476,6 +506,51 @@
             >
               儲存設定
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 即時試算模態框 -->
+    <div class="modal fade" id="inlinePreviewModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-bolt"></i> 即時試算</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-5">
+                <label class="form-label">進場時間</label>
+                <input id="preview-enter" type="datetime-local" class="form-control" />
+              </div>
+              <div class="col-md-5">
+                <label class="form-label">出場時間</label>
+                <input id="preview-exit" type="datetime-local" class="form-control" />
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-warning w-100" onclick="runInlinePreview()"><i class="fas fa-play"></i> 試算</button>
+              </div>
+            </div>
+            <hr />
+            <div id="preview-result" class="alert alert-info" style="display:none"></div>
+            <div id="preview-details" style="display:none">
+              <table class="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>時段</th>
+                    <th>時間</th>
+                    <th>時長</th>
+                    <th class="text-end">金額</th>
+                  </tr>
+                </thead>
+                <tbody id="preview-details-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
           </div>
         </div>
       </div>
@@ -853,14 +928,48 @@
                 description = "點擊設定";
             }
 
+            const key = `${segment}_${holiday}`;
+            const cfg = currentMatrix[key] || null;
+
+            // 建立摘要 chip
+            let chips = '';
+            if (cfg) {
+              if (cfg.progressive_enabled && Array.isArray(cfg.progressive_rates)) {
+                chips += `<span class="chip chip-primary" title="累進階數">累進 ×${cfg.progressive_rates.length}</span>`;
+              } else if (typeof cfg.simple_rate === 'number') {
+                const ut = cfg.unit_time || 60;
+                chips += `<span class="chip chip-primary" title="單一費率">${cfg.simple_rate} / ${ut}分</span>`;
+              }
+              if (typeof cfg.grace_time === 'number' && cfg.grace_time > 0) {
+                chips += `<span class="chip chip-muted" title="免費時間">免 ${cfg.grace_time}分</span>`;
+              }
+              if (cfg.segment_cap_enabled) {
+                chips += `<span class="chip chip-warning" title="區段封頂">封頂 ${cfg.segment_cap_amount ?? 0}</span>`;
+              }
+            } else {
+              chips += `<span class="chip chip-muted">未設定</span>`;
+            }
+
+            const tooltip = cfg ?
+              `title="${segment} / ${holiday}\n` +
+              `${cfg.progressive_enabled ? `累進階數：${cfg.progressive_rates?.length || 0}` : `單一費率：${cfg.simple_rate ?? '-'} / ${(cfg.unit_time || 60)}分`}\n` +
+              `免費時間：${cfg.grace_time ?? 0}分\n` +
+              `區段封頂：${cfg.segment_cap_enabled ? (cfg.segment_cap_amount ?? 0) : '無'}"`
+              : '';
+
             cellDiv.innerHTML = `
-                        <h6>${segment}</h6>
-                        <small>${holiday}</small>
-                        <div class="mt-2">
-                            <i class="fas fa-${iconClass}"></i>
-                            <small class="d-block">${description}</small>
-                        </div>
-                    `;
+              <div ${tooltip}>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="text-start">
+                    <div class="fw-bold">${segment}</div>
+                    <small class="text-muted">${holiday}</small>
+                  </div>
+                  <div><i class="fas fa-${iconClass}"></i></div>
+                </div>
+                <div class="mt-2 text-start">${chips}</div>
+                <div class="mt-1"><small class="text-muted">${description}</small></div>
+              </div>
+            `;
             cellDiv.onclick = () => openRateConfig(segment, holiday);
             container.appendChild(cellDiv);
           });
@@ -909,6 +1018,9 @@
 
         // 重設單一費率
         document.getElementById("simple-rate").value = "30";
+
+        // 重設區段免費時間
+        document.getElementById("segment-grace-time").value = "0";
 
         // 重設區段上限
         document.getElementById("segment-cap-enabled").checked = false;
@@ -962,6 +1074,12 @@
           document.getElementById("simple-rate").value =
             config.simple_rate || "30";
         }
+
+        // 載入區段免費時間
+        document.getElementById("segment-grace-time").value =
+          (config.grace_time !== undefined && config.grace_time !== null)
+            ? config.grace_time
+            : 0;
 
         // 載入區段上限設定
         const hasSegmentCap = config.segment_cap_enabled || false;
@@ -1222,6 +1340,7 @@
           segment_cap_amount: parseInt(
             document.getElementById("segment-cap-amount").value
           ),
+          grace_time: parseInt(document.getElementById("segment-grace-time").value || '0'),
         };
 
         if (isProgressiveEnabled) {
@@ -1243,27 +1362,8 @@
         const key = `${editingCombination.segment}_${editingCombination.holiday}`;
         currentMatrix[key] = config;
 
-        // 標記已配置
-        const cells = document.querySelectorAll(".matrix-cell");
-        cells.forEach((cell) => {
-          if (
-            cell.innerHTML.includes(editingCombination.segment) &&
-            cell.innerHTML.includes(editingCombination.holiday)
-          ) {
-            cell.classList.add("configured");
-            // 更新顯示資訊
-            const rateInfo = isProgressiveEnabled
-              ? `累進 (${config.progressive_rates.length}階段)`
-              : `單一 (${config.simple_rate}元)`;
-            const capInfo = config.segment_cap_enabled
-              ? `上限${config.segment_cap_amount}元`
-              : "無上限";
-            cell.innerHTML = cell.innerHTML.replace(
-              /<div class="mt-2">[\s\S]*?<\/div>/,
-              `<div class="mt-2"><small>${rateInfo}<br>${capInfo}</small></div>`
-            );
-          }
-        });
+        // 重新渲染矩陣摘要（以保持顯示同步）
+        updateRateMatrix();
 
         const modal = bootstrap.Modal.getInstance(
           document.getElementById("rateConfigModal")
@@ -1372,6 +1472,103 @@
         } catch (error) {
           console.error("儲存方案時發生錯誤:", error);
           alert("儲存方案時發生錯誤，請檢查控制台以獲取詳細資訊");
+        }
+      }
+
+      // 即時試算 - 開啟
+      function openInlinePreview() {
+        const modal = new bootstrap.Modal(document.getElementById('inlinePreviewModal'));
+        const now = new Date();
+        const later = new Date(now.getTime() + 60*60*1000);
+        const fmt = (d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        document.getElementById('preview-enter').value = fmt(now);
+        document.getElementById('preview-exit').value = fmt(later);
+        document.getElementById('preview-result').style.display = 'none';
+        document.getElementById('preview-details').style.display = 'none';
+        modal.show();
+      }
+
+      // 即時試算 - 執行
+      function runInlinePreview() {
+        try {
+          const planName = document.getElementById('plan-name').value || 'inline';
+          // 收集 segments 與 rate_matrix 與 global_caps（沿用 savePlan 的邏輯片段）
+          const segments = [];
+          const segmentType = document.getElementById('segment-type').value;
+          if (segmentType === '全天') {
+            segments.push({ name: '全天', start: '00:00', end: '24:00' });
+          } else {
+            document.querySelectorAll('.segment-item').forEach((item) => {
+              const nameElement = item.querySelector('.segment-name');
+              const startElement = item.querySelector('.segment-start');
+              const endElement = item.querySelector('.segment-end');
+              if (nameElement && startElement && endElement) {
+                segments.push({ name: nameElement.value, start: startElement.value, end: endElement.value });
+              }
+            });
+          }
+
+          const globalCaps = {
+            daily_cap_enabled: document.getElementById('global-daily-cap').checked,
+            daily_cap_amount: document.getElementById('global-daily-cap').checked ? parseInt(document.getElementById('global-daily-cap-amount').value) : null,
+            segment_caps_enabled: document.getElementById('segment-caps').checked,
+            cap_priority: document.getElementById('cap-priority').value,
+            global_grace_time: parseInt(document.getElementById('global-grace-time').value || '15'),
+          };
+
+          const planInline = {
+            name: planName,
+            segment_type: document.getElementById('segment-type').value,
+            holiday_type: document.getElementById('holiday-type').value,
+            segments: segments,
+            rate_matrix: currentMatrix,
+            global_caps: globalCaps,
+          };
+
+          const enter = document.getElementById('preview-enter').value;
+          const exit = document.getElementById('preview-exit').value;
+          if (!enter || !exit) {
+            alert('請輸入進出場時間');
+            return;
+          }
+
+          fetch('/api/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enter_time: enter, exit_time: exit, manual_adjustment: 0, plan_inline: planInline }),
+          })
+            .then((r) => r.json())
+            .then((resp) => {
+              const box = document.getElementById('preview-result');
+              const table = document.getElementById('preview-details');
+              const tbody = document.getElementById('preview-details-body');
+              if (!resp.success) {
+                box.className = 'alert alert-danger';
+                box.textContent = resp.error || resp.message || '試算失敗';
+                box.style.display = 'block';
+                table.style.display = 'none';
+                return;
+              }
+              box.className = 'alert alert-success';
+              box.innerHTML = `<strong>成功</strong> 合計：<span class="badge bg-success">${resp.total_amount} 元</span>　總時長：${resp.total_duration_display}`;
+              box.style.display = 'block';
+              tbody.innerHTML = '';
+              (resp.session_details || []).forEach((d) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${d.period?.split(' ')[0] || ''}</td><td>${(d.period||'').split(' ')[1] || ''}</td><td>${d.duration || ''}</td><td class='text-end'>${d.amount || 0}</td>`;
+                tbody.appendChild(tr);
+              });
+              table.style.display = 'block';
+            })
+            .catch((e) => {
+              const box = document.getElementById('preview-result');
+              box.className = 'alert alert-danger';
+              box.textContent = '試算請求失敗';
+              box.style.display = 'block';
+            });
+        } catch (error) {
+          console.error('inline preview error:', error);
+          alert('即時試算時發生錯誤');
         }
       }
 

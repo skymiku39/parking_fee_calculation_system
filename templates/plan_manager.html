@@ -38,9 +38,7 @@
     <div class="card">
       <div class="card-header"><strong><i class="fas fa-bolt me-2"></i> 快速操作</strong></div>
       <div class="card-body d-grid gap-2">
-        <button class="btn btn-success" id="activateBtn" disabled onclick="activateSelected()">
-          <i class="fas fa-check"></i> 啟用選擇的方案
-        </button>
+        <!-- 本地計算機模式：移除啟用方案 -->
         <button class="btn btn-outline-danger" id="deleteBtn" disabled onclick="deleteSelected()">
           <i class="fas fa-trash"></i> 刪除選擇的方案
         </button>
@@ -124,7 +122,7 @@
 
   function onSelectPlan(planId) {
     selectedPlanId = planId;
-    document.getElementById('activateBtn').disabled = false;
+    // 本地計算機模式：無啟用
     document.getElementById('deleteBtn').disabled = false;
     fetch(`/api/rate_plans/load/${planId}`)
       .then(r => r.json())
@@ -150,13 +148,7 @@
     `;
   }
 
-  function activateSelected() {
-    if (!selectedPlanId) return;
-    fetch('/api/plans/activate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan_id: selectedPlanId }) })
-      .then(r => r.json())
-      .then(d => { showToast(d.success ? '已啟用方案' : (d.error || '啟用失敗')); })
-      .catch(() => showToast('網路錯誤'));
-  }
+  // 本地計算機模式：無啟用
 
   function deleteSelected() {
     if (!selectedPlanId) return;

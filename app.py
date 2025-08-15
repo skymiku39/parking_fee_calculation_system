@@ -18,11 +18,18 @@ import logging
 from os import getenv
 import urllib.request
 import ssl
+from flask import send_from_directory
 from utils.config_validator import (
     validate_user_defined_plans_json,
     validate_multidimensional_config_json,
     ConfigValidationError,
 )
+try:
+    from src.domain.plans.schema_v2 import PlanV2
+    _HAS_PYDANTIC = True
+except Exception:
+    from utils.config_validator import validate_plan_v2_json as _validate_v2
+    _HAS_PYDANTIC = False
 
 # 加入模組路徑
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +41,11 @@ from src.engines.multidimensional_calculator import (
     DateCategory,
 )
 from src.managers.rate_plan_manager import RatePlanManager
+try:
+    from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
+except Exception:
+    # 向後相容舊路徑
+    from src.unified_pricing_engine import UnifiedPricingEngine
 
 # 移除增強版多維度計算器以簡化系統
 
@@ -84,6 +96,7 @@ class SmartParkingSystem:
         self.multidimensional_calculator = None
         self.current_active_plan = None
         self.system_config = {}
+        self.unified_engine = UnifiedPricingEngine()
 
         # 載入系統配置
         self.load_system_config()
@@ -276,10 +289,54 @@ class SmartParkingSystem:
 
             plan_data = user_plans["plans"][plan_id]
 
-            # 使用新的基於收費週期的計算邏輯
-            return self.calculate_fee_by_billing_cycles(
-                enter_time, exit_time, plan_data, manual_adjustment
+            # 調用 UnifiedPricingEngine（高風險快速整合）
+            def _resolver(dt: datetime) -> str:
+                # 轉換成用戶方案使用的日期類別鍵值
+                return self.determine_date_category(dt, plan_data.get("holiday_type", "無假日"))
+
+            upe_result = self.unified_engine.calculate(
+                enter_time=enter_time,
+                exit_time=exit_time,
+                plan=plan_data,
+                date_category_resolver=_resolver,
             )
+
+            if not upe_result.success:
+                return {
+                    "success": False,
+                    "error": upe_result.calculation_summary,
+                    "calculation_engine": "user_defined_billing_cycle",
+                }
+
+            total_amount = upe_result.total_amount + manual_adjustment
+            session_details = [
+                {
+                    "period": f"{d.get('label','')} {d.get('time_range','')}",
+                    "duration": self.format_duration_display(int(d.get("duration", 0))),
+                    "rate": f"{d.get('rate', 0)}元/{d.get('unit', 60)}分鐘",
+                    "amount": int(d.get("fee", 0)),
+                }
+                for d in upe_result.session_details
+            ]
+
+            return {
+                "success": True,
+                "calculation_engine": "user_defined_billing_cycle",
+                "total_amount": total_amount,
+                "original_amount": upe_result.original_amount,
+                "manual_adjustment": manual_adjustment,
+                "cap_applied": False,  # 詳細 cap 標記可在後續擴充
+                "cap_amount": plan_data.get("global_caps", {}).get("daily_cap_amount"),
+                "date_category": _resolver(enter_time),
+                "applied_rate_plan": plan_data.get("name", plan_id),
+                "segment_type": plan_data.get("segment_type"),
+                "holiday_type": plan_data.get("holiday_type"),
+                "session_details": session_details,
+                "calculation_summary": upe_result.calculation_summary,
+                "enter_time": enter_time,
+                "exit_time": exit_time,
+                "total_duration_minutes": int((exit_time - enter_time).total_seconds() / 60),
+            }
 
         except Exception as e:
             return {
@@ -1277,6 +1334,11 @@ def settlement_center():
     return render_template("settlement_center.html")
 
 
+@app.route("/api/docs")
+def api_docs():
+    """Swagger UI 文件頁"""
+    return render_template("api_docs.html")
+
 def get_all_available_plans() -> List[Dict]:
     """獲取所有可用的費率方案"""
     plans = []
@@ -1483,7 +1545,111 @@ def api_calculate_fee():
         except ValueError:
             vehicle_type = VehicleType.CAR
 
-        # 計算費用
+        # 即時試算：支援 plan_inline（不需先儲存）
+        plan_inline = data.get("plan_inline")
+        if isinstance(plan_inline, dict):
+            try:
+                # 驗證 v2 結構
+                if _HAS_PYDANTIC:
+                    _ = PlanV2(
+                        name=plan_inline.get("name") or "inline",
+                        segment_type=plan_inline.get("segment_type"),
+                        holiday_type=plan_inline.get("holiday_type"),
+                        segments=plan_inline.get("segments", []),
+                        rate_matrix=plan_inline.get("rate_matrix", {}),
+                        global_caps=plan_inline.get("global_caps", {}),
+                    )
+                else:
+                    from utils.config_validator import validate_plan_v2_json as _validate_v2
+                    _validate_v2({
+                        "name": plan_inline.get("name") or "inline",
+                        "segment_type": plan_inline.get("segment_type"),
+                        "holiday_type": plan_inline.get("holiday_type"),
+                        "segments": plan_inline.get("segments", []),
+                        "rate_matrix": plan_inline.get("rate_matrix", {}),
+                        "global_caps": plan_inline.get("global_caps", {}),
+                    })
+
+                def _resolver(dt: datetime) -> str:
+                    # 與用戶方案一致
+                    return parking_system.determine_date_category(
+                        dt, plan_inline.get("holiday_type", "無假日")
+                    )
+
+                upe_result = parking_system.unified_engine.calculate(
+                    enter_time=enter_time,
+                    exit_time=exit_time,
+                    plan=plan_inline,
+                    date_category_resolver=_resolver,
+                )
+
+                if not upe_result.success:
+                    return jsonify({
+                        "request_id": request_id,
+                        "success": False,
+                        "error": upe_result.calculation_summary,
+                        "calculation_engine": "user_defined_billing_cycle",
+                    })
+
+                total_amount = upe_result.total_amount + manual_adjustment
+                session_details = [
+                    {
+                        "period": f"{d.get('label','')} {d.get('time_range','')}",
+                        "duration": parking_system.format_duration_display(int(d.get("duration", 0))),
+                        "rate": f"{d.get('rate', 0)}元/{d.get('unit', 60)}分鐘",
+                        "amount": int(d.get("fee", 0)),
+                    }
+                    for d in upe_result.session_details
+                ]
+
+                inline_result = {
+                    "success": True,
+                    "calculation_engine": "user_defined_billing_cycle",
+                    "total_amount": total_amount,
+                    "original_amount": upe_result.original_amount,
+                    "manual_adjustment": manual_adjustment,
+                    "cap_applied": False,
+                    "cap_amount": plan_inline.get("global_caps", {}).get("daily_cap_amount"),
+                    "date_category": _resolver(enter_time),
+                    "applied_rate_plan": plan_inline.get("name", "inline"),
+                    "segment_type": plan_inline.get("segment_type"),
+                    "holiday_type": plan_inline.get("holiday_type"),
+                    "session_details": session_details,
+                    "calculation_summary": upe_result.calculation_summary,
+                    "enter_time": enter_time,
+                    "exit_time": exit_time,
+                    "total_duration_minutes": int((exit_time - enter_time).total_seconds() / 60),
+                }
+
+                # 添加顯示資訊
+                inline_result["total_duration_display"] = parking_system.format_duration_display(
+                    inline_result["total_duration_minutes"]
+                )
+                inline_result["enter_time_display"] = enter_time.strftime("%Y年%m月%d日 %H:%M")
+                inline_result["exit_time_display"] = exit_time.strftime("%Y年%m月%d日 %H:%M")
+
+                # 序列化 datetime 欄位
+                inline_result["enter_time"] = enter_time.strftime("%Y-%m-%d %H:%M")
+                inline_result["exit_time"] = exit_time.strftime("%Y-%m-%d %H:%M")
+
+                duration_ms = int((_pytime.perf_counter() - start_ts) * 1000)
+                logger.info(
+                    "calc_request result=%s plan_inline=%s ms=%s request_id=%s",
+                    "success" if inline_result.get("success") else "fail",
+                    True,
+                    duration_ms,
+                    request_id,
+                )
+                return jsonify({"request_id": request_id, **inline_result})
+            except Exception as ve:
+                return error_response(
+                    code="INVALID_INPUT",
+                    message=f"inline 設定錯誤: {ve}",
+                    http_status=400,
+                    extra={"request_id": request_id},
+                )
+
+        # 計算費用（既有流程）
         result = parking_system.calculate_parking_fee(
             enter_time, exit_time, plan_id, vehicle_type, manual_adjustment, context
         )
@@ -1797,6 +1963,41 @@ def api_save_rate_plan():
             }
 
         # 創建新方案結構
+        # 驗證為 v2 結構（向下相容：若缺欄位或型別錯誤會在此拋出）
+        if _HAS_PYDANTIC:
+            try:
+                _ = PlanV2(
+                    name=plan_name,
+                    segment_type=data["segment_type"],
+                    holiday_type=data["holiday_type"],
+                    segments=data["segments"],
+                    rate_matrix=data.get("rate_matrix", {}),
+                    global_caps=data.get("global_caps", {}),
+                )
+            except Exception as ve:
+                return error_response(
+                    code="INVALID_INPUT",
+                    message=f"格式驗證失敗: {ve}",
+                    http_status=400,
+                )
+        else:
+            try:
+                from utils.config_validator import validate_plan_v2_json as _validate_v2
+                _validate_v2({
+                    "name": plan_name,
+                    "segment_type": data["segment_type"],
+                    "holiday_type": data["holiday_type"],
+                    "segments": data["segments"],
+                    "rate_matrix": data.get("rate_matrix", {}),
+                    "global_caps": data.get("global_caps", {}),
+                })
+            except ConfigValidationError as ve:
+                return error_response(
+                    code="INVALID_INPUT",
+                    message=f"格式驗證失敗: {', '.join(ve.errors) if ve.errors else str(ve)}",
+                    http_status=400,
+                )
+
         new_plan = {
             "name": plan_name,
             "description": f"用戶自定義方案：{plan_name}",
@@ -1805,12 +2006,10 @@ def api_save_rate_plan():
             "segments": data["segments"],
             "rate_matrix": data.get("rate_matrix", {}),
             "global_caps": data.get("global_caps", {}),
-            "global_grace_time": data.get(
-                "global_grace_time", 0
-            ),  # 添加全局寬裕時間支持
+            "global_grace_time": data.get("global_grace_time", 0),
             "created_date": datetime.now().isoformat(),
             "modified_date": datetime.now().isoformat(),
-            "version": "1.0",
+            "version": "2.0",
             "active": True,
         }
 
@@ -1894,6 +2093,58 @@ def api_list_user_rate_plans():
     except Exception as e:
         return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
+
+@app.route("/api/enhanced/segments/validate", methods=["POST"])
+def api_validate_segments():
+    """驗證任意段的24小時覆蓋與無重疊。"""
+    try:
+        payload = request.get_json() or {}
+        segments = payload.get("segments", [])
+        if not isinstance(segments, list) or not segments:
+            return jsonify({"success": False, "message": "請提供 segments 陣列"})
+
+        def to_min(hhmm: str) -> int:
+            if hhmm == "24:00":
+                return 24 * 60
+            hh, mm = hhmm.split(":")
+            return int(hh) * 60 + int(mm)
+
+        intervals = []
+        for s in segments:
+            name = s.get("name")
+            start = s.get("start")
+            end = s.get("end")
+            if not all([name, start, end]):
+                return jsonify({"success": False, "message": f"區段缺少必要欄位: {s}"})
+            a, b = to_min(start), to_min(end)
+            if a == b:
+                return jsonify({"success": False, "message": f"區段 '{name}' 開始與結束相同"})
+            if a < b:
+                intervals.append((a, b))
+            else:
+                intervals.append((a, 24 * 60))
+                intervals.append((0, b))
+
+        intervals.sort()
+        merged = []
+        for iv in intervals:
+            if not merged or merged[-1][1] < iv[0]:
+                merged.append([iv[0], iv[1]])
+            else:
+                # 若相接允許合併，若重疊則失敗
+                if iv[0] < merged[-1][1] and iv[0] != merged[-1][1]:
+                    return jsonify({"success": False, "message": "時間區段有重疊，請調整"})
+                merged[-1][1] = max(merged[-1][1], iv[1])
+
+        total_minutes = sum(b - a for a, b in merged)
+        success = total_minutes == 24 * 60
+        return jsonify({
+            "success": success,
+            "message": "覆蓋完整" if success else "尚未完整覆蓋 24 小時",
+            "total_minutes": total_minutes,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
 
 @app.route("/api/calendar", methods=["GET", "POST"])
 def api_calendar():
@@ -2142,6 +2393,14 @@ def api_calendar_generate_weekends():
         return jsonify({"success": True, "generated_year": year, "added": added})
     except Exception as e:
         return error_response("WEEKEND_GEN_ERROR", str(e), 500)
+
+
+@app.route('/static/openapi.yaml')
+def serve_openapi_yaml():
+    path = Path('api/contracts/openapi.yaml')
+    if path.exists():
+        return send_from_directory(path.parent.as_posix(), path.name)
+    return error_response("OPENAPI_NOT_FOUND", "openapi.yaml 不存在", 404)
 @app.route("/api/rate_plans/load/<plan_id>", methods=["GET"])
 def api_load_rate_plan(plan_id):
     """載入指定的用戶自定義費率方案"""

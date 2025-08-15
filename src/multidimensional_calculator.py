@@ -9,6 +9,15 @@ from datetime import datetime, date, time, timedelta
 from typing import List, Dict, Optional, Tuple, Any, Union
 from dataclasses import dataclass
 from enum import Enum
+try:
+    # 優先使用新統一引擎
+    from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
+except Exception:
+    try:
+        # 後備到舊路徑
+        from src.unified_pricing_engine import UnifiedPricingEngine
+    except Exception:
+        UnifiedPricingEngine = None
 import calendar
 
 
@@ -384,6 +393,103 @@ class MultidimensionalParkingCalculator:
             "calculation_details": calculation_details,
         }
 
+    # ===== 高風險合併：以收費週期為核心的計算（跨日與邊界遵循週期起點規則） =====
+    def _parse_slot_time(self, hhmm: str) -> time:
+        try:
+            if hhmm == "24:00":
+                return time(23, 59, 59)
+            h, m = map(int, hhmm.split(":"))
+            return time(h, m)
+        except Exception:
+            return time(0, 0)
+
+    def _is_time_in_slot(self, t: time, slot: Dict) -> bool:
+        start = self._parse_slot_time(slot.get("start", "00:00"))
+        end = self._parse_slot_time(slot.get("end", "24:00"))
+        if start <= end:
+            return start <= t <= end
+        # 跨日
+        return t >= start or t <= end
+
+    def _find_active_slot(self, current_dt: datetime, time_slots: List[Dict]) -> Optional[Dict]:
+        ct = current_dt.time()
+        for slot in time_slots:
+            if self._is_time_in_slot(ct, slot):
+                return slot
+        return None
+
+    def _generate_billing_cycles(
+        self,
+        enter_time: datetime,
+        exit_time: datetime,
+        time_slots: List[Dict],
+        global_grace_time: int = 0,
+        seg_cap_enabled: bool = True,
+    ) -> Tuple[List[Dict], int]:
+        cycles: List[Dict] = []
+        total_fee = 0
+        current = enter_time
+        global_grace_used = False if global_grace_time and global_grace_time > 0 else True
+        # 追蹤每日期+時段上限累計
+        cap_acc: Dict[str, int] = {}
+
+        while current < exit_time:
+            slot = self._find_active_slot(current, time_slots)
+            if not slot:
+                current += timedelta(minutes=1)
+                continue
+            unit = int(slot.get("unit_minutes", 60) or 60)
+            cycle_end = min(current + timedelta(minutes=unit), exit_time)
+            cycle_minutes = int((cycle_end - current).total_seconds() / 60)
+            if cycle_minutes <= 0:
+                break
+
+            # 有全域免費時間則於第一個週期使用
+            effective_grace = 0
+            if not global_grace_used and global_grace_time > 0:
+                effective_grace = global_grace_time
+                global_grace_used = True
+            elif slot.get("grace_enabled", False):
+                effective_grace = int(slot.get("grace_minutes", 0) or 0)
+
+            # 計算週期費用（以 slot 的設定計費，週期內不因跨邊界改費率）
+            cycle_fee_detail = {}
+            if slot.get("progressive_enabled", False) and slot.get("progressive_rates"):
+                # 以週期分鐘計入累進
+                fee, _prog = self.calculate_progressive_fee(max(0, cycle_minutes - effective_grace), slot.get("progressive_rates", []))
+                cycle_fee_detail = {"mode": "progressive", "rates": slot.get("progressive_rates", [])}
+            else:
+                unit_price = int(slot.get("default_unit_price", 0) or 0)
+                # 以收費單位向上取整（即使不足一個單位）
+                units = math.ceil(max(0, cycle_minutes - effective_grace) / unit) if unit > 0 else 0
+                fee = units * unit_price
+                cycle_fee_detail = {"mode": "simple", "unit": unit, "unit_price": unit_price, "units": units}
+
+            # 區段上限（每日）
+            slot_label = slot.get("label", slot.get("time_slot_id", "slot"))
+            day_key = f"{current.date()}_{slot_label}"
+            if seg_cap_enabled and slot.get("cap_enabled", False):
+                cap_amount = int(slot.get("cap_amount", 0) or 0)
+                if cap_amount > 0:
+                    acc = cap_acc.get(day_key, 0)
+                    if acc + fee > cap_amount:
+                        fee = max(0, cap_amount - acc)
+                    cap_acc[day_key] = acc + fee
+
+            total_fee += fee
+            cycles.append({
+                "start": current,
+                "end": cycle_end,
+                "minutes": cycle_minutes,
+                "slot": slot_label,
+                "fee": fee,
+                "detail": cycle_fee_detail,
+            })
+
+            current = cycle_end
+
+        return cycles, total_fee
+
     def calculate_parking_fee(
         self, enter_time: datetime, exit_time: datetime, template_id: str
     ) -> ParkingCalculationResult:
@@ -406,37 +512,137 @@ class MultidimensionalParkingCalculator:
         # 計算總停車時間
         total_duration = int((exit_time - enter_time).total_seconds() / 60)
 
-        # 分時段計算費用
-        time_slots = rate_plan.get("time_slots", [])
-        session_details = []
-        total_fee = 0
+        # 嘗試走統一引擎（UPE）
+        total_fee = None
+        session_details: List[Dict[str, Any]] = []
+        if UnifiedPricingEngine is not None and rate_plan:
+            try:
+                # 將多維度 time_slots 映射為 UPE 結構
+                segments = [
+                    {
+                        "name": s.get("label") or s.get("time_slot_id"),
+                        "start": s.get("start", "00:00"),
+                        "end": s.get("end", "24:00"),
+                    }
+                    for s in rate_plan.get("time_slots", [])
+                ]
 
-        for slot in time_slots:
-            slot_duration = self.calculate_slot_duration(
-                enter_time, exit_time, slot["start"], slot["end"]
+                # 日期類別映射到字串
+                dc_map = {
+                    DateCategory.WEEKDAY: "平日",
+                    DateCategory.WEEKEND: "假日",
+                    DateCategory.NATIONAL_HOLIDAY: "國定假日",
+                    DateCategory.CUSTOM_HOLIDAY: "客製假日",
+                }
+                date_cat = dc_map.get(date_category, "平日")
+
+                # 建立 rate_matrix（每個 slot 以當日類別為鍵）
+                rate_matrix: Dict[str, Any] = {}
+                for s in rate_plan.get("time_slots", []):
+                    seg_name = s.get("label") or s.get("time_slot_id")
+                    key = f"{seg_name}_{date_cat}"
+                    prog_rates = []
+                    for t in s.get("progressive_rates", []):
+                        start_min = int(t.get("start_min", 0) or 0)
+                        end_min = t.get("end_min")
+                        unit_minutes = int(t.get("unit_minutes", s.get("unit_minutes", 60)) or 60)
+                        if end_min is None:
+                            duration_minutes = unit_minutes
+                        else:
+                            duration_minutes = max(0, int(end_min - start_min))
+                        prog_rates.append(
+                            {
+                                "duration_minutes": duration_minutes,
+                                "rate": int(t.get("unit_price", 0) or 0),
+                                "unit_time": unit_minutes,
+                            }
+                        )
+
+                    rate_matrix[key] = {
+                        "unit_time": int(s.get("unit_minutes", 60) or 60),
+                        "simple_rate": int(s.get("default_unit_price", 0) or 0),
+                        "grace_time": int(s.get("grace_minutes", 0) or 0) if s.get("grace_enabled", False) else 0,
+                        "progressive_enabled": bool(s.get("progressive_enabled", False)),
+                        "progressive_rates": prog_rates,
+                        "segment_cap_enabled": bool(s.get("cap_enabled", False)),
+                        "segment_cap_amount": int(s.get("cap_amount", 0) or 0),
+                    }
+
+                global_caps = {
+                    "daily_cap_enabled": bool(rate_plan.get("daily_cap_enabled", False)),
+                    "daily_cap_amount": int(rate_plan.get("daily_cap_amount", 0) or 0),
+                    "global_grace_time": int(rate_plan.get("global_grace_time", 0) or 0),
+                }
+
+                upe_plan = {"segments": segments, "rate_matrix": rate_matrix, "global_caps": global_caps}
+                upe = UnifiedPricingEngine()
+                def _resolver(dt: datetime) -> str:
+                    dc = self.get_date_category(dt.date())
+                    return dc_map.get(dc, "平日")
+                res = upe.calculate(enter_time, exit_time, upe_plan, _resolver)
+                if res.success:
+                    total_fee = res.total_amount
+                    # 轉為舊格式明細近似
+                    for d in res.session_details:
+                        session_details.append(
+                            {
+                                "label": d.get("label"),
+                                "start": d.get("time_range", "-").split("-")[0],
+                                "end": d.get("time_range", "-").split("-")[-1],
+                                "duration": d.get("duration", 0),
+                                "fee": d.get("fee", 0),
+                            }
+                        )
+            except Exception:
+                total_fee = None
+
+        if total_fee is None:
+            # 回退原本週期生成
+            time_slots = rate_plan.get("time_slots", [])
+            global_caps = rate_plan.get("global_caps", {})
+            global_grace_time = int(global_caps.get("global_grace_time", 0) or 0)
+            cycles, total_fee = self._generate_billing_cycles(
+                enter_time,
+                exit_time,
+                time_slots,
+                global_grace_time=global_grace_time,
+                seg_cap_enabled=True,
             )
 
-            if slot_duration > 0:
-                slot_fee, slot_detail = self.calculate_time_slot_fee(
-                    slot, slot_duration
-                )
-                total_fee += slot_fee
-
-                session_details.append(
-                    {
-                        "time_slot_id": slot["time_slot_id"],
-                        "label": slot["label"],
-                        "start": slot["start"],
-                        "end": slot["end"],
-                        "duration": slot_duration,
-                        "fee": slot_fee,
-                        "details": slot_detail,
+        # 合併相鄰同一 slot 的週期方便顯示
+        if not session_details and 'cycles' in locals() and cycles:
+            current_group = None
+            for cy in cycles:
+                if current_group is None:
+                    current_group = {
+                        "label": cy["slot"],
+                        "start": cy["start"].strftime("%H:%M"),
+                        "end": cy["end"].strftime("%H:%M"),
+                        "duration": cy["minutes"],
+                        "fee": cy["fee"],
                     }
-                )
+                else:
+                    # 連續且同 slot
+                    prev_end_dt = datetime.strptime(current_group["end"], "%H:%M")
+                    if current_group["label"] == cy["slot"] and current_group["end"] == cy["start"].strftime("%H:%M"):
+                        current_group["end"] = cy["end"].strftime("%H:%M")
+                        current_group["duration"] += cy["minutes"]
+                        current_group["fee"] += cy["fee"]
+                    else:
+                        session_details.append(current_group)
+                        current_group = {
+                            "label": cy["slot"],
+                            "start": cy["start"].strftime("%H:%M"),
+                            "end": cy["end"].strftime("%H:%M"),
+                            "duration": cy["minutes"],
+                            "fee": cy["fee"],
+                        }
+            if current_group:
+                session_details.append(current_group)
 
-        # 檢查每日上限
-        daily_cap_enabled = rate_plan.get("daily_cap_enabled", False)
-        daily_cap_amount = rate_plan.get("daily_cap_amount", 0)
+        # 檢查每日上限（全域）
+        daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", rate_plan.get("daily_cap_enabled", False)))
+        daily_cap_amount = int(global_caps.get("daily_cap_amount", rate_plan.get("daily_cap_amount", 0)) or 0)
         is_daily_capped = False
 
         if daily_cap_enabled and daily_cap_amount > 0 and total_fee > daily_cap_amount:
@@ -453,14 +659,12 @@ class MultidimensionalParkingCalculator:
 
         # 計算摘要
         calculation_summary = f"""
-多維度停車費計算結果:
+多維度停車費計算結果 (週期基礎):
 - 時段類型: {template.time_segment_type.value}
-- 假日類型: {template.holiday_type.value}  
+- 假日類型: {template.holiday_type.value}
 - 日期類別: {date_category.value}
 - 停車時間: {total_duration}分鐘
-- 總費用: {total_fee}元
-- 適用方案: {rate_plan.get('label', '未知')}
-- 每日上限: {'是' if is_daily_capped else '否'} ({daily_cap_amount}元)
+- 總費用: {total_fee}元（每日上限: {'是' if is_daily_capped else '否'} {daily_cap_amount}元）
 """.strip()
 
         return ParkingCalculationResult(
