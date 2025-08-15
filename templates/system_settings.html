@@ -70,11 +70,7 @@
                 <i class="fas fa-calculator"></i> 計算引擎
               </a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link" data-bs-toggle="pill" href="#plan-management">
-                <i class="fas fa-list-alt"></i> 方案管理
-              </a>
-            </li>
+            <!-- 方案管理分頁移除，請使用左側「方案管理」頁面 -->
           </ul>
         </div>
       </div>
@@ -128,17 +124,7 @@
                   </h5>
                 </div>
                 <div class="card-body">
-                  <div class="form-check form-switch mb-3">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="enable-plan-switching"
-                    />
-                    <label class="form-check-label" for="enable-plan-switching">
-                      啟用方案切換功能
-                    </label>
-                  </div>
-
+                  <!-- 已移除啟用方案切換功能 -->
                   <div class="form-check form-switch mb-3">
                     <input
                       class="form-check-input"
@@ -263,60 +249,7 @@
           </div>
         </div>
 
-        <!-- 方案管理 -->
-        <div class="tab-pane fade" id="plan-management">
-          <div class="row">
-            <div class="col-12">
-              <div class="settings-card">
-                <div class="settings-header">
-                  <h5 class="mb-0">
-                    <i class="fas fa-list-alt"></i> 費率方案管理
-                  </h5>
-                </div>
-                <div class="card-body">
-                  <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">當前啟用方案</label>
-                      <select id="active-plan" class="form-select">
-                        <!-- 動態載入方案列表 -->
-                      </select>
-                    </div>
-                    <div class="col-md-6 d-flex align-items-end">
-                      <button
-                        class="btn btn-primary me-2"
-                        onclick="window.location.href='/rate_plan_designer'"
-                      >
-                        <i class="fas fa-plus"></i> 新增方案
-                      </button>
-                      <button
-                        class="btn btn-outline-secondary"
-                        onclick="refreshPlanList()"
-                      >
-                        <i class="fas fa-sync"></i> 重新載入
-                      </button>
-                    </div>
-                  </div>
-
-                  <div class="table-responsive">
-                    <table class="table table-hover" id="plans-table">
-                      <thead>
-                        <tr>
-                          <th>方案名稱</th>
-                          <th>類型</th>
-                          <th>狀態</th>
-                          <th>操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <!-- 動態載入方案列表 -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- 方案管理分頁已移除，請使用左側「方案管理」頁面進行管理 -->
       </div>
     </div>
 {% endblock %}
@@ -358,8 +291,7 @@
         document.getElementById("calculation-precision").value =
           systemConfig.calculation_precision || 2;
 
-        document.getElementById("enable-plan-switching").checked =
-          systemConfig.enable_plan_switching !== false;
+        // 已移除啟用方案切換功能
         document.getElementById("enable-manual-override").checked =
           systemConfig.enable_manual_override !== false;
         document.getElementById("enable-enhanced-calculator").checked =
@@ -398,7 +330,7 @@
           .join("");
       }
 
-      // 載入方案列表
+      // 載入方案列表（僅供顯示或其他用途，不含啟用）
       async function loadPlanList() {
         try {
           const response = await fetch("/api/plans");
@@ -406,54 +338,11 @@
 
           if (data.success) {
             availablePlans = data.plans;
-            populatePlanSelect();
-            populatePlanTable();
+            // 本頁僅顯示狀態，不操作啟用
           }
         } catch (error) {
           console.error("載入方案列表失敗:", error);
         }
-      }
-
-      // 填充方案選擇器
-      function populatePlanSelect() {
-        const select = document.getElementById("active-plan");
-        select.innerHTML = availablePlans
-          .map(
-            (plan) =>
-              `<option value="${plan.rate_plan_id}">${plan.label} (${plan.type})</option>`
-          )
-          .join("");
-      }
-
-      // 填充方案表格
-      function populatePlanTable() {
-        const tbody = document.querySelector("#plans-table tbody");
-        tbody.innerHTML = availablePlans
-          .map(
-            (plan) => `
-          <tr>
-            <td>${plan.label}</td>
-            <td>
-              <span class="badge bg-${
-                plan.type === "multidimensional" ? "primary" : "secondary"
-              }">
-                ${plan.type === "multidimensional" ? "多維度" : "傳統"}
-              </span>
-            </td>
-            <td>
-              <span class="status-badge bg-success">可用</span>
-            </td>
-            <td>
-              <button class="btn btn-outline-primary btn-sm me-1" onclick="activatePlan('${
-                plan.rate_plan_id
-              }')">
-                <i class="fas fa-play"></i> 啟用
-              </button>
-            </td>
-          </tr>
-        `
-          )
-          .join("");
       }
 
       // 檢查增強版引擎狀態
@@ -485,9 +374,6 @@
           calculation_precision: parseInt(
             document.getElementById("calculation-precision").value
           ),
-          enable_plan_switching: document.getElementById(
-            "enable-plan-switching"
-          ).checked,
           enable_manual_override: document.getElementById(
             "enable-manual-override"
           ).checked,
@@ -516,29 +402,7 @@
         }
       }
 
-      // 啟用方案
-      async function activatePlan(planId) {
-        try {
-          const response = await fetch("/api/plans/activate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ plan_id: planId }),
-          });
-
-          const data = await response.json();
-
-          if (data.success) {
-            alert("方案已啟用成功！");
-            document.getElementById("active-plan").value = planId;
-          } else {
-            alert("啟用方案失敗：" + data.error);
-          }
-        } catch (error) {
-          alert("啟用方案時發生錯誤：" + error.message);
-        }
-      }
-
-      // 重新載入方案列表
+      // 已移除 activatePlan 與任何啟用相關函式
       function refreshPlanList() {
         loadPlanList();
       }

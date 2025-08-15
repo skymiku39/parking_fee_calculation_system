@@ -94,7 +94,6 @@ class SmartParkingSystem:
     def __init__(self):
         self.rate_plan_manager = RatePlanManager()
         self.multidimensional_calculator = None
-        self.current_active_plan = None
         self.system_config = {}
         self.unified_engine = UnifiedPricingEngine()
 
@@ -187,26 +186,7 @@ class SmartParkingSystem:
         except Exception as e:
             logger.exception("多維度標籤計算器載入失敗: %s", e)
 
-    def get_active_plan_id(self) -> Optional[str]:
-        """獲取當前啟用的費率方案ID"""
-        if self.current_active_plan:
-            return self.current_active_plan
-
-        # 從系統配置中獲取預設方案
-        return self.system_config.get("default_rate_plan", None)
-
-    def set_active_plan(self, plan_id: str) -> bool:
-        """設定啟用的費率方案"""
-        try:
-            # 驗證方案是否存在
-            if self.validate_plan_exists(plan_id):
-                self.current_active_plan = plan_id
-                self.system_config["default_rate_plan"] = plan_id
-                self.save_system_config()
-                return True
-            return False
-        except Exception:
-            return False
+    # 移除「啟用方案」機制，統一以傳入的 plan_id 或 plan_inline 試算
 
     def validate_plan_exists(self, plan_id: str) -> bool:
         """驗證費率方案是否存在"""
@@ -233,10 +213,10 @@ class SmartParkingSystem:
     ) -> Dict:
         """統一的停車費計算介面"""
         try:
-            # 使用指定方案或當前啟用方案
-            active_plan = plan_id or self.get_active_plan_id()
+            # 僅使用呼叫端傳入的方案ID
+            active_plan = plan_id
             if not active_plan:
-                raise ValueError("沒有可用的費率方案")
+                raise ValueError("請提供 plan_id 或使用 plan_inline 進行即時試算")
 
             # 檢查是否為用戶自訂方案
             if self.is_user_defined_plan(active_plan):
@@ -1267,13 +1247,11 @@ def index():
     """主頁面 - 智能計費界面"""
     # 獲取可用的費率方案
     available_plans = get_all_available_plans()
-    current_plan = parking_system.get_active_plan_id()
     system_config = parking_system.system_config
 
     return render_template(
         "index.html",
         rate_plans=available_plans,
-        current_active_plan=current_plan,
         system_config=system_config,
     )
 
@@ -1343,25 +1321,14 @@ def get_all_available_plans() -> List[Dict]:
     """獲取所有可用的費率方案"""
     plans = []
 
-    # 從系統設定讀取 UI 顯示限制（提供預設值以避免缺欄位）
-    ui_cfg = parking_system.system_config.get("ui_settings", {}) if isinstance(parking_system.system_config, dict) else {}
-    max_user_plans_display = int(ui_cfg.get("max_user_plans_display", 5))
-    show_only_featured_user_plans = bool(ui_cfg.get("show_only_featured_user_plans", False))
-
-    # 精選多維度方案（UI 只顯示這些內建方案，避免過多選項）
-    SELECTED_TEMPLATE_IDS = {"全天_無假日費率", "兩段_六日費率", "四段_國定假費率"}
+    # 本地計算機定位：顯示所有用戶自訂方案；多維度模板採全列或保留必要集
+    # 取消 featured/顯示上限/active 過濾，避免在「價格試算」下拉中找不到方案（如「萬華西園」）
 
     # 添加用戶自訂方案
     try:
         with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
             user_plans = json.load(f)
-            featured_items: List[Dict] = []
-            normal_items: List[Dict] = []
-
             for plan_id, plan_data in user_plans.get("plans", {}).items():
-                if not plan_data.get("active", True):
-                    continue
-
                 # 分析費率資訊
                 rate_matrix = plan_data.get("rate_matrix", {})
                 segments = plan_data.get("segments", [])
@@ -1413,28 +1380,7 @@ def get_all_available_plans() -> List[Dict]:
                         "holiday_support": plan_data.get("holiday_type", "") != "無假日",
                     },
                 }
-
-                is_featured = bool(plan_data.get("featured", False)) or (
-                    isinstance(plan_data.get("tags"), list) and ("featured" in plan_data.get("tags"))
-                )
-
-                if is_featured:
-                    featured_items.append(item)
-                else:
-                    normal_items.append(item)
-
-            # 按設定產出顯示清單
-            if show_only_featured_user_plans:
-                selected_user_items = featured_items
-            else:
-                selected_user_items = featured_items + normal_items
-
-            if max_user_plans_display > 0:
-                selected_user_items = selected_user_items[: max_user_plans_display]
-            else:
-                selected_user_items = []
-
-            plans.extend(selected_user_items)
+                plans.append(item)
     except FileNotFoundError:
         pass
 
@@ -1444,8 +1390,6 @@ def get_all_available_plans() -> List[Dict]:
             parking_system.multidimensional_calculator.get_available_templates()
         )
         for template_id, label in multidimensional_templates.items():
-            if template_id not in SELECTED_TEMPLATE_IDS:
-                continue
             plans.append(
                 {
                     "rate_plan_id": template_id,
@@ -1776,13 +1720,11 @@ def api_get_all_plans():
     """
     try:
         plans = get_all_available_plans()
-        current_plan = parking_system.get_active_plan_id()
 
         return jsonify(
             {
                 "success": True,
                 "plans": plans,
-                "current_active_plan": current_plan,
                 "system_mode": parking_system.system_config.get(
                     "system_mode", "multidimensional"
                 ),
@@ -1792,60 +1734,7 @@ def api_get_all_plans():
         return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
-@app.route("/api/plans/activate", methods=["POST"])
-def api_activate_plan():
-    """啟用費率方案API"""
-    """
-    ---
-    post:
-      description: 啟用指定的費率方案
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          schema:
-            type: object
-            required: [plan_id]
-            properties:
-              plan_id:
-                type: string
-      responses:
-        200:
-          description: 成功
-        400:
-          description: 輸入錯誤或方案不存在
-        500:
-          description: 伺服器錯誤
-    """
-    try:
-        data = request.get_json()
-        plan_id = data.get("plan_id")
-
-        if not plan_id:
-            return error_response(
-                code="INVALID_INPUT", message="請指定要啟用的方案ID", http_status=400
-            )
-
-        success = parking_system.set_active_plan(plan_id)
-
-        if success:
-            return jsonify(
-                {
-                    "success": True,
-                    "message": f"已啟用費率方案: {plan_id}",
-                    "active_plan": plan_id,
-                }
-            )
-        else:
-            return error_response(
-                code="PLAN_NOT_FOUND",
-                message="啟用費率方案失敗，方案不存在或無效",
-                http_status=400,
-            )
-
-    except Exception as e:
-        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
+# 已移除 /api/plans/activate，統一走直接試算
 
 
 @app.route("/api/multidimensional/combinations")
@@ -2475,12 +2364,7 @@ def api_delete_rate_plan(plan_id):
         with open(user_plans_file, "w", encoding="utf-8") as f:
             json.dump(user_plans, f, ensure_ascii=False, indent=2)
 
-        # 若刪除的是目前啟用或預設方案，清空設定
-        if parking_system.current_active_plan == plan_id:
-            parking_system.current_active_plan = None
-        if parking_system.system_config.get("default_rate_plan") == plan_id:
-            parking_system.system_config["default_rate_plan"] = None
-            parking_system.save_system_config()
+        # 無啟用方案機制，僅刪除本地方案
 
         return jsonify({"success": True, "message": f"成功刪除方案: {plan_id}"})
     except Exception as e:

@@ -345,8 +345,7 @@
                       data-holiday-type="{{ plan.holiday_type or '' }}"
                       data-segments-count="{{ plan.segments_count or '' }}"
                       data-has-rate-matrix="{{ plan.has_rate_matrix or '' }}"
-                      data-created-date="{{ plan.created_date or '' }}"
-                      {% if current_active_plan and (plan.rate_plan_id == current_active_plan or plan.template_id == current_active_plan) %}selected{% endif %}>
+                      data-created-date="{{ plan.created_date or '' }}">
                 {% if plan.type == 'user_defined' %}
                   🎨 {{ plan.label }} (自訂方案)
                 {% elif plan.type == 'multidimensional' %}
@@ -420,7 +419,7 @@
               
               <div class="form-group">
                 <label>&nbsp;</label>
-                <button type="submit" class="btn btn-full" id="calculateBtn" disabled>
+                <button type="submit" class="btn btn-full" id="calculateBtn">
                   <i class="fas fa-calculator"></i> 計算費用
                 </button>
               </div>
@@ -430,11 +429,20 @@
 
         <!-- 計算結果區域 -->
         <div id="calculationResult" style="display: none;"></div>
+
+        <!-- 方案預覽：費率組合矩陣 與 特殊設定摘要 -->
+        <div id="planPreview" style="display:none; margin-top:20px;">
+          <div class="result">
+            <h3><i class="fas fa-table"></i> 費率組合矩陣 & 特殊設定</h3>
+            <div id="planSpecialChips" class="mb-3"></div>
+            <div id="rateMatrixGrid"></div>
+          </div>
+        </div>
       </div>
 {% endblock %}
 {% block scripts %}
     <script>
-      let selectedPlanId = '{{ current_active_plan or "" }}';
+      let selectedPlanId = '';
       // 安全地初始化可用方案數據
       let availablePlans = [];
 {% if rate_plans %}
@@ -471,9 +479,11 @@
         if (selectedOption.value) {
           selectedPlanId = selectedOption.value;
           updatePlanInfo();
+          renderPlanPreview(selectedOption);
         } else {
           selectedPlanId = '';
           document.getElementById('planInfo').style.display = 'none';
+          document.getElementById('planPreview').style.display = 'none';
         }
       }
 
@@ -525,6 +535,91 @@
         }
       }
 
+      async function renderPlanPreview(optionEl) {
+        const planType = optionEl.getAttribute('data-type') || 'unknown';
+        const preview = document.getElementById('planPreview');
+        const chips = document.getElementById('planSpecialChips');
+        const grid = document.getElementById('rateMatrixGrid');
+        chips.innerHTML = '';
+        grid.innerHTML = '';
+
+        // 多維度模板：暫時僅顯示說明
+        if (planType !== 'user_defined') {
+          preview.style.display = 'block';
+          chips.innerHTML = `<span class="badge bg-secondary">多維度模板（目前無費率矩陣預覽）</span>`;
+          return;
+        }
+
+        const planId = optionEl.value;
+        try {
+          const resp = await fetch(`/api/rate_plans/load/${planId}`);
+          const data = await resp.json();
+          if (!data.success) {
+            preview.style.display = 'none';
+            return;
+          }
+          const plan = data.plan || {};
+          const caps = plan.global_caps || {};
+          const hasDailyCap = !!caps.daily_cap_enabled && !!caps.daily_cap_amount;
+          const hasGlobalGrace = (plan.global_grace_time || 0) > 0;
+
+          // 特殊設定 chips
+          const chipList = [];
+          if (hasGlobalGrace) chipList.push(`<span class="badge bg-info me-2"><i class="fas fa-gift"></i> 全域免費 ${plan.global_grace_time} 分</span>`);
+          if (hasDailyCap) chipList.push(`<span class="badge bg-warning text-dark me-2"><i class="fas fa-coins"></i> 日封頂 ${caps.daily_cap_amount} 元</span>`);
+          chipList.push(`<span class="badge bg-primary me-2"><i class="fas fa-layer-group"></i> ${plan.segment_type}</span>`);
+          chipList.push(`<span class="badge bg-primary me-2"><i class="fas fa-calendar-day"></i> ${plan.holiday_type}</span>`);
+          chips.innerHTML = chipList.join('');
+
+          // 費率組合矩陣
+          const segments = plan.segments || [];
+          const rateMatrix = plan.rate_matrix || {};
+          if (!segments.length || !Object.keys(rateMatrix).length) {
+            grid.innerHTML = '<div class="text-muted">尚未設定費率矩陣</div>';
+            preview.style.display = 'block';
+            return;
+          }
+
+          const dateCats = new Set();
+          Object.keys(rateMatrix).forEach(k => {
+            const parts = k.split('_');
+            if (parts.length >= 2) dateCats.add(parts[1]);
+          });
+          const dateCategories = Array.from(dateCats);
+
+          // 以日期類別為列，區段為欄
+          let html = '<div class="table-responsive"><table class="table table-sm table-bordered align-middle">';
+          html += '<thead><tr><th style="white-space:nowrap">日期類別 \ 區段</th>';
+          segments.forEach(s => { html += `<th>${s.name}<br><small>${s.start}-${s.end}</small></th>`; });
+          html += '</tr></thead><tbody>';
+          dateCategories.forEach(dc => {
+            html += `<tr><th style="white-space:nowrap">${dc}</th>`;
+            segments.forEach(s => {
+              const key = `${s.name}_${dc}`;
+              const cfg = rateMatrix[key] || {};
+              const unit = cfg.unit_time || 60;
+              let cell = '<div class="small text-muted">—</div>';
+              if (cfg.progressive_enabled && Array.isArray(cfg.progressive_rates) && cfg.progressive_rates.length) {
+                const first = cfg.progressive_rates[0];
+                cell = `<div><span class="badge bg-secondary">累進</span> ${first.rate || 0} 元/${unit}分</div>`;
+              } else if (cfg.simple_rate) {
+                cell = `<div>${cfg.simple_rate} 元/${unit}分</div>`;
+              }
+              const grace = cfg.grace_time ? `<span class=\"badge bg-info-subtle text-dark border me-1\"><i class=\"fas fa-gift\"></i> 免 ${cfg.grace_time}分</span>` : '';
+              const sc = cfg.segment_cap_enabled && cfg.segment_cap_amount ? `<span class=\"badge bg-warning-subtle text-dark border\"><i class=\"fas fa-coins\"></i> 封 ${cfg.segment_cap_amount}</span>` : '';
+              html += `<td>${cell}<div class="mt-1">${grace}${sc}</div></td>`;
+            });
+            html += '</tr>';
+          });
+          html += '</tbody></table></div>';
+
+          grid.innerHTML = html;
+          preview.style.display = 'block';
+        } catch (e) {
+          preview.style.display = 'none';
+        }
+      }
+
       function getTypeDisplayName(type) {
         const typeMap = {
           'user_defined': '🎨 自訂方案',
@@ -559,7 +654,7 @@
         }
         
         if (!selectedPlanId) {
-          alert('請先選擇並啟用一個費率方案');
+          alert('請先選擇一個費率方案，或在設計器使用即時試算');
           return;
         }
         
