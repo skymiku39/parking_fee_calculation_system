@@ -22,8 +22,9 @@
             </div>
             <div class="mb-2">
               <label class="form-label">時段類型</label>
-              <select id="time_segment_type" class="form-select">
-                <option value="兩段">兩段</option>
+              <select id="time_segment_type" class="form-select" onchange="onTypeChange()">
+                <option value="一段">一段</option>
+                <option value="兩段" selected>兩段</option>
                 <option value="三段">三段</option>
                 <option value="四段">四段</option>
                 <option value="自訂">自訂</option>
@@ -154,6 +155,32 @@
   function segEdit(i,k,v){ segments[i] = {...segments[i],[k]:v}; renderMatrix(); }
   function segRemove(i){ segments.splice(i,1); renderSegments(); renderMatrix(); }
   function addSegment(){ segments.push({name:'新時段', start:'09:00', end:'18:00'}); renderSegments(); renderMatrix(); }
+
+  function onTypeChange(){
+    const t = document.getElementById('time_segment_type').value;
+    if (t === '一段') {
+      segments = [{name:'全天', start:'00:00', end:'24:00'}];
+    } else if (t === '兩段') {
+      segments = [{name:'日間', start:'08:00', end:'22:00'},{name:'夜間', start:'22:00', end:'08:00'}];
+    } else if (t === '三段') {
+      segments = [
+        {name:'早間', start:'07:00', end:'12:00'},
+        {name:'日間', start:'12:00', end:'20:00'},
+        {name:'夜間', start:'20:00', end:'07:00'}
+      ];
+    } else if (t === '四段') {
+      segments = [
+        {name:'凌晨', start:'00:00', end:'06:00'},
+        {name:'上午', start:'06:00', end:'12:00'},
+        {name:'午後', start:'12:00', end:'18:00'},
+        {name:'晚間', start:'18:00', end:'24:00'}
+      ];
+    } else {
+      // 自訂: 不變
+    }
+    renderSegments();
+    renderMatrix();
+  }
 
   function renderMatrix(){
     const cats = currentCategories();
