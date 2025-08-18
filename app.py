@@ -49,7 +49,12 @@ except Exception:
 
 # 移除增強版多維度計算器以簡化系統
 
-app = Flask(__name__)
+# 讓 Flask 在 PyInstaller 打包後也能正確找到模板與靜態資源
+_BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+_TEMPLATE_DIR = (_BASE_DIR / "templates").as_posix()
+_STATIC_DIR = (_BASE_DIR / "static").as_posix()
+
+app = Flask(__name__, template_folder=_TEMPLATE_DIR, static_folder=_STATIC_DIR)
 app.config["JSON_AS_ASCII"] = False  # 支援中文JSON
 try:
     from flasgger import Swagger

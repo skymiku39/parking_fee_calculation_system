@@ -1,6 +1,7 @@
 param(
   [switch]$NoInstall,
-  [switch]$NoRun
+  [switch]$NoRun,
+  [string]$Port = "5000"
 )
 
 Set-StrictMode -Version Latest
@@ -33,8 +34,27 @@ if (-not $NoInstall) {
 }
 
 if (-not $NoRun) {
-  Write-Host '啟動 Flask 應用 ...'
-  python app.py
+  Write-Host "檢查本機 http://127.0.0.1:$Port 是否已啟動..."
+  $serverUp = $false
+  try {
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port" -TimeoutSec 1 -ErrorAction Stop
+    $serverUp = $true
+  } catch {}
+
+  if ($serverUp) {
+    Write-Host '服務已在執行，直接開啟瀏覽器'
+    Start-Process "http://127.0.0.1:$Port"
+  } else {
+    Write-Host '未偵測到服務，啟動 Flask 應用 ...'
+    $p = Start-Process -FilePath "python" -ArgumentList "app.py" -PassThru
+    Start-Sleep -Seconds 2
+    try {
+      $null = Invoke-WebRequest -Uri "http://127.0.0.1:$Port" -TimeoutSec 5 -ErrorAction Stop
+      Start-Process "http://127.0.0.1:$Port"
+    } catch {
+      Write-Host "服務啟動檢測逾時，但已在背景執行 (PID=$($p.Id))"
+    }
+  }
 }
 
 
