@@ -1,0 +1,145 @@
+{% extends "layout/base.html" %}
+{% block title %}方案管理 - 智能停車系統{% endblock %}
+{% block page_title %}<i class="fas fa-folder-tree me-2"></i> 方案管理{% endblock %}
+{% block content %}
+  <div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <button class="btn btn-primary" onclick="goDesigner()"><i class="fas fa-plus"></i> 新增範本</button>
+        <button class="btn btn-outline-secondary" onclick="exportAll()"><i class="fas fa-download"></i> 匯出全部</button>
+      </div>
+      <div class="input-group" style="max-width: 320px;">
+        <span class="input-group-text"><i class="fas fa-search"></i></span>
+        <input id="searchBox" type="text" class="form-control" placeholder="搜尋名稱或ID" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th style="white-space:nowrap;">範本 ID</th>
+                <th>名稱</th>
+                <th>時段類型</th>
+                <th>假日類型</th>
+                <th style="width:220px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="tplBody">
+              <tr><td colspan="5" class="text-muted">載入中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  let templates = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTemplates();
+    document.getElementById('searchBox').addEventListener('input', renderTable);
+  });
+
+  async function loadTemplates() {
+    try {
+      const resp = await fetch('/api/mdp/templates');
+      const data = await resp.json();
+      if (data.success) {
+        templates = data.templates || [];
+        renderTable();
+      } else {
+        document.getElementById('tplBody').innerHTML = `<tr><td colspan="5" class="text-danger">載入失敗：${data.message || data.error || '未知錯誤'}</td></tr>`;
+      }
+    } catch (e) {
+      document.getElementById('tplBody').innerHTML = `<tr><td colspan="5" class="text-danger">載入失敗：${e.message || e}</td></tr>`;
+    }
+  }
+
+  function renderTable() {
+    const q = (document.getElementById('searchBox').value || '').toLowerCase();
+    const rows = (templates || [])
+      .filter(t => {
+        const id = (t.template_id || '').toLowerCase();
+        const label = (t.label || '').toLowerCase();
+        return !q || id.includes(q) || label.includes(q);
+      })
+      .map(t => `
+        <tr>
+          <td><code>${escapeHtml(t.template_id || '')}</code></td>
+          <td>${escapeHtml(t.label || '')}</td>
+          <td>${escapeHtml(t.time_segment_type || '')}</td>
+          <td>${escapeHtml(t.holiday_type || '')}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="editTemplate('${encodeURIComponent(t.template_id)}')"><i class="fas fa-pen"></i> 編輯</button>
+            <button class="btn btn-sm btn-outline-secondary me-1" onclick="downloadTemplate('${encodeURIComponent(t.template_id)}')"><i class="fas fa-download"></i> 下載</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteTemplate('${encodeURIComponent(t.template_id)}')"><i class="fas fa-trash"></i> 刪除</button>
+          </td>
+        </tr>
+      `).join('');
+    document.getElementById('tplBody').innerHTML = rows || '<tr><td colspan="5" class="text-muted">無資料</td></tr>';
+  }
+
+  function goDesigner() {
+    window.location.href = '/rate_plan_designer';
+  }
+
+  function exportAll() {
+    window.open('/api/mdp/export', '_blank');
+  }
+
+  async function downloadTemplate(idEnc) {
+    const id = decodeURIComponent(idEnc);
+    try {
+      const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`);
+      const data = await resp.json();
+      if (!data.success) return alert('下載失敗：' + (data.message || data.error || '未知錯誤'));
+      const tpl = data.template || {};
+      const fname = (tpl.label || tpl.template_id || 'template') + '.json';
+      const blob = new Blob([JSON.stringify(tpl, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('下載失敗：' + (e.message || e));
+    }
+  }
+
+  async function deleteTemplate(idEnc) {
+    const id = decodeURIComponent(idEnc);
+    if (!confirm(`確定刪除範本「${id}」？`)) return;
+    try {
+      const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`, {method:'DELETE'});
+      const data = await resp.json();
+      if (data.success) {
+        templates = templates.filter(t => t.template_id !== id);
+        renderTable();
+      } else {
+        alert('刪除失敗：' + (data.message || data.error || '未知錯誤'));
+      }
+    } catch (e) {
+      alert('刪除失敗：' + (e.message || e));
+    }
+  }
+
+  function editTemplate(idEnc) {
+    const id = decodeURIComponent(idEnc);
+    window.location.href = `/rate_plan_designer?template_id=${encodeURIComponent(id)}`;
+  }
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+</script>
+{% endblock %}
+
+
