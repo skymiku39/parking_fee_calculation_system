@@ -382,14 +382,6 @@
           "simple_rate": 10,
           "unit_time": 60
         },
-        "夜間_統一": {
-          "progressive_enabled": false,
-          "progressive_rates": [],
-          "segment_cap_amount": 100,
-          "segment_cap_enabled": false,
-          "simple_rate": 10,
-          "unit_time": 60
-        },
         "日間_假日": {
           "grace_time": 0,
           "progressive_enabled": false,
@@ -407,14 +399,6 @@
           "segment_cap_enabled": false,
           "simple_rate": 30,
           "unit_time": 30
-        },
-        "日間_統一": {
-          "progressive_enabled": false,
-          "progressive_rates": [],
-          "segment_cap_amount": 100,
-          "segment_cap_enabled": false,
-          "simple_rate": 30,
-          "unit_time": 30
         }
       },
       "global_caps": {
@@ -425,6 +409,7 @@
         "global_grace_time": 0
       },
       "global_grace_time": 0,
+      "unit_pivot": "start",
       "created_date": "2025-08-15T16:39:43.764251",
       "modified_date": "2025-08-15T16:39:43.764251",
       "version": "2.0",

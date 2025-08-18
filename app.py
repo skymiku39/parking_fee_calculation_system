@@ -1866,15 +1866,41 @@ def api_save_rate_plan():
                     http_status=400,
                 )
 
+        # 規範化 rate_matrix：當 holiday_type 非「無假日」時，移除所有 *_統一 的鍵
+        raw_matrix = data.get("rate_matrix", {}) or {}
+        holiday_type = data["holiday_type"]
+        if holiday_type == "無假日":
+            allowed_suffixes = {"統一"}
+        elif holiday_type == "平日假日":
+            allowed_suffixes = {"平日", "假日"}
+        elif holiday_type == "完整假日":
+            allowed_suffixes = {"平日", "假日", "節慶日"}
+        else:
+            # 未知型別時保守處理：保留非統一以外的常見鍵
+            allowed_suffixes = {"平日", "假日", "節慶日", "統一"}
+
+        cleaned_matrix = {}
+        for key, cfg in raw_matrix.items():
+            try:
+                suffix = key.split("_")[-1]
+            except Exception:
+                suffix = ""
+            if suffix in allowed_suffixes:
+                # 若是非「無假日」，則不保留「統一」
+                if holiday_type != "無假日" and suffix == "統一":
+                    continue
+                cleaned_matrix[key] = cfg
+
         new_plan = {
             "name": plan_name,
             "description": f"用戶自定義方案：{plan_name}",
             "segment_type": data["segment_type"],
-            "holiday_type": data["holiday_type"],
+            "holiday_type": holiday_type,
             "segments": data["segments"],
-            "rate_matrix": data.get("rate_matrix", {}),
+            "rate_matrix": cleaned_matrix,
             "global_caps": data.get("global_caps", {}),
             "global_grace_time": data.get("global_grace_time", 0),
+            "unit_pivot": data.get("unit_pivot", "start"),
             "created_date": datetime.now().isoformat(),
             "modified_date": datetime.now().isoformat(),
             "version": "2.0",
