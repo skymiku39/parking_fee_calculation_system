@@ -1928,6 +1928,7 @@ def api_save_rate_plan():
             )
 
         # 寫入文件
+        Path(user_plans_file).parent.mkdir(parents=True, exist_ok=True)
         with open(user_plans_file, "w", encoding="utf-8") as f:
             json.dump(user_plans, f, ensure_ascii=False, indent=2)
 
@@ -2301,6 +2302,32 @@ def serve_openapi_yaml():
     if path.exists():
         return send_from_directory(path.parent.as_posix(), path.name)
     return error_response("OPENAPI_NOT_FOUND", "openapi.yaml 不存在", 404)
+
+@app.route("/api/rate_plans/export_all", methods=["GET"])
+def api_export_all_plans():
+    """整包匯出 user_defined_plans.json。若檔案不存在，回傳預設結構。"""
+    try:
+        path = Path("config/user_defined_plans.json")
+        if path.exists():
+            return send_from_directory(
+                directory=path.parent.as_posix(),
+                path=path.name,
+                as_attachment=True,
+                download_name="user_defined_plans.json",
+            )
+        # 檔案不存在時提供預設結構
+        default_payload = {
+            "plans": {},
+            "metadata": {"created": datetime.now().isoformat(), "version": "1.0"},
+        }
+        data = json.dumps(default_payload, ensure_ascii=False, indent=2)
+        resp = app.response_class(data, mimetype="application/json")
+        resp.headers["Content-Disposition"] = (
+            "attachment; filename=user_defined_plans.json"
+        )
+        return resp
+    except Exception as e:
+        return error_response("EXPORT_ALL_ERROR", str(e), 500)
 @app.route("/api/rate_plans/load/<plan_id>", methods=["GET"])
 def api_load_rate_plan(plan_id):
     """載入指定的用戶自定義費率方案"""

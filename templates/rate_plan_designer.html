@@ -335,6 +335,9 @@
             <button class="btn btn-primary btn-lg" onclick="loadPlansList()">
               <i class="fas fa-folder-open"></i> 載入已存方案
             </button>
+            <button class="btn btn-outline-secondary btn-lg" onclick="triggerImport()">
+              <i class="fas fa-file-import"></i> 匯入方案
+            </button>
             <button class="btn btn-success btn-lg" onclick="savePlan()">
               <i class="fas fa-save"></i> 儲存方案
             </button>
@@ -344,7 +347,11 @@
             <button class="btn btn-info btn-lg" onclick="exportPlan()">
               <i class="fas fa-download"></i> 匯出方案
             </button>
+            <button class="btn btn-outline-info btn-lg" onclick="exportAllPlans()">
+              <i class="fas fa-file-archive"></i> 整包匯出
+            </button>
           </div>
+          <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importPlanFromFile(event)">
         </div>
       </div>
     </div>
@@ -1803,6 +1810,120 @@
         } catch (error) {
           console.error("匯出方案錯誤:", error);
           alert("匯出方案時發生錯誤");
+        }
+      }
+
+      // 整包匯出（下載 user_defined_plans.json）
+      function exportAllPlans() {
+        try {
+          window.open('/api/rate_plans/export_all', '_blank');
+        } catch (e) {
+          alert('整包匯出失敗');
+        }
+      }
+
+      // 觸發匯入
+      function triggerImport() {
+        const input = document.getElementById('import-file');
+        if (input) input.click();
+      }
+
+      // 自 JSON 匯入方案
+      function importPlanFromFile(evt) {
+        try {
+          const file = evt.target.files && evt.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const raw = reader.result;
+              const data = JSON.parse(raw);
+
+              // 支援兩種格式：
+              // 1) 單一方案 JSON（export 產物或 /api/rate_plans/save 的結構）
+              // 2) user_defined_plans.json（包含 plans 字典）
+              let plan = null;
+              if (data && typeof data === 'object' && data.plans && typeof data.plans === 'object') {
+                const ids = Object.keys(data.plans);
+                if (ids.length === 0) {
+                  alert('此檔案未包含任何方案');
+                  return;
+                }
+                // 預設取第一個；若未來需要可改為彈窗選擇
+                plan = data.plans[ids[0]];
+              } else {
+                plan = data;
+              }
+
+              if (!plan || !plan.name || !plan.segment_type || !plan.holiday_type) {
+                alert('檔案格式不正確，缺少必要欄位');
+                return;
+              }
+
+              // 載入基本資訊
+              document.getElementById('plan-name').value = plan.name || '';
+              document.getElementById('segment-type').value = plan.segment_type || '全天';
+              document.getElementById('holiday-type').value = plan.holiday_type || '無假日';
+
+              // 載入單位判定點
+              if (plan.unit_pivot) {
+                document.getElementById('unit-pivot').value = plan.unit_pivot;
+              }
+
+              // 區段
+              const segments = Array.isArray(plan.segments) ? plan.segments : [];
+              // 重新渲染區段 UI 後再填值
+              updateSegmentBuilder();
+              const container = document.getElementById('segments-container');
+              if (container) {
+                container.innerHTML = '';
+                segments.forEach((s) => {
+                  const row = document.createElement('div');
+                  row.className = 'segment-item';
+                  row.innerHTML = `
+                    <div class="row g-2">
+                      <div class="col-md-4"><input type="text" class="form-control segment-name" value="${s.name || ''}" placeholder="名稱"></div>
+                      <div class="col-md-4"><input type="time" class="form-control segment-start" value="${s.start || ''}"></div>
+                      <div class="col-md-4"><input type="time" class="form-control segment-end" value="${s.end || ''}"></div>
+                    </div>`;
+                  container.appendChild(row);
+                });
+              }
+
+              // 費率矩陣
+              currentMatrix = plan.rate_matrix || {};
+              updateRateMatrix();
+
+              // 全域設定
+              const gc = plan.global_caps || {};
+              document.getElementById('global-daily-cap').checked = !!gc.daily_cap_enabled;
+              if (gc.daily_cap_enabled && gc.daily_cap_amount != null) {
+                toggleGlobalDailyCap();
+                const el = document.getElementById('global-daily-cap-amount');
+                if (el) el.value = parseInt(gc.daily_cap_amount);
+              }
+              document.getElementById('segment-caps').checked = !!gc.segment_caps_enabled;
+              toggleSegmentCaps();
+              if (gc.cap_priority) {
+                document.getElementById('cap-priority').value = gc.cap_priority;
+              }
+              if (gc.global_grace_time != null) {
+                document.getElementById('global-grace-time').value = parseInt(gc.global_grace_time);
+              }
+
+              alert('✅ 方案已從檔案匯入，請確認內容後可直接儲存');
+            } catch (e) {
+              console.error('importPlanFromFile parse error:', e);
+              alert('匯入失敗：檔案內容不是有效的 JSON');
+            }
+          };
+          reader.readAsText(file, 'utf-8');
+        } catch (err) {
+          console.error('importPlanFromFile error:', err);
+          alert('匯入時發生錯誤');
+        } finally {
+          // 重置 input 以便下次可再次選擇同一檔案
+          evt.target.value = '';
         }
       }
 
