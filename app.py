@@ -203,7 +203,7 @@ def _save_mdp_config(config_data: dict):
     # 可選：驗證整體結構
     try:
         validate_multidimensional_config_json(config_data)
-    except Exception:
+        except Exception:
         # 若驗證函式較嚴格且結構為增量維護，放寬只在嚴重結構錯誤才阻止
         pass
     MDP_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -1918,9 +1918,9 @@ def api_calendar_sync_official():
         calendar_file.parent.mkdir(parents=True, exist_ok=True)
         calendar_file.write_text(
             json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+                    )
 
-        return jsonify(
+            return jsonify(
             {
                 "success": True,
                 "synced_year": year,
