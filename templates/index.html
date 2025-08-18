@@ -340,19 +340,8 @@
               <option value="">請選擇費率方案</option>
               {% for plan in rate_plans %}
               <option value="{{ plan.rate_plan_id or plan.template_id }}" 
-                      data-type="{{ plan.type }}"
-                      data-segment-type="{{ plan.segment_type or '' }}"
-                      data-holiday-type="{{ plan.holiday_type or '' }}"
-                      data-segments-count="{{ plan.segments_count or '' }}"
-                      data-has-rate-matrix="{{ plan.has_rate_matrix or '' }}"
-                      data-created-date="{{ plan.created_date or '' }}">
-                {% if plan.type == 'user_defined' %}
-                  🎨 {{ plan.label }} (自訂方案)
-                {% elif plan.type == 'multidimensional' %}
-                  🔬 {{ plan.label }} (多維度)
-                {% else %}
-                  📋 {{ plan.label }} (傳統)
-                {% endif %}
+                      data-type="{{ plan.type }}">
+                🔬 {{ plan.label }} (多維度)
               </option>
               {% endfor %}
             </select>
@@ -500,19 +489,7 @@
           
           // 根據方案類型顯示不同的詳細資訊
           let description = '完整的費率配置方案';
-          if (planType === 'user_defined') {
-            const segmentType = selectedOption.getAttribute('data-segment-type') || '';
-            const holidayType = selectedOption.getAttribute('data-holiday-type') || '';
-            const segmentsCount = selectedOption.getAttribute('data-segments-count') || '';
-            const hasRateMatrix = selectedOption.getAttribute('data-has-rate-matrix') === 'True';
-            const createdDate = selectedOption.getAttribute('data-created-date') || '';
-            
-            description = `
-              區段類型: ${segmentType} | 假日類型: ${holidayType} | 
-              區段數: ${segmentsCount} | 費率設定: ${hasRateMatrix ? '✅ 已完成' : '⚠️ 未設定'}
-              ${createdDate ? `| 建立: ${new Date(createdDate).toLocaleDateString()}` : ''}
-            `.trim();
-          } else if (planType === 'multidimensional') {
+          if (planType === 'multidimensional') {
             description = '🔬 支援多維度時間區段和假日類型的智能計費方案';
           }
           
@@ -522,10 +499,7 @@
           const planInfo = document.getElementById('planInfo');
           planInfo.style.display = 'block';
           
-          if (planType === 'user_defined') {
-            planInfo.style.borderLeft = '4px solid #ff9500';
-            planInfo.style.background = 'linear-gradient(135deg, #fff8f0 0%, #ffefd5 100%)';
-          } else if (planType === 'multidimensional') {
+          if (planType === 'multidimensional') {
             planInfo.style.borderLeft = '4px solid #007bff';
             planInfo.style.background = 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)';
           } else {
@@ -543,12 +517,10 @@
         chips.innerHTML = '';
         grid.innerHTML = '';
 
-        // 多維度模板：暫時僅顯示說明
-        if (planType !== 'user_defined') {
-          preview.style.display = 'block';
-          chips.innerHTML = `<span class="badge bg-secondary">多維度模板（目前無費率矩陣預覽）</span>`;
-          return;
-        }
+        // 僅保留多維度：直接顯示多維度說明，移除自訂方案預覽
+        preview.style.display = 'block';
+        chips.innerHTML = `<span class="badge bg-secondary">多維度模板（目前無費率矩陣預覽）</span>`;
+        return;
 
         const planId = optionEl.value;
         try {
@@ -622,7 +594,6 @@
 
       function getTypeDisplayName(type) {
         const typeMap = {
-          'user_defined': '🎨 自訂方案',
           'multidimensional': '🔬 多維度方案'
         };
         return typeMap[type] || type;

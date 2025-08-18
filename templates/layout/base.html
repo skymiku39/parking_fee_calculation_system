@@ -96,8 +96,7 @@
         {% set current_path = request.path %}
         <nav class="mt-2">
           <a class="nav-link {% if current_path == '/' %}active{% endif %}" href="/"><i class="fas fa-calculator me-2"></i> 價格試算</a>
-          <a class="nav-link {% if current_path.startswith('/plan_manager') %}active{% endif %}" href="/plan_manager"><i class="fas fa-folder-tree me-2"></i> 方案管理</a>
-          <a class="nav-link {% if current_path.startswith('/rate_plan_designer') %}active{% endif %}" href="/rate_plan_designer"><i class="fas fa-drafting-compass me-2"></i> 方案設計器</a>
+          <!-- 精簡：僅保留多維度計算機，移除設計器/方案管理入口 -->
           <a class="nav-link {% if current_path.startswith('/calendar_manager') %}active{% endif %}" href="/calendar_manager"><i class="fas fa-calendar-alt me-2"></i> 日曆與假日</a>
           <a class="nav-link {% if current_path.startswith('/settlement_center') %}active{% endif %}" href="/settlement_center"><i class="fas fa-calculator me-2"></i> 結算中心</a>
           <a class="nav-link {% if current_path.startswith('/system_settings') %}active{% endif %}" href="/system_settings"><i class="fas fa-gear me-2"></i> 系統設定</a>

@@ -24,12 +24,7 @@ from utils.config_validator import (
     validate_multidimensional_config_json,
     ConfigValidationError,
 )
-try:
-    from src.domain.plans.schema_v2 import PlanV2
-    _HAS_PYDANTIC = True
-except Exception:
-    from utils.config_validator import validate_plan_v2_json as _validate_v2
-    _HAS_PYDANTIC = False
+_HAS_PYDANTIC = False
 
 # 加入模組路徑
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -87,7 +82,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 # 統一錯誤回應工具
 def error_response(code: str, message: str, http_status: int = 400, extra: Dict = None):
-    payload = {"success": False, "code": code, "message": message}
+    # 為相容前端舊邏輯，額外提供 error 欄位，避免顯示 undefined
+    payload = {"success": False, "code": code, "message": message, "error": message}
     if isinstance(extra, dict):
         payload.update(extra)
     return jsonify(payload), http_status
@@ -191,6 +187,118 @@ class SmartParkingSystem:
             logger.info("多維度標籤計算器載入成功")
         except Exception as e:
             logger.exception("多維度標籤計算器載入失敗: %s", e)
+
+# ============== 多維度方案 CRUD API ==============
+MDP_CONFIG_PATH = Path("config/multidimensional_rate_plans.json")
+
+def _load_mdp_config() -> dict:
+    if MDP_CONFIG_PATH.exists():
+        try:
+            return json.loads(MDP_CONFIG_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+def _save_mdp_config(config_data: dict):
+    # 可選：驗證整體結構
+    try:
+        validate_multidimensional_config_json(config_data)
+    except Exception:
+        # 若驗證函式較嚴格且結構為增量維護，放寬只在嚴重結構錯誤才阻止
+        pass
+    MDP_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MDP_CONFIG_PATH.write_text(json.dumps(config_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    # 重新載入計算器
+    try:
+        parking_system.init_multidimensional_calculator()
+    except Exception:
+        logger.exception("重新載入多維度計算器失敗")
+
+@app.route("/api/mdp/templates", methods=["GET"])
+def api_mdp_list_templates():
+    try:
+        cfg = _load_mdp_config()
+        templates = cfg.get("rate_plan_templates", [])
+        items = []
+        for t in templates:
+            items.append({
+                "template_id": t.get("template_id"),
+                "label": t.get("label"),
+                "description": t.get("description"),
+                "time_segment_type": t.get("time_segment_type"),
+                "holiday_type": t.get("holiday_type"),
+            })
+        return jsonify({"success": True, "templates": items, "total": len(items)})
+    except Exception as e:
+        return error_response("MDP_LIST_ERROR", str(e), 500)
+
+@app.route("/api/mdp/templates/<template_id>", methods=["GET"])
+def api_mdp_get_template(template_id: str):
+    try:
+        cfg = _load_mdp_config()
+        templates = cfg.get("rate_plan_templates", [])
+        for t in templates:
+            if t.get("template_id") == template_id:
+                return jsonify({"success": True, "template": t})
+        return error_response("MDP_NOT_FOUND", "找不到指定範本", 404)
+    except Exception as e:
+        return error_response("MDP_GET_ERROR", str(e), 500)
+
+@app.route("/api/mdp/templates/save", methods=["POST"])
+def api_mdp_save_template():
+    try:
+        payload = request.get_json() or {}
+        tpl = payload.get("template") or {}
+        required = ["template_id", "label", "description", "time_segment_type", "holiday_type"]
+        for k in required:
+            if not tpl.get(k):
+                return error_response("INVALID_INPUT", f"缺少必要欄位: {k}", 400)
+
+        cfg = _load_mdp_config()
+        templates = cfg.setdefault("rate_plan_templates", [])
+
+        # 更新或新增
+        updated = False
+        for i, t in enumerate(templates):
+            if t.get("template_id") == tpl["template_id"]:
+                templates[i] = tpl
+                updated = True
+                break
+        if not updated:
+            templates.append(tpl)
+
+        _save_mdp_config(cfg)
+        return jsonify({"success": True, "message": "範本已儲存", "template_id": tpl["template_id"]})
+    except Exception as e:
+        return error_response("MDP_SAVE_ERROR", str(e), 500)
+
+@app.route("/api/mdp/templates/<template_id>", methods=["DELETE"])
+def api_mdp_delete_template(template_id: str):
+    try:
+        cfg = _load_mdp_config()
+        templates = cfg.get("rate_plan_templates", [])
+        new_list = [t for t in templates if t.get("template_id") != template_id]
+        if len(new_list) == len(templates):
+            return error_response("MDP_NOT_FOUND", "方案不存在", 404)
+        cfg["rate_plan_templates"] = new_list
+        _save_mdp_config(cfg)
+        return jsonify({"success": True, "message": f"已刪除範本: {template_id}"})
+    except Exception as e:
+        return error_response("MDP_DELETE_ERROR", str(e), 500)
+
+@app.route("/api/mdp/export", methods=["GET"])
+def api_mdp_export_config():
+    try:
+        if MDP_CONFIG_PATH.exists():
+            return send_from_directory(MDP_CONFIG_PATH.parent.as_posix(), MDP_CONFIG_PATH.name, as_attachment=True, download_name="multidimensional_rate_plans.json")
+        # 提供空結構
+        default_cfg = {"dimension_configs": {}, "rate_plan_templates": []}
+        data = json.dumps(default_cfg, ensure_ascii=False, indent=2)
+        resp = app.response_class(data, mimetype="application/json")
+        resp.headers["Content-Disposition"] = "attachment; filename=multidimensional_rate_plans.json"
+        return resp
+    except Exception as e:
+        return error_response("MDP_EXPORT_ERROR", str(e), 500)
 
     # 移除「啟用方案」機制，統一以傳入的 plan_id 或 plan_inline 試算
 
@@ -1229,20 +1337,19 @@ def system_settings():
 
 @app.route("/rate_plan_designer")
 def rate_plan_designer():
-    """費率方案設計器"""
+    """多維度方案設計器"""
     return render_template("rate_plan_designer.html")
 
 
 @app.route("/rate_plan_designer_test")
 def rate_plan_designer_test():
-    """費率方案設計器測試版"""
-    return render_template("rate_plan_designer_test.html")
+    return redirect(url_for("rate_plan_designer"))
 
 
 # 新增統一版側欄布局頁面
 @app.route("/plan_manager")
 def plan_manager_page():
-    """方案管理頁（整合列表、預覽與快速操作）"""
+    """多維度方案管理"""
     return render_template("plan_manager.html")
 
 
@@ -1279,82 +1386,15 @@ def settlement_center():
 
 @app.route("/api/docs")
 def api_docs():
-    """Swagger UI 文件頁"""
-    return render_template("api_docs.html")
+    """文件頁（已精簡，導向首頁）"""
+    return redirect(url_for("index"))
 
 def get_all_available_plans() -> List[Dict]:
-    """獲取所有可用的費率方案"""
-    plans = []
-
-    # 本地計算機定位：顯示所有用戶自訂方案；多維度模板採全列或保留必要集
-    # 取消 featured/顯示上限/active 過濾，避免在「價格試算」下拉中找不到方案（如「萬華西園」）
-
-    # 添加用戶自訂方案
-    try:
-        with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
-            user_plans = json.load(f)
-            for plan_id, plan_data in user_plans.get("plans", {}).items():
-                # 分析費率資訊
-                rate_matrix = plan_data.get("rate_matrix", {})
-                segments = plan_data.get("segments", [])
-
-                # 提取費率摘要
-                rate_summary = []
-                if rate_matrix:
-                    for rate_key, rate_config in rate_matrix.items():
-                        simple_rate = rate_config.get("simple_rate", 0)
-                        unit_time = rate_config.get("unit_time", 60)
-                        rate_summary.append(f"{rate_key}: {simple_rate}元/{unit_time}分鐘")
-
-                # 提取時段資訊
-                segments_info = [
-                    f"{segment['name']} ({segment['start']}-{segment['end']})"
-                    for segment in segments
-                ]
-
-                # 全局上限資訊
-                global_caps = plan_data.get("global_caps", {})
-                cap_info = "日上限: {0}元".format(global_caps.get("daily_cap_amount", 0)) if global_caps.get("daily_cap_enabled") else ""
-
-                # 免費時間資訊
-                grace_time = plan_data.get("global_grace_time", 0)
-                grace_info = f"免費時間: {grace_time}分鐘" if grace_time > 0 else ""
-
-                item = {
-                    "rate_plan_id": plan_id,
-                    "label": plan_data.get("name", plan_id),
-                    "type": "user_defined",
-                    "description": plan_data.get("description", ""),
-                    "segment_type": plan_data.get("segment_type", ""),
-                    "holiday_type": plan_data.get("holiday_type", ""),
-                    "segments_count": len(segments),
-                    "segments_info": segments_info,
-                    "has_rate_matrix": bool(rate_matrix),
-                    "rate_summary": rate_summary,
-                    "cap_info": cap_info,
-                    "grace_info": grace_info,
-                    "created_date": plan_data.get("created_date", ""),
-                    "modified_date": plan_data.get("modified_date", ""),
-                    "version": plan_data.get("version", ""),
-                    # 詳細配置預覽
-                    "config_preview": {
-                        "segments": len(segments),
-                        "rates": len(rate_matrix),
-                        "has_caps": bool(global_caps.get("daily_cap_enabled")),
-                        "has_grace": grace_time > 0,
-                        "holiday_support": plan_data.get("holiday_type", "") != "無假日",
-                    },
-                }
-                plans.append(item)
-    except FileNotFoundError:
-        pass
-
-    # 獲取多維度方案
+    """僅回傳多維度方案，移除用戶自訂方案以簡化系統"""
+    plans: List[Dict] = []
     if parking_system.multidimensional_calculator:
-        multidimensional_templates = (
-            parking_system.multidimensional_calculator.get_available_templates()
-        )
-        for template_id, label in multidimensional_templates.items():
+        templates = parking_system.multidimensional_calculator.get_available_templates()
+        for template_id, label in templates.items():
             plans.append(
                 {
                     "rate_plan_id": template_id,
@@ -1363,9 +1403,6 @@ def get_all_available_plans() -> List[Dict]:
                     "description": f"多維度方案: {label}",
                 }
             )
-
-    # 移除傳統方案以簡化系統
-
     return plans
 
 
@@ -1455,128 +1492,7 @@ def api_calculate_fee():
             vehicle_type = VehicleType.CAR
 
         # 即時試算：支援 plan_inline（不需先儲存）
-        plan_inline = data.get("plan_inline")
-        if isinstance(plan_inline, dict):
-            try:
-                # 驗證 v2 結構
-                if _HAS_PYDANTIC:
-                    _ = PlanV2(
-                        name=plan_inline.get("name") or "inline",
-                        segment_type=plan_inline.get("segment_type"),
-                        holiday_type=plan_inline.get("holiday_type"),
-                        segments=plan_inline.get("segments", []),
-                        rate_matrix=plan_inline.get("rate_matrix", {}),
-                        global_caps=plan_inline.get("global_caps", {}),
-                    )
-                else:
-                    from utils.config_validator import validate_plan_v2_json as _validate_v2
-                    _validate_v2({
-                        "name": plan_inline.get("name") or "inline",
-                        "segment_type": plan_inline.get("segment_type"),
-                        "holiday_type": plan_inline.get("holiday_type"),
-                        "segments": plan_inline.get("segments", []),
-                        "rate_matrix": plan_inline.get("rate_matrix", {}),
-                        "global_caps": plan_inline.get("global_caps", {}),
-                    })
-                # 使用 30 分鐘收費週期邏輯
-                # 根據 unit_pivot 切換：start=以週期開始時判斷；end=以週期結束時判斷
-                unit_pivot = (plan_inline.get("unit_pivot") or "start").lower()
-                if unit_pivot == "end":
-                    from datetime import timedelta
-                    # 以結束時刻決定費率
-                    def end_pivot_calc():
-                        unit_minutes = 30
-                        total_minutes = int((exit_time - enter_time).total_seconds() // 60)
-                        if total_minutes <= 0:
-                            return {"success": True, "total_amount": 0, "session_details": [], "calculation_engine": "user_defined_billing_cycle", "enter_time": enter_time, "exit_time": exit_time, "total_duration_minutes": 0}
-                        num_units = -(-total_minutes // unit_minutes)
-                        cursor = enter_time
-                        segments = plan_inline.get('segments', [])
-                        rate_matrix = plan_inline.get('rate_matrix', {})
-                        holiday_type = plan_inline.get('holiday_type', '平日假日')
-                        def date_cat(dt):
-                            return parking_system.determine_date_category(dt, holiday_type)
-                        fee_total = 0
-                        details = []
-                        for _ in range(num_units):
-                            period_start = cursor
-                            period_end = min(cursor + timedelta(minutes=unit_minutes), exit_time)
-                            pivot = period_end - timedelta(seconds=1)
-                            seg = parking_system.find_active_segment_at_time(pivot, segments)
-                            if not seg:
-                                unit_fee = 0
-                                rate = 0
-                                unit = unit_minutes
-                                label = '未匹配'
-                            else:
-                                dc = date_cat(pivot)
-                                key = f"{seg['name']}_{dc}"
-                                cfg = rate_matrix.get(key, {})
-                                unit = cfg.get('unit_time', unit_minutes)
-                                rate = cfg.get('simple_rate', 0)
-                                unit_fee = rate
-                                label = seg['name']
-                            fee_total += unit_fee
-                            details.append({
-                                'time_range': f"{period_start.strftime('%H:%M')}-{period_end.strftime('%H:%M')}",
-                                'duration': int((period_end - period_start).total_seconds() // 60),
-                                'label': label,
-                                'unit': unit,
-                                'rate': rate,
-                                'fee': unit_fee,
-                            })
-                            cursor = period_end
-                            if cursor >= exit_time:
-                                break
-                        return {
-                            'success': True,
-                            'calculation_engine': 'user_defined_billing_cycle',
-                            'total_amount': int(fee_total) + manual_adjustment,
-                            'original_amount': int(fee_total),
-                            'manual_adjustment': manual_adjustment,
-                            'session_details': details,
-                            'calculation_summary': f"30分單位(以結束時刻判斷)",
-                            'enter_time': enter_time,
-                            'exit_time': exit_time,
-                            'total_duration_minutes': int((exit_time - enter_time).total_seconds() // 60),
-                        }
-                    inline_result = end_pivot_calc()
-                else:
-                    inline_result = parking_system.calculate_fee_by_billing_cycles(
-                        enter_time=enter_time,
-                        exit_time=exit_time,
-                        plan_data=plan_inline,
-                        manual_adjustment=manual_adjustment,
-                    )
-
-                # 添加顯示資訊與序列化
-                if inline_result.get("success"):
-                    inline_result["total_duration_display"] = parking_system.format_duration_display(
-                        inline_result.get("total_duration_minutes", 0)
-                    )
-                    inline_result["enter_time_display"] = enter_time.strftime("%Y年%m月%d日 %H:%M")
-                    inline_result["exit_time_display"] = exit_time.strftime("%Y年%m月%d日 %H:%M")
-                    if isinstance(inline_result.get("enter_time"), datetime):
-                        inline_result["enter_time"] = inline_result["enter_time"].strftime("%Y-%m-%d %H:%M")
-                    if isinstance(inline_result.get("exit_time"), datetime):
-                        inline_result["exit_time"] = inline_result["exit_time"].strftime("%Y-%m-%d %H:%M")
-
-                duration_ms = int((_pytime.perf_counter() - start_ts) * 1000)
-                logger.info(
-                    "calc_request result=%s plan_inline=%s ms=%s request_id=%s",
-                    "success" if inline_result.get("success") else "fail",
-                    True,
-                    duration_ms,
-                    request_id,
-                )
-                return jsonify({"request_id": request_id, **inline_result})
-            except Exception as ve:
-                return error_response(
-                    code="INVALID_INPUT",
-                    message=f"inline 設定錯誤: {ve}",
-                    http_status=400,
-                    extra={"request_id": request_id},
-                )
+        # 已移除 user_defined inline；多維度的即時預覽請使用 /api/mdp/preview
 
         # 計算費用（既有流程）
         result = parking_system.calculate_parking_fee(
@@ -1756,243 +1672,14 @@ def api_get_dimension_combinations():
 
 @app.route("/api/rate_plans/save", methods=["POST"])
 def api_save_rate_plan():
-    """儲存用戶自定義費率方案"""
-    """
-    ---
-    post:
-      description: 儲存一個新的用戶自定義費率方案
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: body
-          schema:
-            type: object
-            required: [name, segment_type, holiday_type, segments]
-            properties:
-              name: { type: string }
-              segment_type: { type: string }
-              holiday_type: { type: string }
-              segments:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    name: { type: string }
-                    start: { type: string }
-                    end: { type: string }
-              rate_matrix: { type: object }
-              global_caps: { type: object }
-              global_grace_time: { type: integer }
-      responses:
-        200:
-          description: 成功
-        400:
-          description: 輸入或配置錯誤
-        500:
-          description: 伺服器錯誤
-    """
-    try:
-        data = request.get_json() or {}
-
-        # 驗證必要欄位
-        required_fields = ["name", "segment_type", "holiday_type", "segments"]
-        for field in required_fields:
-            if field not in data:
-                return error_response(
-                    code="INVALID_INPUT",
-                    message=f"缺少必要欄位: {field}",
-                    http_status=400,
-                )
-
-        # 生成方案ID（清理特殊字符）
-        plan_name = data["name"].strip()
-        plan_id = (
-            plan_name.lower()
-            .replace(" ", "_")
-            .replace("：", "_")
-            .replace(":", "_")
-            .replace("（", "_")
-            .replace("）", "_")
-            .replace("(", "_")
-            .replace(")", "_")
-        )
-
-        # 載入現有的用戶方案
-        user_plans_file = "config/user_defined_plans.json"
-        try:
-            with open(user_plans_file, "r", encoding="utf-8") as f:
-                user_plans = json.load(f)
-
-            # 確保metadata字段存在
-            if "metadata" not in user_plans:
-                user_plans["metadata"] = {
-                    "created": datetime.now().isoformat(),
-                    "version": "1.0",
-                }
-        except FileNotFoundError:
-            user_plans = {
-                "plans": {},
-                "metadata": {"created": datetime.now().isoformat(), "version": "1.0"},
-            }
-
-        # 創建新方案結構
-        # 驗證為 v2 結構（向下相容：若缺欄位或型別錯誤會在此拋出）
-        if _HAS_PYDANTIC:
-            try:
-                _ = PlanV2(
-                    name=plan_name,
-                    segment_type=data["segment_type"],
-                    holiday_type=data["holiday_type"],
-                    segments=data["segments"],
-                    rate_matrix=data.get("rate_matrix", {}),
-                    global_caps=data.get("global_caps", {}),
-                )
-            except Exception as ve:
-                return error_response(
-                    code="INVALID_INPUT",
-                    message=f"格式驗證失敗: {ve}",
-                    http_status=400,
-                )
-        else:
-            try:
-                from utils.config_validator import validate_plan_v2_json as _validate_v2
-                _validate_v2({
-                    "name": plan_name,
-                    "segment_type": data["segment_type"],
-                    "holiday_type": data["holiday_type"],
-                    "segments": data["segments"],
-                    "rate_matrix": data.get("rate_matrix", {}),
-                    "global_caps": data.get("global_caps", {}),
-                })
-            except ConfigValidationError as ve:
-                return error_response(
-                    code="INVALID_INPUT",
-                    message=f"格式驗證失敗: {', '.join(ve.errors) if ve.errors else str(ve)}",
-                    http_status=400,
-                )
-
-        # 規範化 rate_matrix：當 holiday_type 非「無假日」時，移除所有 *_統一 的鍵
-        raw_matrix = data.get("rate_matrix", {}) or {}
-        holiday_type = data["holiday_type"]
-        if holiday_type == "無假日":
-            allowed_suffixes = {"統一"}
-        elif holiday_type == "平日假日":
-            allowed_suffixes = {"平日", "假日"}
-        elif holiday_type == "完整假日":
-            allowed_suffixes = {"平日", "假日", "節慶日"}
-        else:
-            # 未知型別時保守處理：保留非統一以外的常見鍵
-            allowed_suffixes = {"平日", "假日", "節慶日", "統一"}
-
-        cleaned_matrix = {}
-        for key, cfg in raw_matrix.items():
-            try:
-                suffix = key.split("_")[-1]
-            except Exception:
-                suffix = ""
-            if suffix in allowed_suffixes:
-                # 若是非「無假日」，則不保留「統一」
-                if holiday_type != "無假日" and suffix == "統一":
-                    continue
-                cleaned_matrix[key] = cfg
-
-        new_plan = {
-            "name": plan_name,
-            "description": f"用戶自定義方案：{plan_name}",
-            "segment_type": data["segment_type"],
-            "holiday_type": holiday_type,
-            "segments": data["segments"],
-            "rate_matrix": cleaned_matrix,
-            "global_caps": data.get("global_caps", {}),
-            "global_grace_time": data.get("global_grace_time", 0),
-            "unit_pivot": data.get("unit_pivot", "start"),
-            "created_date": datetime.now().isoformat(),
-            "modified_date": datetime.now().isoformat(),
-            "version": "2.0",
-            "active": True,
-        }
-
-        # 儲存方案
-        user_plans["plans"][plan_id] = new_plan
-        user_plans["metadata"]["last_modified"] = datetime.now().isoformat()
-
-        # 寫入文件前進行schema驗證
-        try:
-            validate_user_defined_plans_json(user_plans)
-        except ConfigValidationError as ve:
-            return error_response(
-                code="INVALID_CONFIG",
-                message=f"用戶方案配置不合法: {', '.join(ve.errors) if ve.errors else str(ve)}",
-                http_status=400,
-            )
-
-        # 寫入文件
-        Path(user_plans_file).parent.mkdir(parents=True, exist_ok=True)
-        with open(user_plans_file, "w", encoding="utf-8") as f:
-            json.dump(user_plans, f, ensure_ascii=False, indent=2)
-
-        return jsonify(
-            {
-                "success": True,
-                "message": f"方案 '{plan_name}' 已成功儲存",
-                "plan_id": plan_id,
-                "plan_data": new_plan,
-            }
-        )
-
-    except Exception as e:
-        return error_response(
-            code="INTERNAL_ERROR",
-            message=f"儲存方案時發生錯誤: {str(e)}",
-            http_status=500,
-        )
+    # 已停用舊版自訂方案儲存，請改用 /api/mdp/templates/save
+    return error_response("DEPRECATED", "自訂方案已下線，請使用 /api/mdp/templates* API", 410)
 
 
 @app.route("/api/rate_plans/list", methods=["GET"])
 def api_list_user_rate_plans():
-    """獲取用戶自定義費率方案列表"""
-    """
-    ---
-    get:
-      description: 取得用戶自定義方案列表
-      responses:
-        200:
-          description: 成功
-        500:
-          description: 伺服器錯誤
-    """
-    try:
-        user_plans_file = "config/user_defined_plans.json"
-        try:
-            with open(user_plans_file, "r", encoding="utf-8") as f:
-                user_plans = json.load(f)
-
-            plans_list = []
-            for plan_id, plan_data in user_plans.get("plans", {}).items():
-                if plan_data.get("active", True):
-                    plans_list.append(
-                        {
-                            "plan_id": plan_id,
-                            "name": plan_data["name"],
-                            "description": plan_data.get("description", ""),
-                            "segment_type": plan_data["segment_type"],
-                            "holiday_type": plan_data["holiday_type"],
-                            "created_date": plan_data.get("created_date", ""),
-                            "segments_count": len(plan_data.get("segments", [])),
-                            "has_rate_matrix": bool(plan_data.get("rate_matrix", {})),
-                        }
-                    )
-
-            return jsonify(
-                {"success": True, "plans": plans_list, "total_count": len(plans_list)}
-            )
-
-        except FileNotFoundError:
-            return jsonify({"success": True, "plans": [], "total_count": 0})
-
-    except Exception as e:
-        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
+    # 已停用舊版自訂方案列表，請改用 /api/mdp/templates
+    return error_response("DEPRECATED", "自訂方案已下線，請使用 /api/mdp/templates* API", 410)
 
 
 @app.route("/api/enhanced/segments/validate", methods=["POST"])
@@ -2330,83 +2017,14 @@ def api_export_all_plans():
         return error_response("EXPORT_ALL_ERROR", str(e), 500)
 @app.route("/api/rate_plans/load/<plan_id>", methods=["GET"])
 def api_load_rate_plan(plan_id):
-    """載入指定的用戶自定義費率方案"""
-    """
-    ---
-    get:
-      description: 取得指定 ID 的用戶方案
-      parameters:
-        - name: plan_id
-          in: path
-          type: string
-          required: true
-      responses:
-        200:
-          description: 成功
-        404:
-          description: 找不到方案
-        500:
-          description: 伺服器錯誤
-    """
-    try:
-        user_plans_file = "config/user_defined_plans.json"
-        try:
-            with open(user_plans_file, "r", encoding="utf-8") as f:
-                user_plans = json.load(f)
-
-            if plan_id not in user_plans.get("plans", {}):
-                return error_response(
-                    code="PLAN_NOT_FOUND", message="找不到指定的方案", http_status=404
-                )
-
-            plan_data = user_plans["plans"][plan_id]
-
-            return jsonify({"success": True, "plan": plan_data})
-
-        except FileNotFoundError:
-            return error_response(
-                code="PLAN_FILE_MISSING", message="找不到用戶方案文件", http_status=404
-            )
-
-    except Exception as e:
-        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
+    # 已停用舊版自訂方案載入，請改用 /api/mdp/templates/<id>
+    return error_response("DEPRECATED", "自訂方案已下線，請使用 /api/mdp/templates* API", 410)
 
 
 @app.route("/api/rate_plans/<plan_id>", methods=["DELETE"])
 def api_delete_rate_plan(plan_id):
-    """刪除指定的用戶自定義費率方案"""
-    try:
-        user_plans_file = "config/user_defined_plans.json"
-        try:
-            with open(user_plans_file, "r", encoding="utf-8") as f:
-                user_plans = json.load(f)
-        except FileNotFoundError:
-            return error_response(
-                code="PLAN_FILE_MISSING", message="找不到用戶方案文件", http_status=404
-            )
-
-        plans_dict = user_plans.get("plans", {})
-        if plan_id not in plans_dict:
-            return error_response(
-                code="PLAN_NOT_FOUND", message="方案不存在", http_status=404
-            )
-
-        # 刪除方案
-        del plans_dict[plan_id]
-
-        # 更新中繼資料
-        user_plans.setdefault("metadata", {})
-        user_plans["metadata"]["last_modified"] = datetime.now().isoformat()
-
-        # 寫回檔案
-        with open(user_plans_file, "w", encoding="utf-8") as f:
-            json.dump(user_plans, f, ensure_ascii=False, indent=2)
-
-        # 無啟用方案機制，僅刪除本地方案
-
-        return jsonify({"success": True, "message": f"成功刪除方案: {plan_id}"})
-    except Exception as e:
-        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
+    # 已停用舊版自訂方案刪除，請改用 /api/mdp/templates/<id> (DELETE)
+    return error_response("DEPRECATED", "自訂方案已下線，請使用 /api/mdp/templates* API", 410)
 
 
 if __name__ == "__main__":

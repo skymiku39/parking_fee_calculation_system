@@ -1027,3 +1027,151 @@
 2025-08-18 14:56:05,388 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /rate_plan_designer HTTP/1.1" 200 -
 2025-08-18 14:56:05,704 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /plan_manager HTTP/1.1" 200 -
 2025-08-18 14:56:05,719 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 15:06:48,838 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 15:06:48,951 INFO werkzeug -  * Restarting with stat
+2025-08-18 15:06:49,596 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 15:06:49,627 WARNING werkzeug -  * Debugger is active!
+2025-08-18 15:06:49,633 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 15:07:55,799 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 15:07:55,854 INFO werkzeug -  * Restarting with stat
+2025-08-18 15:07:56,157 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 15:07:56,171 WARNING werkzeug -  * Debugger is active!
+2025-08-18 15:07:56,175 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 15:08:07,871 INFO app - 多維度標籤計算器載入成功
+2025-08-18 15:08:13,497 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 15:08:13,526 INFO werkzeug -  * Restarting with stat
+2025-08-18 15:08:13,813 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 15:08:13,827 WARNING werkzeug -  * Debugger is active!
+2025-08-18 15:08:13,830 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 15:57:22,038 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 15:57:22] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 15:57:22,063 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 15:57:22] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 15:57:23,392 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 15:57:23] "GET / HTTP/1.1" 200 -
+2025-08-18 15:57:27,833 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 15:57:27] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-18 16:00:28,739 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 16:00:28,765 INFO werkzeug -  * Restarting with stat
+2025-08-18 16:00:29,168 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 16:00:29,179 WARNING werkzeug -  * Debugger is active!
+2025-08-18 16:00:29,183 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 16:05:07,715 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 16:05:07,753 INFO werkzeug -  * Restarting with stat
+2025-08-18 16:05:08,000 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 16:05:08,013 WARNING werkzeug -  * Debugger is active!
+2025-08-18 16:05:08,017 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 16:54:49,213 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 16:54:49,248 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 16:54:49,248 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 16:54:49,249 INFO werkzeug -  * Restarting with stat
+2025-08-18 16:54:49,521 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 16:54:49,536 WARNING werkzeug -  * Debugger is active!
+2025-08-18 16:54:49,539 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 16:54:56,219 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:54:56] "GET / HTTP/1.1" 200 -
+2025-08-18 16:54:56,407 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:54:56] "GET / HTTP/1.1" 200 -
+2025-08-18 16:54:57,398 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:54:57] "GET / HTTP/1.1" 200 -
+2025-08-18 16:54:58,093 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:54:58] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 16:54:58,115 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:54:58] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 16:54:58,593 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:54:58] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 16:55:01,215 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:55:01] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 16:55:06,096 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:55:06] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-18 16:55:19,841 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:55:19] "GET / HTTP/1.1" 200 -
+2025-08-18 16:55:23,034 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:55:23] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-18 16:55:33,806 INFO __main__ - calc_request result=success plan_id=萬華西園 ms=7 request_id=c9099158-0d68-416e-adb4-a51e7f2d0d79
+2025-08-18 16:55:33,807 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:55:33] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-18 16:56:52,909 INFO __main__ - calc_request result=success plan_id=萬華西園 ms=6 request_id=a7586c85-52ed-4cd2-8eee-531e94a195c6
+2025-08-18 16:56:52,910 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:56:52] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-18 16:58:30,605 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:58:30] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 16:58:30,621 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:58:30] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 16:58:31,113 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:58:31] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 16:59:05,313 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:59:05] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 16:59:05,326 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:59:05] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 16:59:09,738 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:59:09] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 16:59:12,991 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:59:12] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 16:59:16,584 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 16:59:16] "POST /api/calendar/generate_weekends HTTP/1.1" 200 -
+2025-08-18 17:00:06,521 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:06] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 17:00:07,604 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:07] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:00:09,450 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:09] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 17:00:09,473 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:09] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 17:00:09,476 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:09] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 17:00:09,477 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:09] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 17:00:20,285 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:20] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 17:00:48,941 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:00:48] "GET / HTTP/1.1" 200 -
+2025-08-18 17:02:08,070 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 17:02:08,103 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:02:08,373 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:02:08,386 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:02:08,391 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 17:04:49,000 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 17:04:49,033 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:04:49,271 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:04:49,282 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:04:49,285 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 17:06:34,060 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 17:06:34,093 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:06:34,354 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:06:34,366 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:06:34,368 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 17:09:31,364 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:31] "GET / HTTP/1.1" 200 -
+2025-08-18 17:09:33,255 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:33] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:09:33,692 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:33] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 17:09:33,709 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:33] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 17:09:34,081 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:34] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 17:09:34,098 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:34] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 17:09:34,101 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:34] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 17:09:34,102 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:34] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 17:09:34,671 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:34] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:09:35,046 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:35] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 17:09:35,059 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:35] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 17:09:35,595 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:35] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:09:35,975 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:35] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 17:09:35,992 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:35] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 17:09:36,509 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:36] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:09:37,552 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:37] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 17:09:37,570 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:37] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 17:09:38,105 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:38] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:09:40,242 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:40] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 17:09:40,257 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:40] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 17:09:40,260 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:40] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 17:09:40,261 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:09:40] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 17:10:35,079 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 17:10:35,107 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:10:35,341 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:10:35,354 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:10:35,357 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 17:10:50,951 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:50] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 17:10:50,964 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:50] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 17:10:50,965 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:50] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 17:10:50,966 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:50] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 17:10:51,264 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 17:10:51,276 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 17:10:51,277 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 17:10:51,278 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 17:10:51,647 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 17:10:51,666 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 17:10:51,666 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 17:10:51,667 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:10:51] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 17:11:13,994 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 17:11:14,022 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:11:14,274 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:11:14,289 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:11:14,291 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 17:12:21,114 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:12:21] "GET / HTTP/1.1" 200 -
+2025-08-18 17:12:21,257 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:12:21] "GET / HTTP/1.1" 200 -
+2025-08-18 17:12:22,825 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:12:22] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 17:12:22,851 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:12:22] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 17:12:54,920 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:12:54,939 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 17:12:54,939 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 17:12:54,940 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:12:55,166 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:12:55,179 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:12:55,182 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 17:13:05,576 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:05] "[32mGET /rate_plan_designer HTTP/1.1[0m" 302 -
+2025-08-18 17:13:05,589 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:05] "GET / HTTP/1.1" 200 -
+2025-08-18 17:13:07,210 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:07] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 17:13:07,223 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:07] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 17:13:07,528 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:07] "GET /settlement_center HTTP/1.1" 200 -
