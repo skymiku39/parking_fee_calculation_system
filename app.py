@@ -50,7 +50,8 @@ except Exception:
 # 移除增強版多維度計算器以簡化系統
 
 # 讓 Flask 在 PyInstaller 打包後也能正確找到模板與靜態資源
-_BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+# onedir/onefile：優先使用工作目錄（launcher 已切換至可執行檔所在目錄）
+_BASE_DIR = Path(getattr(sys, "_MEIPASS", os.getcwd()))
 _TEMPLATE_DIR = (_BASE_DIR / "templates").as_posix()
 _STATIC_DIR = (_BASE_DIR / "static").as_posix()
 
