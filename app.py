@@ -1380,8 +1380,8 @@ def multidimensional_config():
 
 @app.route("/settlement_center")
 def settlement_center():
-    """結算中心"""
-    return render_template("settlement_center.html")
+    """結算中心（已移除），導向首頁"""
+    return redirect(url_for("index"))
 
 
 @app.route("/api/docs")
