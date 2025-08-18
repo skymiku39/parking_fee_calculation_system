@@ -291,9 +291,17 @@
             <label for="syncYear" style="color:#555; font-weight:600;">年份</label>
             <input type="number" id="syncYear" min="2000" max="2100" style="width: 110px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
           </div>
-          <button class="btn" onclick="syncOfficialHolidays()" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: #fff;">
-            <i class="fas fa-cloud-download-alt"></i> 同步官方假日
-          </button>
+          <div class="btn-group" role="group" aria-label="sync-group">
+            <button id="btnSyncGov" class="btn" onclick="syncOfficialHolidaysV2('gov_tw')" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: #fff;">
+              <i class="fas fa-cloud-download-alt"></i> 政府資料
+            </button>
+            <button id="btnSyncNager" class="btn" onclick="syncOfficialHolidaysV2('nager')" style="background: linear-gradient(135deg, #00c6ff 0%, #5a8dee 100%); color: #fff;">
+              <i class="fas fa-cloud-download-alt"></i> Nager
+            </button>
+            <button id="btnSyncBoth" class="btn" onclick="syncOfficialHolidaysV2('both')" style="background: linear-gradient(135deg, #00c6ff 0%, #3383ff 100%); color: #fff;">
+              <i class="fas fa-cloud-download-alt"></i> 合併
+            </button>
+          </div>
           <button class="btn" onclick="generateWeekendHolidays()" style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: #fff;">
             <i class="fas fa-calendar-week"></i> 產生六日假日
           </button>
@@ -1208,19 +1216,21 @@
         }
       }
 
-      // 同步官方假日
-      async function syncOfficialHolidays() {
+      // 同步官方假日(v2) - 可選來源
+      async function syncOfficialHolidaysV2(source){
+        const btnIds = {gov_tw:'btnSyncGov', nager:'btnSyncNager', both:'btnSyncBoth'};
+        const btn = document.getElementById(btnIds[source]);
         try {
-          const input = document.getElementById("syncYear");
+          btn && (btn.disabled = true, btn.dataset.oldText = btn.innerHTML, btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 同步中');
+          const input = document.getElementById('syncYear');
           const year = parseInt(input && input.value ? input.value : new Date().getFullYear());
-          const resp = await fetch("/api/calendar/sync_official", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ year })
+          const resp = await fetch('/api/calendar/sync_official_v2', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({year, source})
           });
           const data = await resp.json();
-          if (data && data.success) {
-            showSuccess(`已同步 ${data.synced_year} 年官方假日（來源：${data.source_used}）`);
+          if (data && data.success){
+            const srcLabel = Array.isArray(data.sources)? data.sources.join(',') : (data.source_used || source);
+            showSuccess(`已同步 ${data.synced_year} 年官方假日（來源：${srcLabel}，新增 ${data.added||0} 筆）`);
             await loadCalendar();
             updateStats();
           } else {
@@ -1228,6 +1238,8 @@
           }
         } catch (e) {
           showError(`同步失敗：${e && e.message ? e.message : e}`);
+        } finally {
+          if (btn){ btn.disabled = false; btn.innerHTML = btn.dataset.oldText || btn.innerHTML; }
         }
       }
 

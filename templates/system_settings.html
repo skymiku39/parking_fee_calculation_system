@@ -101,23 +101,7 @@
             </div>
           </div>
 
-          <!-- 系統狀態 -->
-          <div class="row">
-            <div class="col-12">
-              <div class="settings-card">
-                <div class="settings-header">
-                  <h5 class="mb-0">
-                    <i class="fas fa-heartbeat"></i> 系統狀態
-                  </h5>
-                </div>
-                <div class="card-body">
-                  <div class="row" id="system-status">
-                    <!-- 動態載入系統狀態 -->
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          
         </div>
 
         
@@ -135,7 +119,6 @@
       // 初始化
       document.addEventListener("DOMContentLoaded", function () {
         loadSystemConfig();
-        loadSystemStatus();
         loadPlanList();
         
       });
@@ -165,37 +148,7 @@
         
       }
 
-      // 載入系統狀態
-      async function loadSystemStatus() {
-        const statusContainer = document.getElementById("system-status");
-
-        const statusItems = [
-          { name: "傳統計算器", status: "success", icon: "calculator" },
-          { name: "多維度計算器", status: "success", icon: "tags" },
-          { name: "增強版計算器", status: "warning", icon: "rocket" },
-          { name: "配置文件", status: "success", icon: "file-alt" },
-        ];
-
-        statusContainer.innerHTML = statusItems
-          .map(
-            (item) => `
-          <div class="col-md-3 mb-3">
-            <div class="text-center">
-              <i class="fas fa-${item.icon} fa-2x text-${
-              item.status === "success" ? "success" : "warning"
-            } mb-2"></i>
-              <h6>${item.name}</h6>
-              <span class="status-badge bg-${
-                item.status === "success" ? "success" : "warning"
-              }">
-                ${item.status === "success" ? "正常" : "檢查中"}
-              </span>
-            </div>
-          </div>
-        `
-          )
-          .join("");
-      }
+      
 
       // 載入方案列表（僅供顯示或其他用途，不含啟用）
       async function loadPlanList() {

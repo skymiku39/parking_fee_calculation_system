@@ -8,36 +8,38 @@
         <div class="card">
           <div class="card-header">基本資訊</div>
           <div class="card-body">
-            <div class="mb-3">
+            <div class="mb-2">
               <label class="form-label">範本 ID</label>
               <input id="template_id" type="text" class="form-control" placeholder="例：二段_平日假日" />
-              <small class="text-muted">唯一識別；英數與底線，避免空白</small>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
               <label class="form-label">名稱</label>
               <input id="label" type="text" class="form-control" placeholder="顯示名稱" />
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
               <label class="form-label">描述</label>
               <textarea id="description" class="form-control" rows="2" placeholder="說明（選填）"></textarea>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
               <label class="form-label">時段類型</label>
               <select id="time_segment_type" class="form-select">
-                <option value="全天">全天</option>
                 <option value="兩段">兩段</option>
                 <option value="三段">三段</option>
                 <option value="四段">四段</option>
                 <option value="自訂">自訂</option>
               </select>
             </div>
-            <div class="mb-3">
+            <div class="mb-2">
               <label class="form-label">假日類型</label>
-              <select id="holiday_type" class="form-select">
-                <option value="無假日費率">無假日費率</option>
-                <option value="六日費率">六日費率</option>
-                <option value="國定假費率">國定假費率</option>
+              <select id="holiday_type" class="form-select" onchange="renderMatrix()">
+                <option value="六日費率">六日費率（平日/週末）</option>
+                <option value="國定假費率">國定假費率（平日/週末/國定）</option>
+                <option value="無假日費率">無假日（統一）</option>
               </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">全域免費(分)</label>
+              <input id="global_grace" type="number" class="form-control" value="0" />
             </div>
             <div class="d-flex gap-2">
               <button class="btn btn-primary" onclick="saveTemplate()"><i class="fas fa-save"></i> 儲存</button>
@@ -47,33 +49,28 @@
             <div id="msg" class="mt-2 small"></div>
           </div>
         </div>
+
+        <div class="card mt-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>時間區段</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="addSegment()"><i class="fas fa-plus"></i> 新增</button>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr><th>名稱</th><th>開始</th><th>結束</th><th style="width:60px"></th></tr>
+              </thead>
+              <tbody id="segBody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
       <div class="col-lg-8">
         <div class="card">
-          <div class="card-header">時間時段與費率</div>
+          <div class="card-header">費率組合矩陣</div>
           <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="form-text">請輸入此範本的 time_slots（簡化：一次編輯一個日期類別，套用於該假日類型）</div>
-              <button class="btn btn-sm btn-outline-primary" onclick="addSlot()"><i class="fas fa-plus"></i> 新增時段</button>
-            </div>
-            <div class="table-responsive">
-              <table class="table table-sm align-middle">
-                <thead>
-                  <tr>
-                    <th>標籤</th>
-                    <th>開始</th>
-                    <th>結束</th>
-                    <th>單位(分)</th>
-                    <th>單價(元)</th>
-                    <th>免費(分)</th>
-                    <th>上限</th>
-                    <th>累進</th>
-                    <th style="width:90px;"></th>
-                  </tr>
-                </thead>
-                <tbody id="slotBody"></tbody>
-              </table>
-            </div>
+            <div id="matrixHost" class="table-responsive"></div>
           </div>
         </div>
       </div>
@@ -82,133 +79,166 @@
 {% endblock %}
 {% block scripts %}
 <script>
-  let current = { template_id:'', label:'', description:'', time_segment_type:'兩段', holiday_type:'六日費率', time_slots:[], daily_cap_enabled:false, daily_cap_amount:0, global_grace_time:0 };
+  // 內部狀態
+  let segments = [ {name:'日間', start:'08:00', end:'22:00'}, {name:'夜間', start:'22:00', end:'08:00'} ];
+  let matrix = {}; // key: `${seg}_${cat}` -> {unit, rate, grace, capEnabled, capAmount}
 
   document.addEventListener('DOMContentLoaded', async () => {
     const url = new URL(window.location.href);
     const tid = url.searchParams.get('template_id');
-    if (tid) { await loadTemplate(tid); }
+    if (tid) await loadTemplate(tid);
     bindForm();
-    renderSlots();
+    renderSegments();
+    renderMatrix();
   });
 
-  function bindForm(){
-    document.getElementById('template_id').value = current.template_id || '';
-    document.getElementById('label').value = current.label || '';
-    document.getElementById('description').value = current.description || '';
-    document.getElementById('time_segment_type').value = current.time_segment_type || '兩段';
-    document.getElementById('holiday_type').value = current.holiday_type || '六日費率';
+  function currentCategories(){
+    const ht = document.getElementById('holiday_type').value;
+    if (ht === '無假日費率') return ['統一'];
+    if (ht === '國定假費率') return ['平日','週末','國定假日'];
+    return ['平日','週末'];
   }
+
+  function bindForm(){ /* 填基本欄位，留空即可 */ }
 
   async function loadTemplate(id){
     try{
       const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`);
       const data = await resp.json();
-      if(!data.success) return showMsg('danger', '載入失敗：' + (data.message||data.error||'未知錯誤'));
-      current = data.template || current;
-    }catch(e){
-      showMsg('danger', '載入失敗：' + (e.message||e));
-    }
-    bindForm();
-    renderSlots();
+      if(!data.success) return showMsg('danger','載入失敗：' + (data.message||data.error||'未知錯誤'));
+      const tpl = data.template || {};
+      document.getElementById('template_id').value = tpl.template_id||'';
+      document.getElementById('label').value = tpl.label||'';
+      document.getElementById('description').value = tpl.description||'';
+      document.getElementById('time_segment_type').value = tpl.time_segment_type||'兩段';
+      document.getElementById('holiday_type').value = tpl.holiday_type||'六日費率';
+      document.getElementById('global_grace').value = (tpl.weekday_plan?.global_grace_time) || (tpl.unified_plan?.global_grace_time) || 0;
+
+      // 從各日期類別的 plan 還原 segments 與 matrix
+      const cats = currentCategories();
+      // 取得任一計畫的 time_slots 當作 segments 來源
+      const anyPlan = tpl.weekday_plan || tpl.unified_plan || tpl.weekend_plan || tpl.national_holiday_plan || {};
+      segments = (anyPlan.time_slots||[]).map(s=>({name: s.label||s.time_slot_id||'段', start: s.start||'08:00', end: s.end||'22:00'}));
+      if (segments.length===0) segments = [ {name:'日間', start:'08:00', end:'22:00'}, {name:'夜間', start:'22:00', end:'08:00'} ];
+      matrix = {};
+      const planByCat = {
+        '統一': tpl.unified_plan,
+        '平日': tpl.weekday_plan,
+        '週末': tpl.weekend_plan,
+        '國定假日': tpl.national_holiday_plan,
+      };
+      cats.forEach(cat=>{
+        const plan = planByCat[cat]||{};
+        (plan.time_slots||[]).forEach(s=>{
+          matrix[`${s.label||s.time_slot_id}_${cat}`] = {
+            unit: Number(s.unit_minutes||60), rate: Number(s.default_unit_price||0), grace: Number(s.grace_minutes||0), capEnabled: !!s.cap_enabled, capAmount: Number(s.cap_amount||0)
+          };
+        });
+      });
+    }catch(e){ showMsg('danger','載入失敗：' + (e.message||e)); }
   }
 
-  function renderSlots(){
-    const body = document.getElementById('slotBody');
+  function renderSegments(){
+    const body = document.getElementById('segBody');
     body.innerHTML = '';
-    (current.time_slots||[]).forEach((s, idx) => body.appendChild(rowForSlot(s, idx)));
-    if (!(current.time_slots&&current.time_slots.length)) body.innerHTML = '<tr><td colspan="9" class="text-muted">尚無時段，請新增</td></tr>';
+    segments.forEach((s, i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="form-control form-control-sm" value="${escapeHtml(s.name)}" oninput="segEdit(${i},'name',this.value)"/></td>
+        <td><input class="form-control form-control-sm" value="${escapeHtml(s.start)}" oninput="segEdit(${i},'start',this.value)"/></td>
+        <td><input class="form-control form-control-sm" value="${escapeHtml(s.end)}" oninput="segEdit(${i},'end',this.value)"/></td>
+        <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="segRemove(${i})"><i class="fas fa-times"></i></button></td>`;
+      body.appendChild(tr);
+    });
+  }
+  function segEdit(i,k,v){ segments[i] = {...segments[i],[k]:v}; renderMatrix(); }
+  function segRemove(i){ segments.splice(i,1); renderSegments(); renderMatrix(); }
+  function addSegment(){ segments.push({name:'新時段', start:'09:00', end:'18:00'}); renderSegments(); renderMatrix(); }
+
+  function renderMatrix(){
+    const cats = currentCategories();
+    const host = document.getElementById('matrixHost');
+    let html = '<table class="table table-bordered table-sm align-middle"><thead><tr><th>日期類別 \\ 時段</th>';
+    segments.forEach(seg=>{ html += `<th>${escapeHtml(seg.name)}<br/><small>${escapeHtml(seg.start)}-${escapeHtml(seg.end)}</small></th>`; });
+    html += '</tr></thead><tbody>';
+    cats.forEach(cat=>{
+      html += `<tr><th style="white-space:nowrap">${cat}</th>`;
+      segments.forEach(seg=>{
+        const key = `${seg.name}_${cat}`;
+        const cell = matrix[key] || {unit:60, rate:0, grace:0, capEnabled:false, capAmount:0};
+        html += `<td>
+          <div class="row gx-1 gy-1">
+            <div class="col-6"><input class="form-control form-control-sm" type="number" min="1" value="${cell.unit}" onchange="setCell('${escapeAttr(key)}','unit',this.value)"><small class="text-muted">單位(分)</small></div>
+            <div class="col-6"><input class="form-control form-control-sm" type="number" min="0" value="${cell.rate}" onchange="setCell('${escapeAttr(key)}','rate',this.value)"><small class="text-muted">單價(元)</small></div>
+            <div class="col-6"><input class="form-control form-control-sm" type="number" min="0" value="${cell.grace}" onchange="setCell('${escapeAttr(key)}','grace',this.value)"><small class="text-muted">免費(分)</small></div>
+            <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text">上限</span><input class="form-control" type="number" min="0" value="${cell.capAmount}" onchange="setCell('${escapeAttr(key)}','capAmount',this.value)"><span class="input-group-text"><input type="checkbox" ${cell.capEnabled?'checked':''} onclick="setCell('${escapeAttr(key)}','capEnabled',this.checked)"></span></div></div>
+          </div>
+        </td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    host.innerHTML = html;
+  }
+  function setCell(key, field, val){
+    const cur = matrix[key] || {unit:60, rate:0, grace:0, capEnabled:false, capAmount:0};
+    if (field==='unit' || field==='rate' || field==='grace' || field==='capAmount') val = parseInt(val)||0;
+    matrix[key] = {...cur, [field]: val};
   }
 
-  function rowForSlot(s, idx){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input class="form-control form-control-sm" value="${escapeHtml(s.label||'')}" oninput="slotSet(${idx},'label',this.value)"/></td>
-      <td><input class="form-control form-control-sm" value="${escapeHtml(s.start||'08:00')}" oninput="slotSet(${idx},'start',this.value)"/></td>
-      <td><input class="form-control form-control-sm" value="${escapeHtml(s.end||'22:00')}" oninput="slotSet(${idx},'end',this.value)"/></td>
-      <td style="width:110px"><input type="number" class="form-control form-control-sm" value="${Number(s.unit_minutes||60)}" oninput="slotSet(${idx},'unit_minutes',parseInt(this.value)||60)"/></td>
-      <td style="width:110px"><input type="number" class="form-control form-control-sm" value="${Number(s.default_unit_price||0)}" oninput="slotSet(${idx},'default_unit_price',parseInt(this.value)||0)"/></td>
-      <td style="width:110px"><input type="number" class="form-control form-control-sm" value="${Number(s.grace_minutes||0)}" oninput="slotSet(${idx},'grace_minutes',parseInt(this.value)||0)"/></td>
-      <td style="width:110px">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text">上限</span>
-          <input type="number" class="form-control" value="${Number(s.cap_amount||0)}" oninput="slotSet(${idx},'cap_amount',parseInt(this.value)||0)">
-          <span class="input-group-text"><input type="checkbox" ${s.cap_enabled? 'checked':''} onclick="slotSet(${idx},'cap_enabled',this.checked)"></span>
-        </div>
-      </td>
-      <td style="width:90px; text-align:center"><input type="checkbox" ${s.progressive_enabled? 'checked':''} onclick="slotSet(${idx},'progressive_enabled',this.checked)"/></td>
-      <td class="text-end"><button class="btn btn-sm btn-outline-danger" onclick="removeSlot(${idx})"><i class="fas fa-times"></i></button></td>
-    `;
-    return tr;
-  }
-
-  function slotSet(idx, key, val){
-    current.time_slots[idx] = { ...(current.time_slots[idx]||{}), [key]: val };
-  }
-  function removeSlot(idx){
-    current.time_slots.splice(idx,1); renderSlots();
-  }
-  function addSlot(){
-    if(!current.time_slots) current.time_slots = [];
-    current.time_slots.push({label:'日間', start:'08:00', end:'22:00', unit_minutes:30, default_unit_price:30, grace_minutes:0, cap_enabled:false, cap_amount:0, progressive_enabled:false, progressive_rates:[]});
-    renderSlots();
-  }
-
-  async function saveTemplate(){
-    const payload = collectTemplate();
-    try{
-      const resp = await fetch('/api/mdp/templates/save',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({template:payload})});
-      const data = await resp.json();
-      if(data.success){
-        showMsg('success', `✅ 已儲存：${payload.label||payload.template_id}`);
-      }else{
-        showMsg('danger', '❌ 儲存失敗：' + (data.message||data.error||'未知錯誤'));
-      }
-    }catch(e){
-      showMsg('danger', '❌ 儲存失敗：' + (e.message||e));
-    }
-  }
-
-  function collectTemplate(){
+  // 匯出/儲存：矩陣 -> 多維度模板（各日期類別 plan 的 time_slots）
+  function buildTemplate(){
     const tpl_id = (document.getElementById('template_id').value||'').trim();
     const label = (document.getElementById('label').value||'').trim();
     const desc = (document.getElementById('description').value||'').trim();
     const tseg = document.getElementById('time_segment_type').value;
     const htyp = document.getElementById('holiday_type').value;
-    return {
+    const gGrace = parseInt(document.getElementById('global_grace').value)||0;
+    const cats = currentCategories();
+    const planByCat = {};
+    cats.forEach(cat=>{
+      const time_slots = segments.map(seg=>{
+        const key = `${seg.name}_${cat}`;
+        const cell = matrix[key] || {unit:60, rate:0, grace:0, capEnabled:false, capAmount:0};
+        return {
+          label: seg.name, start: seg.start, end: seg.end,
+          unit_minutes: Number(cell.unit||60), default_unit_price: Number(cell.rate||0),
+          grace_minutes: Number(cell.grace||0),
+          cap_enabled: !!cell.capEnabled, cap_amount: Number(cell.capAmount||0),
+          progressive_enabled: false, progressive_rates: []
+        };
+      });
+      planByCat[cat] = { time_slots, global_grace_time: gGrace };
+    });
+    const tpl = {
       template_id: tpl_id || label.replace(/\s+/g,'_') || 'template_'+Date.now(),
-      label: label || tpl_id,
+      label: label || tpl_id || '未命名',
       description: desc,
       time_segment_type: tseg,
       holiday_type: htyp,
-      time_slots: current.time_slots||[],
-      daily_cap_enabled: !!current.daily_cap_enabled,
-      daily_cap_amount: Number(current.daily_cap_amount||0),
-      global_grace_time: Number(current.global_grace_time||0),
     };
+    if (htyp==='無假日費率') tpl.unified_plan = planByCat['統一'];
+    else if (htyp==='國定假費率') { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; tpl.national_holiday_plan = planByCat['國定假日']; }
+    else { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; }
+    return tpl;
+  }
+
+  async function saveTemplate(){
+    try{
+      const payload = buildTemplate();
+      const resp = await fetch('/api/mdp/templates/save', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({template: payload})});
+      const data = await resp.json();
+      if (data.success){ showMsg('success', `✅ 已儲存：${payload.label}`); }
+      else { showMsg('danger', '❌ 儲存失敗：' + (data.message||data.error||'未知錯誤')); }
+    }catch(e){ showMsg('danger', '❌ 儲存失敗：' + (e.message||e)); }
   }
 
   async function downloadTemplate(){
-    const id = (document.getElementById('template_id').value||'').trim();
-    if(!id){ return showMsg('danger','請先填寫範本 ID 後再匯出'); }
-    try{
-      const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`);
-      const data = await resp.json();
-      if(!data.success) return showMsg('danger','下載失敗：' + (data.message||data.error||'未知錯誤'));
-      const tpl = data.template || collectTemplate();
-      const fname = (tpl.label || tpl.template_id || 'template') + '.json';
-      const blob = new Blob([JSON.stringify(tpl, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fname;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }catch(e){
-      showMsg('danger','下載失敗：' + (e.message||e));
-    }
+    const tpl = buildTemplate();
+    const fname = (tpl.label || tpl.template_id || 'template') + '.json';
+    const blob = new Blob([JSON.stringify(tpl, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
 
   async function delTemplate(){
@@ -218,25 +248,14 @@
     try{
       const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`, {method:'DELETE'});
       const data = await resp.json();
-      if(data.success){
-        showMsg('success', '已刪除');
-        current = { template_id:'', label:'', description:'', time_segment_type:'兩段', holiday_type:'六日費率', time_slots:[] };
-        bindForm(); renderSlots();
-      }else{
-        showMsg('danger', '刪除失敗：' + (data.message||data.error||'未知錯誤'));
-      }
-    }catch(e){
-      showMsg('danger', '刪除失敗：' + (e.message||e));
-    }
+      if (data.success){ showMsg('success','已刪除'); }
+      else showMsg('danger','刪除失敗：' + (data.message||data.error||'未知錯誤'));
+    }catch(e){ showMsg('danger','刪除失敗：' + (e.message||e)); }
   }
 
-  function showMsg(type, text){
-    const el = document.getElementById('msg');
-    el.className = `mt-2 small text-${type==='success'?'success':'danger'}`;
-    el.textContent = text;
-    setTimeout(()=>{ el.textContent=''; }, 3000);
-  }
+  function showMsg(type, text){ const el = document.getElementById('msg'); el.className = `mt-2 small text-${type==='success'?'success':'danger'}`; el.textContent = text; setTimeout(()=>{ el.textContent=''; }, 3000); }
   function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 </script>
 {% endblock %}
 

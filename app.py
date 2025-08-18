@@ -203,7 +203,7 @@ def _save_mdp_config(config_data: dict):
     # 可選：驗證整體結構
     try:
         validate_multidimensional_config_json(config_data)
-        except Exception:
+    except Exception:
         # 若驗證函式較嚴格且結構為增量維護，放寬只在嚴重結構錯誤才阻止
         pass
     MDP_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -1812,6 +1812,113 @@ def _fetch_gov_tw_official_holidays(year: int) -> Optional[List[Dict[str, Any]]]
             return None
 
 
+@app.route("/api/calendar/sync_official_v2", methods=["POST"])
+def api_calendar_sync_official_v2():
+    """多來源官方假日同步：
+    body: {"year": 2025, "source": "gov_tw"|"nager"|"both"}
+    - gov_tw: 僅政府開放資料（需在 system_config 設定 official_calendar_api）
+    - nager: 僅 Nager.Date (TW)
+    - both: 先政府再 Nager 合併，並標示來源
+    """
+    try:
+        payload = request.get_json() or {}
+        year = int(payload.get("year") or datetime.now().year)
+        mode = (payload.get("source") or "both").lower()
+
+        holidays: List[Dict[str, Any]] = []
+        used_sources: List[str] = []
+
+        def add_items(items: Optional[List[Dict[str, Any]]], tag: str):
+            if not items:
+                return
+            for it in items:
+                d = it.get("date")
+                nm = it.get("name") or tag
+                if d:
+                    holidays.append({"date": d, "name": nm, "source": tag})
+
+        if mode in ("gov_tw", "both"):
+            gov = _fetch_gov_tw_official_holidays(year)
+            if gov:
+                used_sources.append("gov_tw")
+                add_items(gov, "gov_tw")
+
+        if mode in ("nager", "both") and (mode != "nager" or not holidays):
+            # both 模式：即使 gov_tw 成功也合併 nager；nager 模式：單獨使用
+            try:
+                ctx = ssl.create_default_context()
+                with urllib.request.urlopen(
+                    f"https://date.nager.at/api/v3/PublicHolidays/{year}/TW",
+                    context=ctx,
+                    timeout=20,
+                ) as resp:
+                    raw = resp.read().decode("utf-8")
+                data = json.loads(raw)
+                items = [{"date": it.get("date"), "name": (it.get("localName") or it.get("name"))} for it in data]
+                used_sources.append("nager")
+                add_items(items, "nager")
+            except Exception:
+                # 再嘗試不驗證
+                try:
+                    insecure = ssl.create_default_context()
+                    insecure.check_hostname = False
+                    insecure.verify_mode = ssl.CERT_NONE
+                    with urllib.request.urlopen(
+                        f"https://date.nager.at/api/v3/PublicHolidays/{year}/TW",
+                        context=insecure,
+                        timeout=20,
+                    ) as resp:
+                        raw = resp.read().decode("utf-8")
+                    data = json.loads(raw)
+                    items = [{"date": it.get("date"), "name": (it.get("localName") or it.get("name"))} for it in data]
+                    used_sources.append("nager")
+                    add_items(items, "nager")
+                except Exception as e:
+                    if mode == "nager":
+                        return error_response("SYNC_FETCH_ERROR", f"抓取 Nager 失敗: {e}", 500)
+
+        # 寫入 calendar
+        calendar_file = Path("config/system_calendar.json")
+        cal = {}
+        if calendar_file.exists():
+            try:
+                cal = json.loads(calendar_file.read_text(encoding="utf-8"))
+            except Exception:
+                cal = {}
+
+        cal.setdefault("description", f"官方假日 {year}")
+        cal.setdefault("weekend_as_holiday", True)
+        cal.setdefault("custom_holidays", [])
+        cal.setdefault("custom_workdays", [])
+        cal.setdefault("festival_holidays", [])
+        cal.setdefault("lunar_festivals", [])
+        cal.setdefault("national_holidays", [])
+        cal.setdefault("weekend_holidays", [])
+        cal.setdefault("special_events", [])
+
+        # 合併（保留來源）
+        existing_dates = set(d if isinstance(d, str) else d.get("date") for d in cal.get("national_holidays", []))
+        for h in holidays:
+            d = h.get("date")
+            if not d:
+                continue
+            if d not in existing_dates:
+                cal["national_holidays"].append({"date": d, "name": h.get("name"), "source": h.get("source")})
+                existing_dates.add(d)
+
+        calendar_file.parent.mkdir(parents=True, exist_ok=True)
+        calendar_file.write_text(json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8")
+
+        return jsonify({
+            "success": True,
+            "synced_year": year,
+            "sources": used_sources,
+            "added": len(holidays),
+        })
+    except Exception as e:
+        return error_response("SYNC_INTERNAL_ERROR", str(e), 500)
+
+
 @app.route("/api/calendar/sync_official", methods=["POST"])
 def api_calendar_sync_official():
     """一鍵同步官方假日。
@@ -1918,9 +2025,9 @@ def api_calendar_sync_official():
         calendar_file.parent.mkdir(parents=True, exist_ok=True)
         calendar_file.write_text(
             json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8"
-                    )
+        )
 
-            return jsonify(
+        return jsonify(
             {
                 "success": True,
                 "synced_year": year,
