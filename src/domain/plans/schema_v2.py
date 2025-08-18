@@ -80,6 +80,7 @@ class PlanV2(BaseModel):
     segments: List[Segment]
     rate_matrix: Dict[str, RateConfig] = Field(default_factory=dict)
     global_caps: GlobalCaps = Field(default_factory=GlobalCaps)
+    unit_pivot: str = Field(default="start")  # start|end：收費單位判定點
     version: str = Field(default="2.0")
 
     @validator("segment_type")

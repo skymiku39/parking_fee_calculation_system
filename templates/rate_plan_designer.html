@@ -175,6 +175,14 @@
                     <option value="完整假日">平日/假日/節慶日</option>
                   </select>
                 </div>
+                <div class="col-md-4">
+                  <label class="form-label">收費單位判定點</label>
+                  <select id="unit-pivot" class="form-select">
+                    <option value="start" selected>以單位開始時刻</option>
+                    <option value="end">以單位結束時刻</option>
+                  </select>
+                  <small class="text-muted">每30分鐘單位以何時刻決定套用費率</small>
+                </div>
               </div>
             </div>
           </div>
@@ -1436,6 +1444,7 @@
             segments: segments,
             rate_matrix: currentMatrix,
             global_caps: globalCaps,
+            unit_pivot: document.getElementById("unit-pivot").value,
           };
 
           console.log("準備儲存方案:", planData);
@@ -1523,6 +1532,7 @@
             segments: segments,
             rate_matrix: currentMatrix,
             global_caps: globalCaps,
+            unit_pivot: document.getElementById('unit-pivot').value,
           };
 
           const enter = document.getElementById('preview-enter').value;

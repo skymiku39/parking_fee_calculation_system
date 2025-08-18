@@ -102,6 +102,11 @@ PLAN_V2_SCHEMA: Dict[str, Any] = {
             },
             "minItems": 1,
         },
+        "unit_pivot": {
+            "type": "string",
+            "enum": ["start", "end"],
+            "default": "start",
+        },
         "rate_matrix": {
             "type": "object",
             "additionalProperties": {

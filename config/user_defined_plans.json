@@ -354,33 +354,33 @@
       "segments": [
         {
           "name": "日間",
-          "start": "07:00",
-          "end": "18:00"
+          "start": "08:00",
+          "end": "22:00"
         },
         {
           "name": "夜間",
-          "start": "18:00",
-          "end": "07:00"
+          "start": "22:00",
+          "end": "08:00"
         }
       ],
       "rate_matrix": {
         "夜間_假日": {
-          "unit_time": 60,
+          "grace_time": 0,
           "progressive_enabled": false,
           "progressive_rates": [],
-          "simple_rate": 10,
-          "segment_cap_enabled": false,
           "segment_cap_amount": 50,
-          "grace_time": 0
+          "segment_cap_enabled": false,
+          "simple_rate": 10,
+          "unit_time": 60
         },
         "夜間_平日": {
-          "unit_time": 60,
+          "grace_time": 0,
           "progressive_enabled": false,
           "progressive_rates": [],
-          "simple_rate": 10,
-          "segment_cap_enabled": false,
           "segment_cap_amount": 50,
-          "grace_time": 0
+          "segment_cap_enabled": false,
+          "simple_rate": 10,
+          "unit_time": 60
         },
         "夜間_統一": {
           "progressive_enabled": false,
@@ -391,22 +391,22 @@
           "unit_time": 60
         },
         "日間_假日": {
-          "unit_time": 30,
+          "grace_time": 0,
           "progressive_enabled": false,
           "progressive_rates": [],
-          "simple_rate": 40,
-          "segment_cap_enabled": false,
           "segment_cap_amount": 400,
-          "grace_time": 0
+          "segment_cap_enabled": false,
+          "simple_rate": 40,
+          "unit_time": 30
         },
         "日間_平日": {
-          "unit_time": 30,
+          "grace_time": 0,
           "progressive_enabled": false,
           "progressive_rates": [],
-          "simple_rate": 30,
-          "segment_cap_enabled": false,
           "segment_cap_amount": 300,
-          "grace_time": 0
+          "segment_cap_enabled": false,
+          "simple_rate": 30,
+          "unit_time": 30
         },
         "日間_統一": {
           "progressive_enabled": false,
@@ -425,8 +425,8 @@
         "global_grace_time": 0
       },
       "global_grace_time": 0,
-      "created_date": "2025-08-15T15:54:05.394387",
-      "modified_date": "2025-08-15T15:54:05.394387",
+      "created_date": "2025-08-15T16:39:43.764251",
+      "modified_date": "2025-08-15T16:39:43.764251",
       "version": "2.0",
       "active": true
     },
@@ -539,6 +539,6 @@
   "metadata": {
     "created": "2025-06-20T14:30:00.000000",
     "version": "1.0",
-    "last_modified": "2025-08-15T15:54:05.394387"
+    "last_modified": "2025-08-15T16:39:43.764251"
   }
 }

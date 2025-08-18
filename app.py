@@ -268,55 +268,14 @@ class SmartParkingSystem:
                 raise ValueError(f"找不到用戶自訂方案: {plan_id}")
 
             plan_data = user_plans["plans"][plan_id]
-
-            # 調用 UnifiedPricingEngine（高風險快速整合）
-            def _resolver(dt: datetime) -> str:
-                # 轉換成用戶方案使用的日期類別鍵值
-                return self.determine_date_category(dt, plan_data.get("holiday_type", "無假日"))
-
-            upe_result = self.unified_engine.calculate(
+            # 使用 30 分鐘收費週期邏輯：週期開始時決定費率與日期類別
+            result = self.calculate_fee_by_billing_cycles(
                 enter_time=enter_time,
                 exit_time=exit_time,
-                plan=plan_data,
-                date_category_resolver=_resolver,
+                plan_data=plan_data,
+                manual_adjustment=manual_adjustment,
             )
-
-            if not upe_result.success:
-                return {
-                    "success": False,
-                    "error": upe_result.calculation_summary,
-                    "calculation_engine": "user_defined_billing_cycle",
-                }
-
-            total_amount = upe_result.total_amount + manual_adjustment
-            session_details = [
-                {
-                    "period": f"{d.get('label','')} {d.get('time_range','')}",
-                    "duration": self.format_duration_display(int(d.get("duration", 0))),
-                    "rate": f"{d.get('rate', 0)}元/{d.get('unit', 60)}分鐘",
-                    "amount": int(d.get("fee", 0)),
-                }
-                for d in upe_result.session_details
-            ]
-
-            return {
-                "success": True,
-                "calculation_engine": "user_defined_billing_cycle",
-                "total_amount": total_amount,
-                "original_amount": upe_result.original_amount,
-                "manual_adjustment": manual_adjustment,
-                "cap_applied": False,  # 詳細 cap 標記可在後續擴充
-                "cap_amount": plan_data.get("global_caps", {}).get("daily_cap_amount"),
-                "date_category": _resolver(enter_time),
-                "applied_rate_plan": plan_data.get("name", plan_id),
-                "segment_type": plan_data.get("segment_type"),
-                "holiday_type": plan_data.get("holiday_type"),
-                "session_details": session_details,
-                "calculation_summary": upe_result.calculation_summary,
-                "enter_time": enter_time,
-                "exit_time": exit_time,
-                "total_duration_minutes": int((exit_time - enter_time).total_seconds() / 60),
-            }
+            return result
 
         except Exception as e:
             return {
@@ -1513,68 +1472,88 @@ def api_calculate_fee():
                         "rate_matrix": plan_inline.get("rate_matrix", {}),
                         "global_caps": plan_inline.get("global_caps", {}),
                     })
-
-                def _resolver(dt: datetime) -> str:
-                    # 與用戶方案一致
-                    return parking_system.determine_date_category(
-                        dt, plan_inline.get("holiday_type", "無假日")
+                # 使用 30 分鐘收費週期邏輯
+                # 根據 unit_pivot 切換：start=以週期開始時判斷；end=以週期結束時判斷
+                unit_pivot = (plan_inline.get("unit_pivot") or "start").lower()
+                if unit_pivot == "end":
+                    from datetime import timedelta
+                    # 以結束時刻決定費率
+                    def end_pivot_calc():
+                        unit_minutes = 30
+                        total_minutes = int((exit_time - enter_time).total_seconds() // 60)
+                        if total_minutes <= 0:
+                            return {"success": True, "total_amount": 0, "session_details": [], "calculation_engine": "user_defined_billing_cycle", "enter_time": enter_time, "exit_time": exit_time, "total_duration_minutes": 0}
+                        num_units = -(-total_minutes // unit_minutes)
+                        cursor = enter_time
+                        segments = plan_inline.get('segments', [])
+                        rate_matrix = plan_inline.get('rate_matrix', {})
+                        holiday_type = plan_inline.get('holiday_type', '平日假日')
+                        def date_cat(dt):
+                            return parking_system.determine_date_category(dt, holiday_type)
+                        fee_total = 0
+                        details = []
+                        for _ in range(num_units):
+                            period_start = cursor
+                            period_end = min(cursor + timedelta(minutes=unit_minutes), exit_time)
+                            pivot = period_end - timedelta(seconds=1)
+                            seg = parking_system.find_active_segment_at_time(pivot, segments)
+                            if not seg:
+                                unit_fee = 0
+                                rate = 0
+                                unit = unit_minutes
+                                label = '未匹配'
+                            else:
+                                dc = date_cat(pivot)
+                                key = f"{seg['name']}_{dc}"
+                                cfg = rate_matrix.get(key, {})
+                                unit = cfg.get('unit_time', unit_minutes)
+                                rate = cfg.get('simple_rate', 0)
+                                unit_fee = rate
+                                label = seg['name']
+                            fee_total += unit_fee
+                            details.append({
+                                'time_range': f"{period_start.strftime('%H:%M')}-{period_end.strftime('%H:%M')}",
+                                'duration': int((period_end - period_start).total_seconds() // 60),
+                                'label': label,
+                                'unit': unit,
+                                'rate': rate,
+                                'fee': unit_fee,
+                            })
+                            cursor = period_end
+                            if cursor >= exit_time:
+                                break
+                        return {
+                            'success': True,
+                            'calculation_engine': 'user_defined_billing_cycle',
+                            'total_amount': int(fee_total) + manual_adjustment,
+                            'original_amount': int(fee_total),
+                            'manual_adjustment': manual_adjustment,
+                            'session_details': details,
+                            'calculation_summary': f"30分單位(以結束時刻判斷)",
+                            'enter_time': enter_time,
+                            'exit_time': exit_time,
+                            'total_duration_minutes': int((exit_time - enter_time).total_seconds() // 60),
+                        }
+                    inline_result = end_pivot_calc()
+                else:
+                    inline_result = parking_system.calculate_fee_by_billing_cycles(
+                        enter_time=enter_time,
+                        exit_time=exit_time,
+                        plan_data=plan_inline,
+                        manual_adjustment=manual_adjustment,
                     )
 
-                upe_result = parking_system.unified_engine.calculate(
-                    enter_time=enter_time,
-                    exit_time=exit_time,
-                    plan=plan_inline,
-                    date_category_resolver=_resolver,
-                )
-
-                if not upe_result.success:
-                    return jsonify({
-                        "request_id": request_id,
-                        "success": False,
-                        "error": upe_result.calculation_summary,
-                        "calculation_engine": "user_defined_billing_cycle",
-                    })
-
-                total_amount = upe_result.total_amount + manual_adjustment
-                session_details = [
-                    {
-                        "period": f"{d.get('label','')} {d.get('time_range','')}",
-                        "duration": parking_system.format_duration_display(int(d.get("duration", 0))),
-                        "rate": f"{d.get('rate', 0)}元/{d.get('unit', 60)}分鐘",
-                        "amount": int(d.get("fee", 0)),
-                    }
-                    for d in upe_result.session_details
-                ]
-
-                inline_result = {
-                    "success": True,
-                    "calculation_engine": "user_defined_billing_cycle",
-                    "total_amount": total_amount,
-                    "original_amount": upe_result.original_amount,
-                    "manual_adjustment": manual_adjustment,
-                    "cap_applied": False,
-                    "cap_amount": plan_inline.get("global_caps", {}).get("daily_cap_amount"),
-                    "date_category": _resolver(enter_time),
-                    "applied_rate_plan": plan_inline.get("name", "inline"),
-                    "segment_type": plan_inline.get("segment_type"),
-                    "holiday_type": plan_inline.get("holiday_type"),
-                    "session_details": session_details,
-                    "calculation_summary": upe_result.calculation_summary,
-                    "enter_time": enter_time,
-                    "exit_time": exit_time,
-                    "total_duration_minutes": int((exit_time - enter_time).total_seconds() / 60),
-                }
-
-                # 添加顯示資訊
-                inline_result["total_duration_display"] = parking_system.format_duration_display(
-                    inline_result["total_duration_minutes"]
-                )
-                inline_result["enter_time_display"] = enter_time.strftime("%Y年%m月%d日 %H:%M")
-                inline_result["exit_time_display"] = exit_time.strftime("%Y年%m月%d日 %H:%M")
-
-                # 序列化 datetime 欄位
-                inline_result["enter_time"] = enter_time.strftime("%Y-%m-%d %H:%M")
-                inline_result["exit_time"] = exit_time.strftime("%Y-%m-%d %H:%M")
+                # 添加顯示資訊與序列化
+                if inline_result.get("success"):
+                    inline_result["total_duration_display"] = parking_system.format_duration_display(
+                        inline_result.get("total_duration_minutes", 0)
+                    )
+                    inline_result["enter_time_display"] = enter_time.strftime("%Y年%m月%d日 %H:%M")
+                    inline_result["exit_time_display"] = exit_time.strftime("%Y年%m月%d日 %H:%M")
+                    if isinstance(inline_result.get("enter_time"), datetime):
+                        inline_result["enter_time"] = inline_result["enter_time"].strftime("%Y-%m-%d %H:%M")
+                    if isinstance(inline_result.get("exit_time"), datetime):
+                        inline_result["exit_time"] = inline_result["exit_time"].strftime("%Y-%m-%d %H:%M")
 
                 duration_ms = int((_pytime.perf_counter() - start_ts) * 1000)
                 logger.info(

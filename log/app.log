@@ -812,3 +812,218 @@
 2025-08-15 16:29:51,485 WARNING werkzeug -  * Debugger is active!
 2025-08-15 16:29:51,487 INFO werkzeug -  * Debugger PIN: 623-905-752
 2025-08-15 16:29:53,791 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:29:53] "GET /api/rate_plans/load/跨日測試方案 HTTP/1.1" 200 -
+2025-08-15 16:30:03,173 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:30:03] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-15 16:30:14,536 INFO __main__ - calc_request result=success plan_id=萬華西園 ms=7 request_id=f7edfc42-0386-4add-b723-e89bb6468298
+2025-08-15 16:30:14,537 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:30:14] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-15 16:32:22,866 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-15 16:32:22,890 INFO werkzeug -  * Restarting with stat
+2025-08-15 16:32:23,112 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-15 16:32:23,123 WARNING werkzeug -  * Debugger is active!
+2025-08-15 16:32:23,127 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-15 16:32:35,676 INFO app - 多維度標籤計算器載入成功
+2025-08-15 16:34:02,602 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-15 16:34:02,640 INFO werkzeug -  * Restarting with stat
+2025-08-15 16:34:02,884 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-15 16:34:02,896 WARNING werkzeug -  * Debugger is active!
+2025-08-15 16:34:02,899 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-15 16:34:06,871 INFO app - 多維度標籤計算器載入成功
+2025-08-15 16:34:40,481 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-15 16:34:40,506 INFO werkzeug -  * Restarting with stat
+2025-08-15 16:34:40,744 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-15 16:34:40,757 WARNING werkzeug -  * Debugger is active!
+2025-08-15 16:34:40,760 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-15 16:38:48,778 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:38:48] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-15 16:38:49,762 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:38:49] "GET / HTTP/1.1" 200 -
+2025-08-15 16:38:53,078 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:38:53] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-15 16:38:53,090 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:38:53] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-15 16:38:54,454 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:38:54] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-15 16:38:57,476 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:38:57] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-15 16:39:03,738 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:39:03] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-15 16:39:43,768 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:39:43] "POST /api/rate_plans/save HTTP/1.1" 200 -
+2025-08-15 16:39:49,915 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:39:49] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-15 16:39:54,685 INFO werkzeug - 127.0.0.1 - - [15/Aug/2025 16:39:54] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-15 16:42:17,067 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-15 16:42:17,109 INFO werkzeug -  * Restarting with stat
+2025-08-15 16:42:17,357 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-15 16:42:17,368 WARNING werkzeug -  * Debugger is active!
+2025-08-15 16:42:17,371 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-15 16:42:23,044 INFO app - 多維度標籤計算器載入成功
+2025-08-15 16:43:01,090 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-15 16:43:01,125 INFO werkzeug -  * Restarting with stat
+2025-08-15 16:43:01,374 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-15 16:43:01,386 WARNING werkzeug -  * Debugger is active!
+2025-08-15 16:43:01,389 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-15 16:43:05,488 INFO app - 多維度標籤計算器載入成功
+2025-08-15 16:44:32,827 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-15 16:44:32,853 INFO werkzeug -  * Restarting with stat
+2025-08-15 16:44:33,072 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-15 16:44:33,083 WARNING werkzeug -  * Debugger is active!
+2025-08-15 16:44:33,085 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 09:52:20,536 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 09:52:20,569 INFO werkzeug -  * Restarting with stat
+2025-08-18 09:52:21,166 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 09:52:21,181 WARNING werkzeug -  * Debugger is active!
+2025-08-18 09:52:21,184 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 09:52:29,943 INFO app - 多維度標籤計算器載入成功
+2025-08-18 09:53:41,449 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 09:53:41,478 INFO werkzeug -  * Restarting with stat
+2025-08-18 09:53:41,727 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 09:53:41,738 WARNING werkzeug -  * Debugger is active!
+2025-08-18 09:53:41,741 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 10:01:45,610 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 10:01:45,640 INFO werkzeug -  * Restarting with stat
+2025-08-18 10:01:45,884 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 10:01:45,898 WARNING werkzeug -  * Debugger is active!
+2025-08-18 10:01:45,901 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 10:01:58,459 INFO app - 多維度標籤計算器載入成功
+2025-08-18 10:02:11,382 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 10:02:11,406 INFO werkzeug -  * Restarting with stat
+2025-08-18 10:02:11,632 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 10:02:11,645 WARNING werkzeug -  * Debugger is active!
+2025-08-18 10:02:11,647 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 12:54:58,030 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 12:54:58,055 INFO werkzeug -  * Restarting with stat
+2025-08-18 12:54:58,293 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 12:54:58,305 WARNING werkzeug -  * Debugger is active!
+2025-08-18 12:54:58,308 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 12:55:06,903 INFO app - 多維度標籤計算器載入成功
+2025-08-18 12:55:12,579 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 12:55:12,605 INFO werkzeug -  * Restarting with stat
+2025-08-18 12:55:12,827 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 12:55:12,837 WARNING werkzeug -  * Debugger is active!
+2025-08-18 12:55:12,840 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 13:42:35,064 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 13:42:35,105 INFO werkzeug -  * Restarting with stat
+2025-08-18 13:42:35,599 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 13:42:35,611 WARNING werkzeug -  * Debugger is active!
+2025-08-18 13:42:35,614 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 13:42:39,487 INFO app - 多維度標籤計算器載入成功
+2025-08-18 13:42:48,883 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 13:42:48,910 INFO werkzeug -  * Restarting with stat
+2025-08-18 13:42:49,177 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 13:42:49,190 WARNING werkzeug -  * Debugger is active!
+2025-08-18 13:42:49,194 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 13:46:55,359 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 13:46:55,385 INFO werkzeug -  * Restarting with stat
+2025-08-18 13:46:55,608 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 13:46:55,620 WARNING werkzeug -  * Debugger is active!
+2025-08-18 13:46:55,622 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 13:47:25,174 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 13:47:25,211 INFO werkzeug -  * Restarting with stat
+2025-08-18 13:47:25,456 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 13:47:25,467 WARNING werkzeug -  * Debugger is active!
+2025-08-18 13:47:25,470 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 13:47:33,601 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 13:47:33,630 INFO werkzeug -  * Restarting with stat
+2025-08-18 13:47:33,869 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 13:47:33,881 WARNING werkzeug -  * Debugger is active!
+2025-08-18 13:47:33,884 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 13:47:41,550 INFO app - 多維度標籤計算器載入成功
+2025-08-18 13:47:52,177 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 13:47:52,200 INFO werkzeug -  * Restarting with stat
+2025-08-18 13:47:52,466 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 13:47:52,477 WARNING werkzeug -  * Debugger is active!
+2025-08-18 13:47:52,480 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:07:08,210 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\utils\\config_validator.py', reloading
+2025-08-18 14:07:08,237 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:07:08,530 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:07:08,545 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:07:08,550 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:07:15,691 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\src\\domain\\plans\\schema_v2.py', reloading
+2025-08-18 14:07:15,714 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:07:15,956 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:07:15,967 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:07:15,970 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:07:51,549 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 14:07:51,573 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:07:51,814 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:07:51,826 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:07:51,830 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:08:14,255 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\utils\\config_validator.py', reloading
+2025-08-18 14:08:14,284 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:08:14,569 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:08:14,582 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:08:14,585 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:20:48,063 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 14:20:48,096 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:20:48,335 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:20:48,349 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:20:48,351 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:20:51,618 INFO app - 多維度標籤計算器載入成功
+2025-08-18 14:21:06,646 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 14:21:06,670 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:21:06,925 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:21:06,939 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:21:06,943 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:24:33,315 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 14:24:33,343 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:24:33,578 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:24:33,589 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:24:33,592 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:24:46,809 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 14:24:46,832 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:24:47,086 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:24:47,097 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:24:47,100 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:24:56,940 INFO app - 多維度標籤計算器載入成功
+2025-08-18 14:25:09,459 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\scripts\\analyze_xiyuan_csv.py', reloading
+2025-08-18 14:25:09,487 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:25:09,713 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:25:09,724 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:25:09,727 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:26:08,706 INFO app - 多維度標籤計算器載入成功
+2025-08-18 14:35:32,829 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:35:32,848 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 14:35:32,848 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 14:35:32,849 INFO werkzeug -  * Restarting with stat
+2025-08-18 14:35:33,077 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 14:35:33,088 WARNING werkzeug -  * Debugger is active!
+2025-08-18 14:35:33,091 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 14:54:01,882 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:01] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:04,530 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:04] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:04,703 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:04] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:07,049 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:07] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-18 14:54:13,088 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:13] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:13,500 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:13] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:14,034 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:14] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:14,414 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:14] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 14:54:14,430 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:14] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 14:54:15,024 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:15] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 14:54:15,317 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:15] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 14:54:15,333 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:15] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 14:54:16,525 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:16] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 14:54:19,783 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:19] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 14:54:23,697 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:23] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-18 14:54:36,397 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:36] "GET / HTTP/1.1" 200 -
+2025-08-18 14:54:39,139 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:39] "GET /api/rate_plans/load/兩段有上限 HTTP/1.1" 200 -
+2025-08-18 14:54:46,731 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:54:46] "GET /api/rate_plans/load/萬華西園 HTTP/1.1" 200 -
+2025-08-18 14:55:32,502 INFO __main__ - calc_request result=success plan_id=萬華西園 ms=6 request_id=3301426d-8bb0-4c61-8c1e-4f176c243acc
+2025-08-18 14:55:32,503 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:55:32] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-18 14:55:39,176 INFO __main__ - calc_request result=success plan_id=萬華西園 ms=5 request_id=c5be62f6-4d73-4236-a130-1ba0550aa2db
+2025-08-18 14:55:39,176 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:55:39] "POST /api/calculate HTTP/1.1" 200 -
+2025-08-18 14:55:57,417 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:55:57] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 14:55:57,438 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:55:57] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 14:55:57,910 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:55:57] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 14:56:00,760 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:00] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 14:56:00,783 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:00] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 14:56:01,076 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:01] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 14:56:01,428 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:01] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 14:56:01,448 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:01] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 14:56:01,759 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:01] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 14:56:02,103 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:02] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 14:56:02,116 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:02] "GET /api/rate_plans/list HTTP/1.1" 200 -
+2025-08-18 14:56:02,479 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:02] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 14:56:02,755 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:02] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 14:56:03,104 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:03] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 14:56:03,121 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:03] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 14:56:03,125 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:03] "[33mGET /api/enhanced/templates HTTP/1.1[0m" 404 -
+2025-08-18 14:56:03,127 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:03] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 14:56:04,879 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:04] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 14:56:05,125 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 14:56:05,147 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 14:56:05,388 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 14:56:05,704 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 14:56:05,719 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 14:56:05] "GET /api/rate_plans/list HTTP/1.1" 200 -
