@@ -45,7 +45,9 @@
             <div class="d-flex gap-2">
               <button class="btn btn-primary" onclick="saveTemplate()"><i class="fas fa-save"></i> 儲存</button>
               <button class="btn btn-outline-secondary" onclick="downloadTemplate()"><i class="fas fa-download"></i> 匯出</button>
+              <button class="btn btn-outline-info" onclick="triggerImport()"><i class="fas fa-file-import"></i> 匯入</button>
               <button class="btn btn-outline-danger" onclick="delTemplate()"><i class="fas fa-trash"></i> 刪除</button>
+              <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importTemplateFromFile(event)" />
             </div>
             <div id="msg" class="mt-2 small"></div>
           </div>
@@ -72,6 +74,21 @@
           <div class="card-header">費率組合矩陣</div>
           <div class="card-body">
             <div id="matrixHost" class="table-responsive"></div>
+            <hr/>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label">進場</label>
+                <input id="preview_enter" type="datetime-local" class="form-control" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">出場</label>
+                <input id="preview_exit" type="datetime-local" class="form-control" />
+              </div>
+              <div class="col-md-4 d-grid d-md-block">
+                <button class="btn btn-warning w-100" onclick="previewInline()"><i class="fas fa-bolt"></i> 即時試算</button>
+              </div>
+            </div>
+            <div id="previewBox" class="alert mt-3" style="display:none"></div>
           </div>
         </div>
       </div>
@@ -108,34 +125,7 @@
       const data = await resp.json();
       if(!data.success) return showMsg('danger','載入失敗：' + (data.message||data.error||'未知錯誤'));
       const tpl = data.template || {};
-      document.getElementById('template_id').value = tpl.template_id||'';
-      document.getElementById('label').value = tpl.label||'';
-      document.getElementById('description').value = tpl.description||'';
-      document.getElementById('time_segment_type').value = tpl.time_segment_type||'兩段';
-      document.getElementById('holiday_type').value = tpl.holiday_type||'六日費率';
-      document.getElementById('global_grace').value = (tpl.weekday_plan?.global_grace_time) || (tpl.unified_plan?.global_grace_time) || 0;
-
-      // 從各日期類別的 plan 還原 segments 與 matrix
-      const cats = currentCategories();
-      // 取得任一計畫的 time_slots 當作 segments 來源
-      const anyPlan = tpl.weekday_plan || tpl.unified_plan || tpl.weekend_plan || tpl.national_holiday_plan || {};
-      segments = (anyPlan.time_slots||[]).map(s=>({name: s.label||s.time_slot_id||'段', start: s.start||'08:00', end: s.end||'22:00'}));
-      if (segments.length===0) segments = [ {name:'日間', start:'08:00', end:'22:00'}, {name:'夜間', start:'22:00', end:'08:00'} ];
-      matrix = {};
-      const planByCat = {
-        '統一': tpl.unified_plan,
-        '平日': tpl.weekday_plan,
-        '週末': tpl.weekend_plan,
-        '國定假日': tpl.national_holiday_plan,
-      };
-      cats.forEach(cat=>{
-        const plan = planByCat[cat]||{};
-        (plan.time_slots||[]).forEach(s=>{
-          matrix[`${s.label||s.time_slot_id}_${cat}`] = {
-            unit: Number(s.unit_minutes||60), rate: Number(s.default_unit_price||0), grace: Number(s.grace_minutes||0), capEnabled: !!s.cap_enabled, capAmount: Number(s.cap_amount||0)
-          };
-        });
-      });
+      populateFromTemplateObject(tpl);
     }catch(e){ showMsg('danger','載入失敗：' + (e.message||e)); }
   }
 
@@ -211,6 +201,79 @@
     const cur = matrix[key] || {unit:60, rate:0, grace:0, capEnabled:false, capAmount:0};
     if (field==='unit' || field==='rate' || field==='grace' || field==='capAmount') val = parseInt(val)||0;
     matrix[key] = {...cur, [field]: val};
+  }
+
+  function populateFromTemplateObject(tpl){
+    document.getElementById('template_id').value = tpl.template_id||'';
+    document.getElementById('label').value = tpl.label||'';
+    document.getElementById('description').value = tpl.description||'';
+    document.getElementById('time_segment_type').value = tpl.time_segment_type||'兩段';
+    document.getElementById('holiday_type').value = tpl.holiday_type||'六日費率';
+    document.getElementById('global_grace').value = (tpl.weekday_plan?.global_grace_time) || (tpl.unified_plan?.global_grace_time) || 0;
+
+    const cats = currentCategories();
+    const anyPlan = tpl.weekday_plan || tpl.unified_plan || tpl.weekend_plan || tpl.national_holiday_plan || {};
+    segments = (anyPlan.time_slots||[]).map(s=>({name: s.label||s.time_slot_id||'段', start: s.start||'08:00', end: s.end||'22:00'}));
+    if (segments.length===0) segments = [ {name:'日間', start:'08:00', end:'22:00'}, {name:'夜間', start:'22:00', end:'08:00'} ];
+    matrix = {};
+    const planByCat = {
+      '統一': tpl.unified_plan,
+      '平日': tpl.weekday_plan,
+      '週末': tpl.weekend_plan,
+      '國定假日': tpl.national_holiday_plan,
+    };
+    cats.forEach(cat=>{
+      const plan = planByCat[cat]||{};
+      (plan.time_slots||[]).forEach(s=>{
+        matrix[`${s.label||s.time_slot_id}_${cat}`] = {
+          unit: Number(s.unit_minutes||60), rate: Number(s.default_unit_price||0), grace: Number(s.grace_minutes||0), capEnabled: !!s.cap_enabled, capAmount: Number(s.cap_amount||0)
+        };
+      });
+    });
+
+    renderSegments();
+    renderMatrix();
+    showMsg('success', '✅ 範本已載入');
+  }
+
+  function triggerImport(){
+    const f = document.getElementById('importFile');
+    if (f) f.click();
+  }
+
+  function importTemplateFromFile(evt){
+    try{
+      const file = evt.target.files && evt.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const tpl = JSON.parse(reader.result);
+          if (!tpl || typeof tpl !== 'object') return showMsg('danger','匯入失敗：格式不正確');
+          populateFromTemplateObject(tpl);
+        }catch(e){ showMsg('danger','匯入失敗：' + (e.message||e)); }
+      };
+      reader.readAsText(file, 'utf-8');
+    }finally{
+      evt.target.value = '';
+    }
+  }
+
+  async function previewInline(){
+    const enter = document.getElementById('preview_enter').value;
+    const exit = document.getElementById('preview_exit').value;
+    const box = document.getElementById('previewBox');
+    box.style.display = 'none';
+    if (!enter || !exit){ box.className='alert alert-warning'; box.textContent='請輸入進出場時間'; box.style.display='block'; return; }
+    const payload = { enter_time: enter, exit_time: exit, template: buildTemplate() };
+    try{
+      const resp = await fetch('/api/mdp/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const data = await resp.json();
+      if (!data.success){ box.className='alert alert-danger'; box.textContent = data.message || data.error || '試算失敗'; box.style.display='block'; return; }
+      box.className='alert alert-success';
+      box.innerHTML = `<strong>成功</strong> 合計：${data.total_amount} 元　時長：${data.total_duration_display || ''}`;
+      box.style.display='block';
+    }catch(e){ box.className='alert alert-danger'; box.textContent='請求失敗'; box.style.display='block'; }
   }
 
   // 匯出/儲存：矩陣 -> 多維度模板（各日期類別 plan 的 time_slots）

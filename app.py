@@ -1546,6 +1546,101 @@ def api_calculate_fee():
         )
 
 
+@app.route("/api/mdp/preview", methods=["POST"])
+def api_mdp_preview():
+    """多維度方案即時試算（傳入範本物件，不需先儲存）"""
+    request_id = str(uuid.uuid4())
+    start_ts = _pytime.perf_counter()
+    try:
+        data = request.get_json() or {}
+        enter_time_str = data.get("enter_time")
+        exit_time_str = data.get("exit_time")
+        template = data.get("template")
+        if not (enter_time_str and exit_time_str and isinstance(template, dict)):
+            return error_response(
+                code="INVALID_INPUT",
+                message="請提供 enter_time、exit_time 與 template 物件",
+                http_status=400,
+                extra={"request_id": request_id},
+            )
+        try:
+            enter_time = datetime.strptime(enter_time_str, "%Y-%m-%dT%H:%M")
+            exit_time = datetime.strptime(exit_time_str, "%Y-%m-%dT%H:%M")
+        except ValueError:
+            return error_response(
+                code="INVALID_DATETIME_FORMAT",
+                message="時間格式錯誤，請使用 YYYY-MM-DDTHH:MM",
+                http_status=400,
+                extra={"request_id": request_id},
+            )
+        if enter_time >= exit_time:
+            return error_response(
+                code="INVALID_TIME_RANGE",
+                message="出場時間必須晚於進場時間",
+                http_status=400,
+                extra={"request_id": request_id},
+            )
+
+        # 臨時註冊到多維度計算器記憶體後試算
+        calc = parking_system.multidimensional_calculator
+        if not calc:
+            return error_response(
+                code="MDP_NOT_READY",
+                message="多維度計算器尚未初始化",
+                http_status=500,
+                extra={"request_id": request_id},
+            )
+
+        temp_id = template.get("template_id") or f"inline_{int(_pytime.perf_counter()*1000)}"
+        # 保存舊值並覆蓋
+        old = calc.rate_plan_templates.get(temp_id)
+        try:
+            from src.engines.multidimensional_calculator import (
+                MultidimensionalRatePlan,
+                TimeSegmentType,
+                HolidayType,
+            )
+            rp = MultidimensionalRatePlan(
+                template_id=temp_id,
+                label=template.get("label", temp_id),
+                description=template.get("description", ""),
+                time_segment_type=TimeSegmentType(template.get("time_segment_type", "兩段")),
+                holiday_type=HolidayType(template.get("holiday_type", "六日費率")),
+                dimension_combination=temp_id,
+                weekday_plan=template.get("weekday_plan"),
+                weekend_plan=template.get("weekend_plan"),
+                national_holiday_plan=template.get("national_holiday_plan"),
+                custom_holiday_plan=template.get("custom_holiday_plan"),
+                unified_plan=template.get("unified_plan"),
+            )
+            calc.rate_plan_templates[temp_id] = rp
+            res = calc.calculate_parking_fee(enter_time, exit_time, temp_id)
+        finally:
+            # 還原/清理暫存
+            if old is not None:
+                calc.rate_plan_templates[temp_id] = old
+            else:
+                calc.rate_plan_templates.pop(temp_id, None)
+
+        # 包裝輸出
+        total_minutes = sum(d.get("duration", 0) for d in res.session_details)
+        result = {
+            "success": True,
+            "total_amount": res.total_amount,
+            "total_duration_minutes": total_minutes,
+            "total_duration_display": parking_system.format_duration_display(total_minutes),
+            "session_details": res.session_details,
+        }
+        return jsonify({"request_id": request_id, **result})
+    except Exception as e:
+        duration_ms = int((_pytime.perf_counter() - start_ts) * 1000)
+        logger.exception("mdp_preview exception ms=%s request_id=%s error=%s", duration_ms, request_id, str(e))
+        return error_response(
+            code="INTERNAL_ERROR",
+            message=f"試算錯誤: {str(e)}",
+            http_status=500,
+            extra={"request_id": request_id},
+        )
 @app.route("/api/system/config", methods=["GET", "POST"])
 def api_system_config():
     """系統配置API"""
