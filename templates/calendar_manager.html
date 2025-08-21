@@ -763,7 +763,18 @@
           const data = await response.json();
 
           if (data.success) {
-            calendarData = data.calendar;
+            calendarData = data.calendar || {};
+            // 補齊缺省欄位，避免渲染為空
+            if (typeof calendarData !== 'object') calendarData = {};
+            calendarData.description = calendarData.description || "";
+            calendarData.weekend_as_holiday = !!calendarData.weekend_as_holiday;
+            calendarData.custom_holidays = Array.isArray(calendarData.custom_holidays) ? calendarData.custom_holidays : [];
+            calendarData.custom_workdays = Array.isArray(calendarData.custom_workdays) ? calendarData.custom_workdays : [];
+            calendarData.festival_holidays = Array.isArray(calendarData.festival_holidays) ? calendarData.festival_holidays : [];
+            calendarData.lunar_festivals = Array.isArray(calendarData.lunar_festivals) ? calendarData.lunar_festivals : [];
+            calendarData.special_events = Array.isArray(calendarData.special_events) ? calendarData.special_events : [];
+            calendarData.national_holidays = Array.isArray(calendarData.national_holidays) ? calendarData.national_holidays : [];
+            calendarData.weekend_holidays = Array.isArray(calendarData.weekend_holidays) ? calendarData.weekend_holidays : [];
             updateUI();
             updateStats();
           } else {

@@ -1175,3 +1175,289 @@
 2025-08-18 17:13:07,210 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:07] "GET /calendar_manager HTTP/1.1" 200 -
 2025-08-18 17:13:07,223 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:07] "GET /api/calendar HTTP/1.1" 200 -
 2025-08-18 17:13:07,528 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 17:13:07] "GET /settlement_center HTTP/1.1" 200 -
+2025-08-18 17:37:57,336 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:37:57,361 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 17:37:57,361 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 17:37:57,362 INFO werkzeug -  * Restarting with stat
+2025-08-18 17:37:57,629 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 17:37:57,642 WARNING werkzeug -  * Debugger is active!
+2025-08-18 17:37:57,645 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:13:25,653 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:13:25,672 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:13:25,672 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:13:25,673 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:13:25,901 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:13:25,913 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:13:25,916 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:25:14,416 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:25:14,443 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:25:14,443 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:25:14,444 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:25:14,720 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:25:14,734 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:25:14,738 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:27:14,987 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:27:15,014 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:27:15,014 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:27:15,015 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:27:15,250 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:27:15,265 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:27:15,267 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:27:15,284 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:15] "[32mGET /settlement_center HTTP/1.1[0m" 302 -
+2025-08-18 18:27:15,297 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:15] "GET / HTTP/1.1" 200 -
+2025-08-18 18:27:16,703 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:16] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:27:16,718 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:16] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:27:17,156 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:17] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:17,553 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:17] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:27:17,570 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:17] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:27:18,849 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:18] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:19,244 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:19] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:27:19,257 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:19] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:27:23,880 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:23] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:27:23,891 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:23] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:27:26,622 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:26] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:28,374 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:28] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:27:28,392 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:28] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:27:28,688 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:28] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:44,430 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:44] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:44,715 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:44] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:27:44,748 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:44] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:27:45,010 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:45] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:46,532 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:46] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:27:46,550 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:46] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:27:48,800 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:48] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:27:51,313 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:51] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:27:51,539 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:51] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:27:51,725 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:51] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:27:51,897 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:51] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:27:52,621 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:52] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:54,774 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:54] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:27:54,786 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:54] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:27:58,404 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:58] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:27:58,794 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:58] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:27:58,806 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:58] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:27:59,116 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:27:59] "GET / HTTP/1.1" 200 -
+2025-08-18 18:28:16,526 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:28:16] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:28:16,539 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:28:16] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:28:16,877 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:28:16] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:29:21,101 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:21] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:29:21,121 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:21] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:29:23,400 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:23] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:29:23,572 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:23] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:29:33,776 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:33] "GET / HTTP/1.1" 200 -
+2025-08-18 18:29:34,074 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:34] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:29:34,086 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:34] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:29:35,113 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:35] "GET / HTTP/1.1" 200 -
+2025-08-18 18:29:37,734 ERROR __main__ - calc_request exception plan_id=全天_無假日費率 ms=1 request_id=9a20cd92-02fc-44dd-847e-144791758837 error='SmartParkingSystem' object has no attribute 'calculate_parking_fee'
+Traceback (most recent call last):
+  File "d:\github\parking_fee_calculation_system\app.py", line 1498, in api_calculate_fee
+    result = parking_system.calculate_parking_fee(
+AttributeError: 'SmartParkingSystem' object has no attribute 'calculate_parking_fee'
+2025-08-18 18:29:37,735 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:37] "[35m[1mPOST /api/calculate HTTP/1.1[0m" 500 -
+2025-08-18 18:29:41,097 ERROR __main__ - calc_request exception plan_id=全天_無假日費率 ms=0 request_id=bdc44e3c-88eb-4f4d-89b8-0185dd184b5c error='SmartParkingSystem' object has no attribute 'calculate_parking_fee'
+Traceback (most recent call last):
+  File "d:\github\parking_fee_calculation_system\app.py", line 1498, in api_calculate_fee
+    result = parking_system.calculate_parking_fee(
+AttributeError: 'SmartParkingSystem' object has no attribute 'calculate_parking_fee'
+2025-08-18 18:29:41,098 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:29:41] "[35m[1mPOST /api/calculate HTTP/1.1[0m" 500 -
+2025-08-18 18:29:49,745 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 18:29:49,797 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:40:34,152 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:40:34,173 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:40:34,173 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:40:34,174 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:40:34,426 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:40:34,439 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:40:34,442 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:40:44,017 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:40:44,042 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:40:44,042 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:40:44,043 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:40:44,328 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:40:44,342 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:40:44,344 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:40:45,284 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:45] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:40:45,335 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:45] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:40:46,572 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:46] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:40:46,596 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:46] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:40:48,738 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:48] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:52,085 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:52,269 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:52,479 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:52,539 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "POST /api/calendar/generate_weekends HTTP/1.1" 200 -
+2025-08-18 18:40:52,639 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:52,726 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "POST /api/calendar/generate_weekends HTTP/1.1" 200 -
+2025-08-18 18:40:52,930 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:52] "POST /api/calendar/generate_weekends HTTP/1.1" 200 -
+2025-08-18 18:40:54,436 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:54] "POST /api/calendar/generate_weekends HTTP/1.1" 200 -
+2025-08-18 18:40:54,782 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:54] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:54,950 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:54] "[35m[1mPOST /api/calendar/sync_official HTTP/1.1[0m" 500 -
+2025-08-18 18:40:57,188 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:57] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:40:58,102 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:58] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:40:58,120 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:40:58] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:41:04,907 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:41:04] "GET / HTTP/1.1" 200 -
+2025-08-18 18:42:01,564 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:42:01,583 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:42:01,583 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:42:01,583 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:42:01,811 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:42:01,824 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:42:01,826 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:42:02,093 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:42:02] "GET / HTTP/1.1" 200 -
+2025-08-18 18:42:03,261 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:42:03] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:42:38,647 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:42:38] "GET /system_settings HTTP/1.1" 200 -
+2025-08-18 18:42:38,675 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:42:38] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-18 18:42:38,676 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:42:38] "GET /api/plans HTTP/1.1" 200 -
+2025-08-18 18:43:06,726 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:43:06] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:43:06,745 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:43:06] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:43:08,105 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:43:08] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:43:08,895 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:43:08] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:43:08,910 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:43:08] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:43:09,883 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:43:09] "GET / HTTP/1.1" 200 -
+2025-08-18 18:46:15,527 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:46:15,548 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:46:15,549 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:46:15,550 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:46:15,824 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:46:15,838 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:46:15,841 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:46:22,602 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:22] "GET / HTTP/1.1" 200 -
+2025-08-18 18:46:23,425 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:23] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-18 18:46:23,448 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:23] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-18 18:46:23,784 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:23] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:46:29,350 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:46:29,374 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:46:29,374 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:46:29,376 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:46:29,655 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:46:29,670 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:46:29,674 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:46:31,248 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:31] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:46:31,266 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:31] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:46:33,846 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:33] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:46:35,037 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:35] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:46:39,810 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:39] "[35m[1mPOST /api/calendar/sync_official_v2 HTTP/1.1[0m" 500 -
+2025-08-18 18:46:45,581 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:45] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:46:47,034 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:47] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:46:48,361 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:48] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:46:48,382 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:46:48] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:52:05,991 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:52:06,013 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-18 18:52:06,014 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-18 18:52:06,015 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:52:06,295 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:52:06,316 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:52:06,321 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-18 18:52:08,479 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:08] "GET / HTTP/1.1" 200 -
+2025-08-18 18:52:12,161 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:12] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-18 18:52:12,189 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:12] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-18 18:52:14,098 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:14] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:17,638 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:17] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:17,738 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:17] "[35m[1mPOST /api/calendar/sync_official_v2 HTTP/1.1[0m" 500 -
+2025-08-18 18:52:17,858 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:17] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:18,035 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:18] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:18,225 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:18] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:18,396 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:18] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:18,587 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:18] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:18,757 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:18] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:18,922 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:18] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:19,100 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:19] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:19,273 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:19] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:19,454 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:19] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:19,634 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:19] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:19,855 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:19] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-18 18:52:29,959 INFO werkzeug - 127.0.0.1 - - [18/Aug/2025 18:52:29] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-18 18:54:23,510 INFO werkzeug -  * Detected change in 'd:\\github\\parking_fee_calculation_system\\app.py', reloading
+2025-08-18 18:54:23,550 INFO werkzeug -  * Restarting with stat
+2025-08-18 18:54:23,781 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-18 18:54:23,795 WARNING werkzeug -  * Debugger is active!
+2025-08-18 18:54:23,797 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-21 09:01:07,174 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-21 09:01:07,204 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-21 09:01:07,204 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-21 09:01:07,206 INFO werkzeug -  * Restarting with stat
+2025-08-21 09:01:07,438 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-21 09:01:07,450 WARNING werkzeug -  * Debugger is active!
+2025-08-21 09:01:07,453 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-21 09:01:15,134 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:15] "GET / HTTP/1.1" 200 -
+2025-08-21 09:01:24,646 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:24] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-21 09:01:24,658 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:24] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-21 09:01:25,128 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:25] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-21 09:01:36,031 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-21 09:01:36,055 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-21 09:01:36,554 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /system_settings HTTP/1.1" 200 -
+2025-08-21 09:01:36,570 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /api/system/config HTTP/1.1" 200 -
+2025-08-21 09:01:36,571 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /api/plans HTTP/1.1" 200 -
+2025-08-21 09:01:36,925 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-21 09:01:36,939 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:36] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-21 09:01:37,247 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:37] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-21 09:01:37,704 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:37] "GET /plan_manager HTTP/1.1" 200 -
+2025-08-21 09:01:37,717 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:01:37] "GET /api/mdp/templates HTTP/1.1" 200 -
+2025-08-21 09:44:44,256 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-21 09:44:44,275 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-21 09:44:44,275 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-21 09:44:44,276 INFO werkzeug -  * Restarting with stat
+2025-08-21 09:44:44,503 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-21 09:44:44,517 WARNING werkzeug -  * Debugger is active!
+2025-08-21 09:44:44,520 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-21 09:54:47,445 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-21 09:54:47,465 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.60.63:5000
+2025-08-21 09:54:47,465 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-08-21 09:54:47,466 INFO werkzeug -  * Restarting with stat
+2025-08-21 09:54:47,702 INFO __main__ - 多維度標籤計算器載入成功
+2025-08-21 09:54:47,714 WARNING werkzeug -  * Debugger is active!
+2025-08-21 09:54:47,717 INFO werkzeug -  * Debugger PIN: 623-905-752
+2025-08-21 09:54:49,877 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:54:49] "GET / HTTP/1.1" 200 -
+2025-08-21 09:54:55,523 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:54:55] "GET /rate_plan_designer HTTP/1.1" 200 -
+2025-08-21 09:54:59,080 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:54:59] "POST /api/enhanced/segments/validate HTTP/1.1" 200 -
+2025-08-21 09:55:15,610 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:55:15] "POST /api/enhanced/segments/validate HTTP/1.1" 200 -
+2025-08-21 09:57:01,930 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:01] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-21 09:57:01,995 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:01] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-21 09:57:03,380 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:03] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-21 09:57:03,899 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:03] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-21 09:57:04,069 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:04] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-21 09:57:04,243 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:04] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-21 09:57:05,441 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:05] "[35m[1mPOST /api/calendar/sync_official_v2 HTTP/1.1[0m" 500 -
+2025-08-21 09:57:07,290 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:07] "POST /api/calendar/sync_official_v2 HTTP/1.1" 200 -
+2025-08-21 09:57:08,449 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 09:57:08] "[35m[1mPOST /api/calendar/sync_official_v2 HTTP/1.1[0m" 500 -
+2025-08-21 15:51:17,392 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 15:51:17] "GET /calendar_manager HTTP/1.1" 200 -
+2025-08-21 15:51:17,419 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 15:51:17] "GET /api/calendar HTTP/1.1" 200 -
+2025-08-21 15:51:18,654 INFO werkzeug - 127.0.0.1 - - [21/Aug/2025 15:51:18] "GET /rate_plan_designer HTTP/1.1" 200 -
