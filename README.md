@@ -73,15 +73,11 @@ cd parking_fee_calculation_system
 ├── scripts/
 │   └── start.ps1          # 唯一啟動腳本（PowerShell）
 ├── src/                   # 核心計算引擎
-│   ├── engines/                      # 新的標準匯入路徑
-│   │   ├── parking_calculator.py
-│   │   ├── multidimensional_calculator.py
-│   │   └── enhanced_multidimensional_calculator.py
 │   ├── managers/
 │   │   └── rate_plan_manager.py
-│   ├── parking_calculator.py          # 舊路徑（保留向後相容）
-│   ├── multidimensional_calculator.py # 舊路徑（保留向後相容）
-│   └── rate_plan_manager.py           # 舊路徑（保留向後相容）
+│   ├── parking_calculator.py
+│   ├── multidimensional_calculator.py
+│   └── rate_plan_manager.py
 ├── templates/             # Web 界面模板
 ├── config/               # 配置文件
 ├── tests/                # 單元測試
