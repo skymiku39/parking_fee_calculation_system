@@ -7,7 +7,7 @@ import os
 import sys
 import logging
 from pathlib import Path
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template
 from src.core.utils import DEFAULT_DATETIME_DISPLAY_FORMAT
 
 # 讓 Flask 在 PyInstaller 打包後也能正確找到模板與靜態資源
@@ -71,11 +71,6 @@ def plan_manager_page():
 @app.route("/calendar_manager")
 def calendar_manager_page():
     return render_template("calendar_manager.html")
-
-
-@app.route("/settlement_center")
-def settlement_center():
-    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

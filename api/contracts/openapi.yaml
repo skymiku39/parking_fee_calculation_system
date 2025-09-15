@@ -1,0 +1,172 @@
+openapi: 3.0.0
+info:
+  title: Parking Fee Calculation API
+  version: 0.1.0
+servers:
+  - url: /
+paths:
+  /api/calculate:
+    post:
+      summary: 計算停車費用
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enter_time:
+                  type: string
+                  example: '2025-09-01T08:00'
+                exit_time:
+                  type: string
+                  example: '2025-09-01T10:00'
+                rate_plan_id:
+                  type: string
+                manual_adjustment:
+                  type: integer
+                  default: 0
+                context:
+                  type: object
+      responses:
+        '200':
+          description: 成功
+        '400':
+          description: 輸入錯誤
+  /api/plans:
+    get:
+      summary: 取得可用方案清單
+      responses:
+        '200':
+          description: 成功
+  /api/multidimensional/combinations:
+    get:
+      summary: 取得多維度方案維度組合
+      responses:
+        '200':
+          description: 成功
+  /api/mdp/templates:
+    get:
+      summary: 列出多維度模板
+      responses:
+        '200':
+          description: 成功
+  /api/mdp/templates/{template_id}:
+    get:
+      summary: 讀取模板
+      parameters:
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+    delete:
+      summary: 刪除模板
+      parameters:
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+  /api/mdp/templates/save:
+    post:
+      summary: 儲存模板
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/mdp/export:
+    get:
+      summary: 匯出多維度設定檔
+      responses:
+        '200':
+          description: 成功
+  /api/mdp/preview:
+    post:
+      summary: 快速預覽試算
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/enhanced/segments/validate:
+    post:
+      summary: 驗證 24 小時區段覆蓋與重疊
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/calendar:
+    get:
+      summary: 取得日曆
+      responses:
+        '200':
+          description: 成功
+    post:
+      summary: 儲存日曆
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/calendar/sync_official_v2:
+    post:
+      summary: 同步官方與 Nager 假日
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/calendar/sync_official:
+    post:
+      summary: 同步官方或 Nager 假日（相容路徑）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/calendar/generate_weekends:
+    post:
+      summary: 生成某年的週末清單
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+
