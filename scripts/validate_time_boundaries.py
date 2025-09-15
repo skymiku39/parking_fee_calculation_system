@@ -5,9 +5,9 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(ROOT)
 
-from app import SmartParkingSystem
-from src.engines.multidimensional_calculator import MultidimensionalParkingCalculator
-from src.engines.parking_calculator import ParkingCalculator
+from src.core.system import SmartParkingSystem
+from src.multidimensional_calculator import MultidimensionalParkingCalculator
+from src.parking_calculator import ParkingCalculator
 
 
 def assert_equal(name, a, b):

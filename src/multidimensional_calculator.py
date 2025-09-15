@@ -9,15 +9,7 @@ from datetime import datetime, date, time, timedelta
 from typing import List, Dict, Optional, Tuple, Any, Union
 from dataclasses import dataclass
 from enum import Enum
-try:
-    # 優先使用新統一引擎
-    from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
-except Exception:
-    try:
-        # 後備到舊路徑
-        from src.unified_pricing_engine import UnifiedPricingEngine
-    except Exception:
-        UnifiedPricingEngine = None
+from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
 import calendar
 
 

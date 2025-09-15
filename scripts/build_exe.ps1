@@ -43,10 +43,8 @@ $argsList = @(
   '--name', 'ParkingCalculator'
 ) + $addData + @(
   '--hidden-import', 'app',
-  '--hidden-import', 'src.engines.parking_calculator',
-  '--hidden-import', 'src.engines.multidimensional_calculator',
   '--hidden-import', 'src.managers.rate_plan_manager',
-  '--hidden-import', 'src.domain.plans.schema_v2',
+  '--hidden-import', 'src.domain.pricing.unified_pricing_engine',
   'launcher.py'
 )
 
