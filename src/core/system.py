@@ -13,7 +13,7 @@ from utils.config_validator import (
 from src.multidimensional_calculator import (
     MultidimensionalParkingCalculator,
 )
-from src.managers.rate_plan_manager import RatePlanManager
+from src.rate_plan_manager import RatePlanManager
 from src.core.utils import (
     format_duration_display,
     get_rate_description,

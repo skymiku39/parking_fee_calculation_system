@@ -665,33 +665,3 @@ class RatePlanManager:
         }
 
 
-def main():
-    """主程式 - 示範覆蓋分析功能"""
-    manager = RatePlanManager()
-
-    # 生成覆蓋率報告
-    report = manager.generate_coverage_report(2024)
-
-    print("=== 停車費率方案覆蓋率分析報告 ===")
-    print(f"分析年度: {report['analyzed_year']}")
-    print(f"總計畫數: {report['plan_summary']['total_plans']}")
-    print(f"覆蓋率: {report['coverage_statistics']['coverage_percentage']:.1f}%")
-    print(f"完整覆蓋天數: {report['coverage_statistics']['full_coverage_days']}")
-    print(f"部分覆蓋天數: {report['coverage_statistics']['partial_coverage_days']}")
-    print(f"無覆蓋天數: {report['coverage_statistics']['no_coverage_days']}")
-
-    if report["improvement_suggestions"]:
-        print("\n=== 改進建議 ===")
-        for suggestion in report["improvement_suggestions"]:
-            print(f"- {suggestion['suggestion']}")
-
-    # 將報告寫入檔案
-    os.makedirs("log", exist_ok=True)
-    with open("log/rate_plan_coverage_report.json", "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2, default=str)
-
-    print(f"\n詳細報告已儲存到: log/rate_plan_coverage_report.json")
-
-
-if __name__ == "__main__":
-    main()
