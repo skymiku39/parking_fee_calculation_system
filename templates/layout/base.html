@@ -4,13 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}智能停車系統{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    
+    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    
+    <!-- 共用元件樣式 -->
+    <link href="/static/css/components.css" rel="stylesheet" />
+    <link href="/static/css/utilities.css" rel="stylesheet" />
+    
     {% block head %}{% endblock %}
+    
     <style>
       body {
         font-family: "Microsoft JhengHei", Arial, sans-serif;
-        background: #f4f6f8;
+        background: var(--color-gray-50);
+        margin: 0;
+        padding: 0;
       }
 
       .app-shell {
@@ -18,107 +30,302 @@
         min-height: 100vh;
       }
 
+      /* === 側邊欄樣式 === */
       .sidebar {
         width: 240px;
         background: linear-gradient(180deg, #4b6cb7 0%, #182848 100%);
         color: white;
         display: flex;
         flex-direction: column;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+        transition: transform var(--transition-base);
       }
 
       .sidebar .brand {
-        padding: 18px 20px;
-        font-size: 18px;
+        padding: 20px;
+        font-size: 1.125rem;
         font-weight: 600;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar .brand i {
+        font-size: 1.5rem;
+      }
+
+      .sidebar nav {
+        flex: 1;
+        padding: 12px 0;
       }
 
       .sidebar a.nav-link {
-        color: rgba(255, 255, 255, 0.9);
-        padding: 12px 16px;
-        border-radius: 6px;
-        margin: 6px 12px;
+        color: rgba(255, 255, 255, 0.85);
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin: 4px 12px;
+        transition: all var(--transition-fast);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        font-size: 0.9375rem;
       }
 
-      .sidebar a.nav-link:hover,
-      .sidebar a.nav-link.active {
+      .sidebar a.nav-link:hover {
         background: rgba(255, 255, 255, 0.12);
         color: #fff;
+        transform: translateX(4px);
+      }
+
+      .sidebar a.nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
 
       .sidebar .footer {
         margin-top: auto;
-        padding: 12px;
-        font-size: 12px;
-        opacity: 0.8;
+        padding: 16px;
+        font-size: 0.75rem;
+        opacity: 0.7;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
       }
 
+      /* === 主要內容區 === */
       .main {
         flex: 1;
         display: flex;
         flex-direction: column;
+        margin-left: 240px;
+        min-height: 100vh;
       }
 
       .topbar {
         background: white;
-        border-bottom: 1px solid #e9ecef;
-        padding: 12px 20px;
+        border-bottom: 1px solid var(--color-gray-200);
+        padding: 16px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 999;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      .topbar h5 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--color-gray-800);
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
       .content {
-        padding: 20px;
+        flex: 1;
+        padding: 24px;
+        background: var(--color-gray-50);
       }
 
-      /* 統一內容外框外觀，避免各頁自訂造成跳動 */
+      /* 內容容器統一樣式 */
       .content > .container,
       .content > .container-fluid {
         background: #ffffff;
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+        border: 1px solid var(--color-gray-200);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* === 行動裝置適配 === */
+      .mobile-menu-toggle {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-primary-start) 0%, var(--color-primary-end) 100%);
+        color: white;
+        border: none;
+        box-shadow: var(--shadow-lg);
+        z-index: 1001;
+        cursor: pointer;
+        font-size: 1.5rem;
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .main {
+          margin-left: 0;
+        }
+
+        .mobile-menu-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .topbar {
+          padding: 12px 16px;
+        }
+
+        .topbar h5 {
+          font-size: 1.125rem;
+        }
+
+        .content {
+          padding: 16px;
+        }
+
+        .content > .container,
+        .content > .container-fluid {
+          padding: 16px;
+        }
+      }
+
+      /* === 滾動條美化 === */
+      .sidebar::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .sidebar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
+
+      .sidebar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
     </style>
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar">
+      <!-- 側邊欄 -->
+      <aside class="sidebar" id="sidebar">
         <div class="brand">
           <i class="fas fa-parking"></i>
           <span>智能停車系統</span>
         </div>
         {% set current_path = request.path %}
-        <nav class="mt-2">
-          <a class="nav-link {% if current_path == '/' %}active{% endif %}" href="/"><i class="fas fa-calculator me-2"></i> 價格試算</a>
-          <a class="nav-link {% if current_path.startswith('/plan_manager') %}active{% endif %}" href="/plan_manager"><i class="fas fa-folder-tree me-2"></i> 方案管理</a>
-          <a class="nav-link {% if current_path.startswith('/rate_plan_designer') %}active{% endif %}" href="/rate_plan_designer"><i class="fas fa-drafting-compass me-2"></i> 方案設計器</a>
-          <a class="nav-link {% if current_path.startswith('/calendar_manager') %}active{% endif %}" href="/calendar_manager"><i class="fas fa-calendar-alt me-2"></i> 日曆與假日</a>
-          <a class="nav-link {% if current_path.startswith('/system_settings') %}active{% endif %}" href="/system_settings"><i class="fas fa-gear me-2"></i> 系統設定</a>
+        <nav>
+          <a class="nav-link {% if current_path == '/' %}active{% endif %}" href="/">
+            <i class="fas fa-calculator"></i>
+            <span>價格試算</span>
+          </a>
+          <a class="nav-link {% if current_path.startswith('/plan_manager') %}active{% endif %}" href="/plan_manager">
+            <i class="fas fa-folder-tree"></i>
+            <span>方案管理</span>
+          </a>
+          <a class="nav-link {% if current_path.startswith('/rate_plan_designer') %}active{% endif %}" href="/rate_plan_designer">
+            <i class="fas fa-drafting-compass"></i>
+            <span>方案設計器</span>
+          </a>
+          <a class="nav-link {% if current_path.startswith('/calendar_manager') %}active{% endif %}" href="/calendar_manager">
+            <i class="fas fa-calendar-alt"></i>
+            <span>日曆與假日</span>
+          </a>
+          <a class="nav-link {% if current_path.startswith('/system_settings') %}active{% endif %}" href="/system_settings">
+            <i class="fas fa-cog"></i>
+            <span>系統設定</span>
+          </a>
         </nav>
         <div class="footer">
-          <div><i class="fas fa-code-branch"></i> v1.0.0</div>
+          <div><i class="fas fa-code-branch me-1"></i> v1.0.0</div>
         </div>
       </aside>
+
+      <!-- 主要內容 -->
       <main class="main">
         <div class="topbar">
-          <h5 class="mb-0">{% block page_title %}{% endblock %}</h5>
+          <h5>{% block page_title %}{% endblock %}</h5>
           <div>{% block toolbar %}{% endblock %}</div>
         </div>
         <div class="content">
           {% block content %}{% endblock %}
         </div>
       </main>
+
+      <!-- 行動裝置選單按鈕 -->
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="開啟選單">
+        <i class="fas fa-bars"></i>
+      </button>
     </div>
 
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 共用功能 JS -->
+    <script src="/static/js/notifications.js"></script>
+    <script src="/static/js/loading.js"></script>
+    <script src="/static/js/validation.js"></script>
+
+    <!-- 行動裝置選單控制 -->
+    <script>
+      // 行動裝置選單切換
+      const sidebar = document.getElementById('sidebar');
+      const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+      
+      if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', () => {
+          sidebar.classList.toggle('active');
+          const icon = mobileMenuToggle.querySelector('i');
+          icon.classList.toggle('fa-bars');
+          icon.classList.toggle('fa-times');
+        });
+
+        // 點擊連結後關閉選單
+        const navLinks = sidebar.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+              sidebar.classList.remove('active');
+              const icon = mobileMenuToggle.querySelector('i');
+              icon.classList.add('fa-bars');
+              icon.classList.remove('fa-times');
+            }
+          });
+        });
+
+        // 點擊外部關閉選單
+        document.addEventListener('click', (e) => {
+          if (window.innerWidth <= 768 && 
+              sidebar.classList.contains('active') &&
+              !sidebar.contains(e.target) && 
+              !mobileMenuToggle.contains(e.target)) {
+            sidebar.classList.remove('active');
+            const icon = mobileMenuToggle.querySelector('i');
+            icon.classList.add('fa-bars');
+            icon.classList.remove('fa-times');
+          }
+        });
+      }
+    </script>
+    
     {% block scripts %}{% endblock %}
   </body>
-  </html>
+</html>
 
 

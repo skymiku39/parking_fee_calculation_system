@@ -2,149 +2,32 @@
 {% block title %}萬年曆管理 - 智能停車系統{% endblock %}
 {% block page_title %}<i class="fas fa-calendar-alt me-2"></i> 萬年曆管理{% endblock %}
 {% block head %}
-    <style>
-      body {
-        font-family: "Microsoft JhengHei", Arial, sans-serif;
-      }
+<style>
 
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-      }
 
-      .header {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-        padding: 30px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+  /* 使用統一元件樣式 */
+  .section-card {
+    margin-bottom: var(--spacing-xl);
+  }
 
-      .header h1 {
-        font-size: 2.5em;
-        font-weight: 300;
-      }
+  .holiday-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+  }
 
-      .nav-buttons {
-        display: flex;
-        gap: 15px;
-      }
+  .holiday-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--color-gray-200);
+  }
 
-      .nav-btn {
-        background: rgba(255, 255, 255, 0.2);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        padding: 10px 20px;
-        border-radius: 5px;
-        text-decoration: none;
-        transition: all 0.3s;
-      }
-
-      .nav-btn:hover {
-        background: rgba(255, 255, 255, 0.3);
-        text-decoration: none;
-        color: white;
-      }
-
-      .content {
-        padding: 40px;
-      }
-
-      .section {
-        margin-bottom: 40px;
-        background: #f8f9fa;
-        border-radius: 15px;
-        padding: 25px;
-        border-left: 5px solid #4facfe;
-      }
-
-      .section-title {
-        font-size: 1.5em;
-        color: #333;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 12px 25px;
-        font-size: 1em;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s;
-        font-weight: 600;
-        margin-right: 10px;
-        margin-bottom: 10px;
-      }
-
-      .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-      }
-
-      .btn-danger {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-      }
-
-      .btn-success {
-        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
-      }
-
-      .holiday-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
-      }
-
-      .holiday-card {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 20px;
-        transition: all 0.3s;
-      }
-
-      .holiday-card:hover {
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-      }
-
-      .holiday-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
-      }
-
-      .holiday-item:last-child {
-        border-bottom: none;
-      }
-
-      .date-badge {
-        background: #e3f2fd;
-        color: #1976d2;
-        padding: 4px 12px;
-        border-radius: 15px;
-        font-size: 0.9em;
-        font-weight: 600;
-      }
-
-      .festival-badge {
-        background: #fff3e0;
-        color: #f57c00;
-      }
-
-      .event-badge {
-        background: #fce4ec;
-        color: #c2185b;
-      }
+  .holiday-item:last-child {
+    border-bottom: none;
+  }
 
       .form-group {
         margin-bottom: 20px;
@@ -283,125 +166,128 @@
     </style>
 {% endblock %}
 {% block content %}
-    <div class="container">
-      <div class="content">
-        <!-- 工具列 -->
-        <div class="toolbar" style="position: sticky; top: 0; z-index: 5; background: #fff; padding: 12px 0 8px; border-bottom: 1px solid #eee; margin-bottom: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <div style="display:flex; gap:8px; align-items:center;">
-            <label for="syncYear" style="color:#555; font-weight:600;">年份</label>
-            <input type="number" id="syncYear" min="2000" max="2100" style="width: 110px; padding: 8px; border: 1px solid #ddd; border-radius: 6px;" />
-          </div>
-          <div class="btn-group" role="group" aria-label="sync-group">
-            <button id="btnSyncGov" class="btn" onclick="syncOfficialHolidaysV2('gov_tw')" style="background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); color: #fff;">
-              <i class="fas fa-cloud-download-alt"></i> 政府資料
-            </button>
-            <button id="btnSyncNager" class="btn" onclick="syncOfficialHolidaysV2('nager')" style="background: linear-gradient(135deg, #00c6ff 0%, #5a8dee 100%); color: #fff;">
-              <i class="fas fa-cloud-download-alt"></i> Nager
-            </button>
-            <button id="btnSyncBoth" class="btn" onclick="syncOfficialHolidaysV2('both')" style="background: linear-gradient(135deg, #00c6ff 0%, #3383ff 100%); color: #fff;">
-              <i class="fas fa-cloud-download-alt"></i> 合併
-            </button>
-          </div>
-          <button class="btn" onclick="generateWeekendHolidays()" style="background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%); color: #fff;">
-            <i class="fas fa-calendar-week"></i> 產生六日假日
+<div class="container-fluid">
+  <div class="content">
+    <!-- 工具列 -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="form-group-modern mb-0" style="min-width: 120px;">
+          <label for="syncYear" class="text-sm mb-1">年份</label>
+          <input type="number" id="syncYear" min="2000" max="2100" class="form-control-modern" />
+        </div>
+        <div class="d-flex gap-2">
+          <button id="btnSyncGov" class="btn-modern btn-gradient-secondary btn-sm" onclick="syncOfficialHolidaysV2('gov_tw')">
+            <i class="fas fa-cloud-download-alt"></i> 政府資料
           </button>
-          <div style="flex:1; min-width: 200px;"></div>
-          <input id="holidaySearch" type="text" placeholder="搜尋假日名稱或日期…" style="flex:0 1 260px; padding: 8px 10px; border:1px solid #ddd; border-radius: 6px;" />
-          <label style="display:flex; align-items:center; gap:6px; color:#555;">
-            <input id="toggleWeekendView" type="checkbox" /> 顯示六日
+          <button class="btn-modern btn-gradient-secondary btn-sm" onclick="generateWeekendHolidays()">
+            <i class="fas fa-calendar-week"></i> 六日
+          </button>
+        </div>
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <input id="holidaySearch" type="text" placeholder="搜尋..." class="form-control-modern" style="max-width: 200px;" />
+        <label class="d-flex align-items-center gap-2 mb-0 cursor-pointer">
+          <input id="toggleWeekendView" type="checkbox" /> <span class="text-sm">顯示六日</span>
+        </label>
+        <button class="btn-modern btn-gradient-primary" onclick="saveCalendar()">
+          <i class="fas fa-save"></i> 儲存
+        </button>
+      </div>
+    </div>
+    <!-- 統計概覽 -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+          <div class="stat-number" id="holidayCount">0</div>
+          <div class="stat-label">一般假日</div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+          <div class="stat-number" id="festivalCount">0</div>
+          <div class="stat-label">節慶假日</div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+          <div class="stat-number" id="lunarCount">0</div>
+          <div class="stat-label">農曆節日</div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+          <div class="stat-number" id="eventCount">0</div>
+          <div class="stat-label">特殊活動</div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+          <div class="stat-number" id="weekendCount">0</div>
+          <div class="stat-label">六日數量</div>
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+          <div class="stat-number" id="duplicateCount">0</div>
+          <div class="stat-label">重複假日</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 基本設定 -->
+    <div class="card-modern section-card">
+      <div class="card-modern-header">
+        <div class="card-modern-title">
+          <i class="fas fa-cogs"></i>
+          基本設定
+        </div>
+      </div>
+      <div class="card-modern-body">
+        <div class="form-group-modern">
+          <label class="d-flex align-items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="weekendAsHoliday" />
+            <span>週末視為假日（週六、週日）</span>
           </label>
-          <button class="btn" onclick="saveCalendar()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff;">
-            <i class="fas fa-save"></i> 儲存
-          </button>
         </div>
-        <!-- 統計概覽 -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-number" id="holidayCount">0</div>
-            <div class="stat-label">一般假日</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="festivalCount">0</div>
-            <div class="stat-label">節慶假日</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="lunarCount">0</div>
-            <div class="stat-label">農曆節日</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="eventCount">0</div>
-            <div class="stat-label">特殊活動</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="weekendCount">0</div>
-            <div class="stat-label">六日數量</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-number" id="duplicateCount">0</div>
-            <div class="stat-label">重複假日</div>
-          </div>
+        <div class="form-group-modern mb-0">
+          <label for="description">萬年曆說明</label>
+          <textarea id="description" rows="3" class="form-control-modern" placeholder="例：2024-2025年度台灣地區公眾假期及節慶日設定"></textarea>
         </div>
+      </div>
+    </div>
 
-        <!-- 基本設定 -->
-        <div class="section">
-          <h2 class="section-title">
-            <i class="fas fa-cogs"></i>
-            基本設定
-          </h2>
-          <div class="calendar-overview">
-            <div class="form-group">
-              <label>
-                <input type="checkbox" id="weekendAsHoliday" />
-                週末視為假日 (週六、週日)
-              </label>
-            </div>
-            <div class="form-group">
-              <label for="description">萬年曆說明</label>
-              <textarea
-                id="description"
-                rows="3"
-                placeholder="例：2024-2025年度台灣地區公眾假期及節慶日設定"
-              ></textarea>
-            </div>
+    <!-- 假日管理 -->
+    <div class="card-modern section-card">
+      <div class="card-modern-header">
+        <div class="card-modern-title">
+          <i class="fas fa-calendar-check"></i>
+          假日管理
+        </div>
+        <button class="btn-modern btn-gradient-primary btn-sm" onclick="openAddHolidayModal()">
+          <i class="fas fa-plus"></i> 新增
+        </button>
+      </div>
+      <div class="card-modern-body">
+        <div class="holiday-grid">
+          <div class="card-modern">
+            <h5 class="mb-3"><i class="fas fa-calendar-plus me-2"></i>自訂假日</h5>
+            <div id="customHolidays"></div>
+          </div>
+          <div class="card-modern">
+            <h5 class="mb-3"><i class="fas fa-briefcase me-2"></i>自訂工作日</h5>
+            <div id="customWorkdays"></div>
+          </div>
+          <div class="card-modern">
+            <h5 class="mb-3"><i class="fas fa-flag me-2"></i>國定假日</h5>
+            <div id="nationalHolidays"></div>
+          </div>
+          <div class="card-modern">
+            <h5 class="mb-3"><i class="fas fa-exclamation-triangle me-2"></i>重複假日</h5>
+            <div id="duplicateHolidays"></div>
           </div>
         </div>
-
-        <!-- 一般假日管理 -->
-        <div class="section">
-          <h2 class="section-title">
-            <i class="fas fa-calendar-check"></i>
-            一般假日
-          </h2>
-          <button class="btn" onclick="openAddHolidayModal()">
-            <i class="fas fa-plus"></i> 新增假日
-          </button>
-          <div class="holiday-grid">
-            <div class="holiday-card">
-              <h4>自訂假日</h4>
-              <div id="customHolidays">
-                <!-- 動態載入 -->
-              </div>
-            </div>
-            <div class="holiday-card">
-              <h4>自訂工作日</h4>
-              <div id="customWorkdays">
-                <!-- 動態載入 -->
-              </div>
-            </div>
-            <div class="holiday-card">
-              <h4>國定假日（只讀）</h4>
-              <div id="nationalHolidays">
-                <!-- 動態載入 -->
-              </div>
-            </div>
-            <div class="holiday-card">
-              <h4>重複假日</h4>
-              <div id="duplicateHolidays">
-                <!-- 動態載入 -->
-              </div>
-            </div>
-          </div>
-        </div>
+      </div>
+    </div>
 
         <!-- 節慶假日管理 -->
         <div class="section">

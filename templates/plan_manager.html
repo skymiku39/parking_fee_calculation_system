@@ -2,39 +2,148 @@
 {% block title %}方案管理 - 智能停車系統{% endblock %}
 {% block page_title %}<i class="fas fa-folder-tree me-2"></i> 方案管理{% endblock %}
 {% block content %}
-  <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
-        <button class="btn btn-primary" onclick="goDesigner()"><i class="fas fa-plus"></i> 新增範本</button>
-        <button class="btn btn-outline-secondary" onclick="exportAll()"><i class="fas fa-download"></i> 匯出全部</button>
-      </div>
-      <div class="input-group" style="max-width: 320px;">
-        <span class="input-group-text"><i class="fas fa-search"></i></span>
-        <input id="searchBox" type="text" class="form-control" placeholder="搜尋名稱或ID" />
-      </div>
+<div class="container-fluid">
+  <!-- 頂部工具列 -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn-modern btn-gradient-primary" onclick="goDesigner()">
+        <i class="fas fa-plus"></i> 新增方案
+      </button>
+      <button class="btn-modern btn-outline" onclick="exportAll()">
+        <i class="fas fa-download"></i> 匯出全部
+      </button>
+      <button class="btn-modern btn-outline" onclick="refreshList()">
+        <i class="fas fa-sync-alt"></i> 重新整理
+      </button>
     </div>
+    <div class="form-group-modern mb-0" style="max-width: 320px; width: 100%;">
+      <input id="searchBox" type="text" class="form-control-modern" placeholder="搜尋名稱或 ID..." />
+    </div>
+  </div>
 
-    <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead>
-              <tr>
-                <th style="white-space:nowrap;">範本 ID</th>
-                <th>名稱</th>
-                <th>時段類型</th>
-                <th>假日類型</th>
-                <th style="width:220px;">操作</th>
-              </tr>
-            </thead>
-            <tbody id="tplBody">
-              <tr><td colspan="5" class="text-muted">載入中...</td></tr>
-            </tbody>
-          </table>
+  <!-- 方案卡片網格 -->
+  <div id="plansContainer">
+    <!-- 載入中骨架屏 -->
+    <div class="row g-4" id="loadingSkeletons">
+      <div class="col-md-6 col-lg-4" v-for="i in 6">
+        <div class="card-modern">
+          <div class="skeleton skeleton-card"></div>
         </div>
       </div>
     </div>
+    
+    <!-- 實際內容 -->
+    <div id="plansGrid" class="row g-4" style="display: none;"></div>
+    
+    <!-- 空狀態 -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-state-icon">
+        <i class="fas fa-folder-open"></i>
+      </div>
+      <div class="empty-state-title">尚無費率方案</div>
+      <div class="empty-state-description">建立您的第一個停車費率方案</div>
+      <button class="btn-modern btn-gradient-primary btn-lg mt-3" onclick="goDesigner()">
+        <i class="fas fa-plus"></i> 新增方案
+      </button>
+    </div>
   </div>
+</div>
+
+<style>
+  /* 方案卡片樣式 */
+  .plan-card {
+    height: 100%;
+    transition: all var(--transition-base);
+    cursor: pointer;
+  }
+
+  .plan-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .plan-card-header {
+    background: linear-gradient(135deg, var(--color-primary-start) 0%, var(--color-primary-end) 100%);
+    color: white;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .plan-card-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .plan-card-id {
+    font-size: var(--text-sm);
+    opacity: 0.9;
+    font-family: 'Courier New', monospace;
+  }
+
+  .plan-card-body {
+    padding: var(--spacing-lg);
+  }
+
+  .plan-info-grid {
+    display: grid;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .plan-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+
+  .plan-info-label {
+    font-size: var(--text-sm);
+    color: var(--color-gray-600);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .plan-info-value {
+    font-weight: 600;
+    color: var(--color-gray-800);
+  }
+
+  .plan-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    flex-wrap: wrap;
+  }
+
+  .plan-actions button {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  /* 統計標籤 */
+  .plan-stats {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .plan-stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+  }
+</style>
 {% endblock %}
 {% block scripts %}
 <script>
@@ -42,46 +151,140 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     loadTemplates();
-    document.getElementById('searchBox').addEventListener('input', renderTable);
+    document.getElementById('searchBox').addEventListener('input', renderCards);
   });
 
   async function loadTemplates() {
     try {
+      // 顯示載入骨架屏
+      document.getElementById('loadingSkeletons').style.display = 'flex';
+      document.getElementById('plansGrid').style.display = 'none';
+      document.getElementById('emptyState').style.display = 'none';
+
       const resp = await fetch('/api/mdp/templates');
       const data = await resp.json();
+      
       if (data.success) {
         templates = data.templates || [];
-        renderTable();
+        renderCards();
       } else {
-        document.getElementById('tplBody').innerHTML = `<tr><td colspan="5" class="text-danger">載入失敗：${data.message || data.error || '未知錯誤'}</td></tr>`;
+        window.notify.error('載入失敗：' + (data.message || data.error || '未知錯誤'));
+        showEmptyState();
       }
     } catch (e) {
-      document.getElementById('tplBody').innerHTML = `<tr><td colspan="5" class="text-danger">載入失敗：${e.message || e}</td></tr>`;
+      console.error('Load error:', e);
+      window.notify.error('載入失敗：' + (e.message || e));
+      showEmptyState();
     }
   }
 
-  function renderTable() {
+  function renderCards() {
     const q = (document.getElementById('searchBox').value || '').toLowerCase();
-    const rows = (templates || [])
-      .filter(t => {
-        const id = (t.template_id || '').toLowerCase();
-        const label = (t.label || '').toLowerCase();
-        return !q || id.includes(q) || label.includes(q);
-      })
-      .map(t => `
-        <tr>
-          <td><code>${escapeHtml(t.template_id || '')}</code></td>
-          <td>${escapeHtml(t.label || '')}</td>
-          <td>${escapeHtml(t.time_segment_type || '')}</td>
-          <td>${escapeHtml(t.holiday_type || '')}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary me-1" onclick="editTemplate('${encodeURIComponent(t.template_id)}')"><i class="fas fa-pen"></i> 編輯</button>
-            <button class="btn btn-sm btn-outline-secondary me-1" onclick="downloadTemplate('${encodeURIComponent(t.template_id)}')"><i class="fas fa-download"></i> 下載</button>
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteTemplate('${encodeURIComponent(t.template_id)}')"><i class="fas fa-trash"></i> 刪除</button>
-          </td>
-        </tr>
-      `).join('');
-    document.getElementById('tplBody').innerHTML = rows || '<tr><td colspan="5" class="text-muted">無資料</td></tr>';
+    const filteredTemplates = (templates || []).filter(t => {
+      const id = (t.template_id || '').toLowerCase();
+      const label = (t.label || '').toLowerCase();
+      return !q || id.includes(q) || label.includes(q);
+    });
+
+    // 隱藏載入中
+    document.getElementById('loadingSkeletons').style.display = 'none';
+    
+    if (filteredTemplates.length === 0) {
+      showEmptyState();
+      return;
+    }
+
+    // 顯示卡片網格
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('plansGrid').style.display = 'flex';
+    
+    const cards = filteredTemplates.map(t => createPlanCard(t)).join('');
+    document.getElementById('plansGrid').innerHTML = cards;
+  }
+
+  function createPlanCard(plan) {
+    const timeSegments = getTimeSegmentBadge(plan.time_segment_type);
+    const holidayType = getHolidayTypeBadge(plan.holiday_type);
+    
+    return `
+      <div class="col-md-6 col-lg-4 fade-in">
+        <div class="card-modern plan-card">
+          <div class="plan-card-header">
+            <div class="plan-card-title">
+              <i class="fas fa-file-invoice"></i>
+              <span>${escapeHtml(plan.label || '未命名方案')}</span>
+            </div>
+            <div class="plan-card-id">
+              <i class="fas fa-hashtag"></i> ${escapeHtml(plan.template_id || '')}
+            </div>
+            <div class="plan-stats">
+              ${timeSegments}
+              ${holidayType}
+            </div>
+          </div>
+          <div class="plan-card-body">
+            <div class="plan-info-grid">
+              <div class="plan-info-item">
+                <span class="plan-info-label">
+                  <i class="fas fa-clock"></i> 時段類型
+                </span>
+                <span class="plan-info-value">${escapeHtml(plan.time_segment_type || '-')}</span>
+              </div>
+              <div class="plan-info-item">
+                <span class="plan-info-label">
+                  <i class="fas fa-calendar"></i> 假日類型
+                </span>
+                <span class="plan-info-value">${escapeHtml(plan.holiday_type || '-')}</span>
+              </div>
+            </div>
+            
+            <div class="plan-actions">
+              <button class="btn-modern btn-gradient-primary btn-sm" onclick="editTemplate('${encodeURIComponent(plan.template_id)}')">
+                <i class="fas fa-pen"></i> 編輯
+              </button>
+              <button class="btn-modern btn-outline btn-sm" onclick="downloadTemplate('${encodeURIComponent(plan.template_id)}')">
+                <i class="fas fa-download"></i> 下載
+              </button>
+              <button class="btn-modern btn-error btn-sm" onclick="confirmDelete('${encodeURIComponent(plan.template_id)}', '${escapeHtml(plan.label)}')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function getTimeSegmentBadge(type) {
+    const icons = {
+      '一段': 'fa-circle',
+      '兩段': 'fa-adjust',
+      '三段': 'fa-align-center',
+      '四段': 'fa-bars',
+      '自訂': 'fa-sliders-h'
+    };
+    const icon = icons[type] || 'fa-clock';
+    return `<span class="plan-stat-badge"><i class="fas ${icon}"></i> ${type || '-'}</span>`;
+  }
+
+  function getHolidayTypeBadge(type) {
+    const icons = {
+      '六日費率': 'fa-calendar-week',
+      '國定假費率': 'fa-calendar-check',
+      '無假日費率': 'fa-calendar'
+    };
+    const icon = icons[type] || 'fa-calendar';
+    return `<span class="plan-stat-badge"><i class="fas ${icon}"></i> ${type || '-'}</span>`;
+  }
+
+  function showEmptyState() {
+    document.getElementById('loadingSkeletons').style.display = 'none';
+    document.getElementById('plansGrid').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'block';
+  }
+
+  function refreshList() {
+    loadTemplates();
   }
 
   function goDesigner() {
@@ -114,20 +317,32 @@
     }
   }
 
-  async function deleteTemplate(idEnc) {
+  function confirmDelete(idEnc, planName) {
     const id = decodeURIComponent(idEnc);
-    if (!confirm(`確定刪除範本「${id}」？`)) return;
+    window.notify.confirm(
+      `確定要刪除方案「${planName}」嗎？此操作無法復原。`,
+      () => deleteTemplate(id),
+      null
+    );
+  }
+
+  async function deleteTemplate(id) {
+    const loadingToast = window.notify.loading('刪除中...');
     try {
       const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`, {method:'DELETE'});
       const data = await resp.json();
+      loadingToast.close();
+      
       if (data.success) {
         templates = templates.filter(t => t.template_id !== id);
-        renderTable();
+        renderCards();
+        window.notify.success('方案已刪除');
       } else {
-        alert('刪除失敗：' + (data.message || data.error || '未知錯誤'));
+        window.notify.error('刪除失敗：' + (data.message || data.error || '未知錯誤'));
       }
     } catch (e) {
-      alert('刪除失敗：' + (e.message || e));
+      loadingToast.close();
+      window.notify.error('刪除失敗：' + (e.message || e));
     }
   }
 

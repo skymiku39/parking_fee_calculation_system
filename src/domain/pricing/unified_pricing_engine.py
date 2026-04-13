@@ -191,7 +191,15 @@ class UnifiedPricingEngine:
                 grp = None
                 for c in cycles:
                     if grp is None:
-                        grp = dict(label=c["segment"], time_range=c["time_range"], duration=c["minutes"], fee=c["fee"])
+                        grp = dict(
+                            label=c["segment"], 
+                            time_range=c["time_range"], 
+                            duration=c["minutes"], 
+                            fee=c["fee"],
+                            rate=c["rate"],
+                            unit=c["unit"],
+                            progressive=c["progressive"]
+                        )
                     else:
                         if grp["label"] == c["segment"] and grp["time_range"].split('-')[-1] == c["time_range"].split('-')[0]:
                             # 連續
@@ -202,7 +210,15 @@ class UnifiedPricingEngine:
                             grp["fee"] += c["fee"]
                         else:
                             session_details.append(grp)
-                            grp = dict(label=c["segment"], time_range=c["time_range"], duration=c["minutes"], fee=c["fee"])
+                            grp = dict(
+                                label=c["segment"], 
+                                time_range=c["time_range"], 
+                                duration=c["minutes"], 
+                                fee=c["fee"],
+                                rate=c["rate"],
+                                unit=c["unit"],
+                                progressive=c["progressive"]
+                            )
                 if grp:
                     session_details.append(grp)
 

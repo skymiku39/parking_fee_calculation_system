@@ -403,6 +403,18 @@ class MultidimensionalParkingCalculator:
         # 跨日
         return t >= start or t <= end
 
+    def _extract_rate_description(self, cycle: Dict) -> str:
+        """從週期資料中提取費率描述"""
+        detail = cycle.get("detail", {})
+        mode = detail.get("mode", "simple")
+        
+        if mode == "progressive":
+            return "累進費率"
+        else:
+            unit = detail.get("unit", 60)
+            unit_price = detail.get("unit_price", 0)
+            return f"{unit_price}元/{unit}分"
+
     def _find_active_slot(self, current_dt: datetime, time_slots: List[Dict]) -> Optional[Dict]:
         ct = current_dt.time()
         for slot in time_slots:
@@ -574,8 +586,17 @@ class MultidimensionalParkingCalculator:
                 res = upe.calculate(enter_time, exit_time, upe_plan, _resolver)
                 if res.success:
                     total_fee = res.total_amount
-                    # 轉為舊格式明細近似
+                    # 轉為舊格式明細並添加費率描述
                     for d in res.session_details:
+                        # 構造費率描述
+                        rate_desc = ""
+                        if d.get("progressive"):
+                            rate_desc = "累進費率"
+                        else:
+                            unit_price = d.get("rate", 0)
+                            unit = d.get("unit", 60)
+                            rate_desc = f"{unit_price}元/{unit}分"
+                        
                         session_details.append(
                             {
                                 "label": d.get("label"),
@@ -583,6 +604,8 @@ class MultidimensionalParkingCalculator:
                                 "end": d.get("time_range", "-").split("-")[-1],
                                 "duration": d.get("duration", 0),
                                 "fee": d.get("fee", 0),
+                                "rate": rate_desc,
+                                "unit_price": d.get("rate", 0)
                             }
                         )
             except Exception:
@@ -606,12 +629,14 @@ class MultidimensionalParkingCalculator:
             current_group = None
             for cy in cycles:
                 if current_group is None:
+                    rate_desc = self._extract_rate_description(cy)
                     current_group = {
                         "label": cy["slot"],
                         "start": cy["start"].strftime("%H:%M"),
                         "end": cy["end"].strftime("%H:%M"),
                         "duration": cy["minutes"],
                         "fee": cy["fee"],
+                        "rate": rate_desc,
                     }
                 else:
                     # 連續且同 slot
@@ -622,12 +647,14 @@ class MultidimensionalParkingCalculator:
                         current_group["fee"] += cy["fee"]
                     else:
                         session_details.append(current_group)
+                        rate_desc = self._extract_rate_description(cy)
                         current_group = {
                             "label": cy["slot"],
                             "start": cy["start"].strftime("%H:%M"),
                             "end": cy["end"].strftime("%H:%M"),
                             "duration": cy["minutes"],
                             "fee": cy["fee"],
+                            "rate": rate_desc,
                         }
             if current_group:
                 session_details.append(current_group)
