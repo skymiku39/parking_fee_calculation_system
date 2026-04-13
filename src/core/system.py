@@ -13,7 +13,6 @@ from utils.config_validator import (
 from src.multidimensional_calculator import (
     MultidimensionalParkingCalculator,
 )
-from src.rate_plan_manager import RatePlanManager
 from src.core.utils import (
     format_duration_display,
     get_rate_description,
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 class SmartParkingSystem:
     def __init__(self, base_path: Optional[Union[str, Path]] = None):
         self.base_path = Path(base_path) if base_path is not None else Path(".")
-        self.rate_plan_manager = RatePlanManager(str(self.base_path / "config"))
         self.multidimensional_calculator: Optional[MultidimensionalParkingCalculator] = None
         self.system_config: Dict[str, Any] = {}
         self.persisted_system_config: Dict[str, Any] = {}
@@ -109,14 +107,9 @@ class SmartParkingSystem:
             if not plan_id:
                 raise ValueError("請提供 plan_id 或使用 plan_inline 進行即時試算")
 
-            if self.is_user_defined_plan(plan_id):
-                return self.calculate_with_user_defined_plan(
-                    enter_time, exit_time, plan_id, manual_adjustment, context
-                )
-            else:
-                return self.calculate_with_multidimensional(
-                    enter_time, exit_time, plan_id, manual_adjustment, context
-                )
+            return self.calculate_with_multidimensional(
+                enter_time, exit_time, plan_id, manual_adjustment, context
+            )
         except Exception as e:
             return {"success": False, "error": str(e), "calculation_engine": "none"}
 

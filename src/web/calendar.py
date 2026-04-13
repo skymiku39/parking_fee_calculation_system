@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, jsonify, request, send_from_directory
+from flask import Blueprint, jsonify, request
 
 from src.core.context import parking_system
 from src.web.utils import error_response
@@ -13,6 +13,11 @@ from src.core.utils import NAGER_BASE_URL
 
 
 calendar_bp = Blueprint("calendar_bp", __name__)
+
+
+def _calendar_file() -> Path:
+    base_path = getattr(parking_system, "base_path", Path("."))
+    return Path(base_path) / "config" / "system_calendar.json"
 
 
 def _fetch_gov_tw_official_holidays(year: int) -> Optional[List[Dict[str, Any]]]:
@@ -50,7 +55,7 @@ def _fetch_gov_tw_official_holidays(year: int) -> Optional[List[Dict[str, Any]]]
 
 @calendar_bp.route("/api/calendar", methods=["GET", "POST"])
 def api_calendar():
-    calendar_file = Path("config/system_calendar.json")
+    calendar_file = _calendar_file()
     if request.method == "GET":
         if calendar_file.exists():
             try:
@@ -145,7 +150,7 @@ def api_calendar_sync_official_v2():
                     if mode == "nager":
                         return error_response("SYNC_FETCH_ERROR", f"抓取 Nager 失敗: {e}", 500)
 
-        calendar_file = Path("config/system_calendar.json")
+        calendar_file = _calendar_file()
         cal: Dict[str, Any] = {}
         if calendar_file.exists():
             try:
@@ -185,7 +190,7 @@ def api_calendar_sync_official_v2():
         return error_response("SYNC_INTERNAL_ERROR", str(e), 500)
 
 
-@calendar_bp.route("/api/calendar/sync_official", methods=["POST"])
+@calendar_bp.route("/api/calendar/_legacy/sync_official", methods=["POST"])
 def api_calendar_sync_official():
     try:
         payload = request.get_json() or {}
@@ -234,7 +239,7 @@ def api_calendar_sync_official():
                 festival_holidays.append(entry)
                 national_holidays.append(entry)
 
-        calendar_file = Path("config/system_calendar.json")
+        calendar_file = _calendar_file()
         if calendar_file.exists():
             try:
                 cal = json.loads(calendar_file.read_text(encoding="utf-8"))
@@ -308,7 +313,7 @@ def api_calendar_generate_weekends():
                 weekends.append(d.strftime("%Y-%m-%d"))
             d += timedelta(days=1)
 
-        calendar_file = Path("config/system_calendar.json")
+        calendar_file = _calendar_file()
         if calendar_file.exists():
             try:
                 cal = json.loads(calendar_file.read_text(encoding="utf-8"))
@@ -340,5 +345,3 @@ def api_calendar_generate_weekends():
         return jsonify({"success": True, "generated_year": year, "added": added})
     except Exception as e:
         return error_response("WEEKEND_GEN_ERROR", str(e), 500)
-
-

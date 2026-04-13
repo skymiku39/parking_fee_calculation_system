@@ -10,14 +10,18 @@ from src.web.utils import error_response
 mdp_bp = Blueprint("mdp_bp", __name__)
 
 
-MDP_CONFIG_PATH = parking_system and parking_system.system_config and None  # placeholder not used; direct file path below
-
-
-def _load_mdp_config(path="config/multidimensional_rate_plans.json") -> dict:
+def _mdp_config_path():
     from pathlib import Path
-    import json
 
-    p = Path(path)
+    base_path = getattr(parking_system, "base_path", Path("."))
+    return Path(base_path) / "config" / "multidimensional_rate_plans.json"
+
+
+def _load_mdp_config(path=None) -> dict:
+    import json
+    from pathlib import Path
+
+    p = _mdp_config_path() if path is None else Path(path)
     if p.exists():
         try:
             return json.loads(p.read_text(encoding="utf-8"))
@@ -26,16 +30,16 @@ def _load_mdp_config(path="config/multidimensional_rate_plans.json") -> dict:
     return {}
 
 
-def _save_mdp_config(config_data: dict, path="config/multidimensional_rate_plans.json"):
-    from pathlib import Path
+def _save_mdp_config(config_data: dict, path=None):
     import json
+    from pathlib import Path
     from utils.config_validator import validate_multidimensional_config_json
 
     try:
         validate_multidimensional_config_json(config_data)
     except Exception:
         pass
-    p = Path(path)
+    p = _mdp_config_path() if path is None else Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(config_data, ensure_ascii=False, indent=2), encoding="utf-8")
     try:
@@ -121,10 +125,9 @@ def api_mdp_delete_template(template_id: str):
 @mdp_bp.route("/api/mdp/export", methods=["GET"])
 def api_mdp_export_config():
     from flask import send_from_directory
-    from pathlib import Path
     import json
     try:
-        p = Path("config/multidimensional_rate_plans.json")
+        p = _mdp_config_path()
         if p.exists():
             return send_from_directory(p.parent.as_posix(), p.name, as_attachment=True, download_name="multidimensional_rate_plans.json")
         default_cfg = {"dimension_configs": {}, "rate_plan_templates": []}
@@ -187,6 +190,48 @@ def api_mdp_preview():
                 TimeSegmentType,
                 HolidayType,
             )
+            plan_variants = {
+                "weekday_plan": template.get("weekday_plan"),
+                "weekend_plan": template.get("weekend_plan"),
+                "national_holiday_plan": template.get("national_holiday_plan"),
+                "custom_holiday_plan": template.get("custom_holiday_plan"),
+                "unified_plan": template.get("unified_plan"),
+            }
+            if not any(plan_variants.values()) and template.get("time_slots"):
+                flat_plan = {
+                    "label": template.get("label", temp_id),
+                    "time_slots": template.get("time_slots", []),
+                    "daily_cap_enabled": bool(
+                        template.get("daily_cap_enabled", False)
+                    ),
+                    "daily_cap_amount": int(
+                        template.get("daily_cap_amount", 0) or 0
+                    ),
+                    "global_grace_time": int(
+                        template.get("global_grace_time", 0) or 0
+                    ),
+                    "global_caps": {
+                        "daily_cap_enabled": bool(
+                            template.get("daily_cap_enabled", False)
+                        ),
+                        "daily_cap_amount": int(
+                            template.get("daily_cap_amount", 0) or 0
+                        ),
+                        "global_grace_time": int(
+                            template.get("global_grace_time", 0) or 0
+                        ),
+                    },
+                }
+                plan_variants = {
+                    key: flat_plan
+                    for key in (
+                        "weekday_plan",
+                        "weekend_plan",
+                        "national_holiday_plan",
+                        "custom_holiday_plan",
+                        "unified_plan",
+                    )
+                }
             rp = MultidimensionalRatePlan(
                 template_id=temp_id,
                 label=template.get("label", temp_id),
@@ -194,11 +239,11 @@ def api_mdp_preview():
                 time_segment_type=TimeSegmentType(template.get("time_segment_type", "兩段")),
                 holiday_type=HolidayType(template.get("holiday_type", "六日費率")),
                 dimension_combination=temp_id,
-                weekday_plan=template.get("weekday_plan"),
-                weekend_plan=template.get("weekend_plan"),
-                national_holiday_plan=template.get("national_holiday_plan"),
-                custom_holiday_plan=template.get("custom_holiday_plan"),
-                unified_plan=template.get("unified_plan"),
+                weekday_plan=plan_variants["weekday_plan"],
+                weekend_plan=plan_variants["weekend_plan"],
+                national_holiday_plan=plan_variants["national_holiday_plan"],
+                custom_holiday_plan=plan_variants["custom_holiday_plan"],
+                unified_plan=plan_variants["unified_plan"],
             )
             calc.rate_plan_templates[temp_id] = rp
             res = calc.calculate_parking_fee(enter_time, exit_time, temp_id)

@@ -441,7 +441,7 @@
     if (f) f.click();
   }
 
-  function importTemplateFromFile(evt){
+  function legacyImportTemplateFromFile(evt){
     try{
       const file = evt.target.files && evt.target.files[0];
       if (!file) return;
@@ -456,12 +456,12 @@
             const ids = Object.keys(raw.plans);
             if (ids.length === 0) return showMsg('danger','檔案中沒有任何方案');
             const plan = raw.plans[ids[0]];
-            const converted = convertLegacyPlanToMDP(plan);
+            const converted = archivedLegacyPlanToMDP(plan);
             if (!converted) return showMsg('danger','無法從舊方案轉換');
             populateFromTemplateObject(converted);
           } else if (raw && raw.segment_type && raw.rate_matrix) {
             // 舊版單一方案 JSON（非整包）
-            const converted = convertLegacyPlanToMDP(raw);
+            const converted = archivedLegacyPlanToMDP(raw);
             if (!converted) return showMsg('danger','無法從舊方案轉換');
             populateFromTemplateObject(converted);
           } else {
@@ -476,7 +476,7 @@
     }
   }
 
-  function convertLegacyPlanToMDP(legacy){
+  function archivedLegacyPlanToMDP(legacy){
     try{
       const name = legacy.name || legacy.template_id || '匯入方案';
       const segTypeLegacy = legacy.segment_type || '二段';
@@ -546,15 +546,48 @@
       else { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; }
 
       return tpl;
-    }catch(e){ console.error('convertLegacyPlanToMDP error:', e); return null; }
+    }catch(e){ console.error('archivedLegacyPlanToMDP error:', e); return null; }
   }
 
-  function exportAllUserPlans(){
+  function legacyExportAllUserPlans(){
     try{
-      window.open('/api/rate_plans/export_all', '_blank');
+      showMsg('warning','舊版整包匯出已停用，請改用目前模板的下載或複製功能。');
     }catch(e){
       showMsg('danger','整包匯出失敗');
     }
+  }
+
+  function isMDPTemplatePayload(raw){
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const hasPlanContent = !!(raw.unified_plan || raw.weekday_plan || raw.weekend_plan || raw.national_holiday_plan);
+    return !!raw.template_id && !!raw.label && !!raw.time_segment_type && !!raw.holiday_type && hasPlanContent;
+  }
+
+  function importTemplateFromFile(evt){
+    try{
+      const file = evt.target.files && evt.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const raw = JSON.parse(reader.result);
+          if (!isMDPTemplatePayload(raw)) {
+            return showMsg('warning','目前僅支援匯入多維度模板 JSON，舊版方案請先離線轉換。');
+          }
+          populateFromTemplateObject(raw);
+          showMsg('success', '已匯入多維度模板。');
+        }catch(e){
+          showMsg('danger', `匯入失敗: ${e.message || e}`);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }finally{
+      evt.target.value = '';
+    }
+  }
+
+  function exportAllUserPlans(){
+    showMsg('warning','舊版整包匯出已停用，請改用目前模板的下載或複製功能。');
   }
 
   async function previewInline(){
@@ -646,5 +679,3 @@
   function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 </script>
 {% endblock %}
-
-
