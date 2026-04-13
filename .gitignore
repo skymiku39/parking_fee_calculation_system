@@ -6,6 +6,7 @@ models/*.onnx
 # 資料檔案
 data/
 logs/
+log/app.log
 
 # Python
 __pycache__/
