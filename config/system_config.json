@@ -7,7 +7,7 @@
   "currency_symbol": "NT$",
   "date_format": "%Y-%m-%d",
   "time_format": "%H:%M",
-  "datetime_display_format": "%Y年%m月%d日 %H:%M",
+  "datetime_display_format": "%Y-%m-%d %H:%M",
   "system_timezone": "Asia/Taipei",
   "official_calendar_api": null,
   "ui_settings": {

@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime, timedelta, time
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Union
 
 from utils.config_validator import (
     validate_user_defined_plans_json,
@@ -17,6 +17,7 @@ from src.rate_plan_manager import RatePlanManager
 from src.core.utils import (
     format_duration_display,
     get_rate_description,
+    merge_system_config,
     validate_and_normalize_system_config,
 )
 
@@ -25,49 +26,71 @@ logger = logging.getLogger(__name__)
 
 
 class SmartParkingSystem:
-    def __init__(self):
-        self.rate_plan_manager = RatePlanManager()
+    def __init__(self, base_path: Optional[Union[str, Path]] = None):
+        self.base_path = Path(base_path) if base_path is not None else Path(".")
+        self.rate_plan_manager = RatePlanManager(str(self.base_path / "config"))
         self.multidimensional_calculator: Optional[MultidimensionalParkingCalculator] = None
         self.system_config: Dict[str, Any] = {}
+        self.persisted_system_config: Dict[str, Any] = {}
 
         self.load_system_config()
         self.init_multidimensional_calculator()
 
+    def _config_path(self, *parts: str) -> Path:
+        return self.base_path.joinpath(*parts)
+
     def load_system_config(self):
         try:
-            config_path = Path("config/system_config.json")
+            config_path = self._config_path("config", "system_config.json")
             if config_path.exists():
                 with open(config_path, "r", encoding="utf-8") as f:
                     file_cfg = json.load(f)
             else:
                 file_cfg = {}
 
-            # 驗證與正規化（含環境覆寫）
-            self.system_config = validate_and_normalize_system_config(file_cfg)
-            self.save_system_config()
+            self.persisted_system_config = validate_and_normalize_system_config(
+                file_cfg,
+                include_env_overrides=False,
+            )
+            self.system_config = validate_and_normalize_system_config(
+                self.persisted_system_config
+            )
         except Exception as e:
             logger.exception("載入系統配置失敗: %s", e)
+            self.persisted_system_config = {}
             self.system_config = {}
 
     def save_system_config(self):
         try:
-            config_path = Path("config/system_config.json")
+            config_path = self._config_path("config", "system_config.json")
             config_path.parent.mkdir(exist_ok=True)
             with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(self.system_config, f, ensure_ascii=False, indent=2)
+                json.dump(self.persisted_system_config, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.exception("儲存系統配置失敗: %s", e)
+            logger.exception("Failed to save system config: %s", e)
+
+    def update_system_config(self, new_config: Dict[str, Any]) -> Dict[str, Any]:
+        merged_config = merge_system_config(self.persisted_system_config, new_config)
+        self.persisted_system_config = validate_and_normalize_system_config(
+            merged_config,
+            include_env_overrides=False,
+        )
+        self.system_config = validate_and_normalize_system_config(
+            self.persisted_system_config
+        )
+        self.save_system_config()
+        return self.system_config
 
     def init_multidimensional_calculator(self):
         try:
-            cfg_path = Path("config/multidimensional_rate_plans.json")
+            cfg_path = self._config_path("config", "multidimensional_rate_plans.json")
             if cfg_path.exists():
                 with open(cfg_path, "r", encoding="utf-8") as f:
                     _cfg = json.load(f)
                 validate_multidimensional_config_json(_cfg)
 
             self.multidimensional_calculator = MultidimensionalParkingCalculator(
-                "config/multidimensional_rate_plans.json"
+                str(cfg_path)
             )
             logger.info("多維度標籤計算器載入成功")
         except Exception as e:
@@ -99,7 +122,7 @@ class SmartParkingSystem:
 
     def is_user_defined_plan(self, plan_id: str) -> bool:
         try:
-            with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
+            with open(self._config_path("config", "user_defined_plans.json"), "r", encoding="utf-8") as f:
                 user_plans = json.load(f)
                 return plan_id in user_plans.get("plans", {})
         except FileNotFoundError:
@@ -114,7 +137,7 @@ class SmartParkingSystem:
         context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         try:
-            with open("config/user_defined_plans.json", "r", encoding="utf-8") as f:
+            with open(self._config_path("config", "user_defined_plans.json"), "r", encoding="utf-8") as f:
                 user_plans = json.load(f)
             try:
                 validate_user_defined_plans_json(user_plans)
@@ -575,5 +598,3 @@ class SmartParkingSystem:
         else:
             simple_rate = rate_config.get("simple_rate", 0)
             return billing_units * simple_rate
-
-
