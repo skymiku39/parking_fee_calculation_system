@@ -35,9 +35,11 @@ def run_server() -> None:
 
 
 def main() -> int:
-    # 將工作目錄設成可寫的當前位置（對便攜式打包較友善）
     try:
-        base_dir = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else __file__)
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         if base_dir:
             os.chdir(base_dir)
     except Exception:

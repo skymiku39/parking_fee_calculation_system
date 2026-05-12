@@ -9,7 +9,7 @@ def main():
     if str(root) not in sys.path:
         sys.path.append(str(root))
 
-    from utils.config_validator import (
+    from src.core.validation import (
         validate_user_defined_plans_json,
         validate_multidimensional_config_json,
     )

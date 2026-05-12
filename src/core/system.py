@@ -5,12 +5,12 @@ from datetime import datetime, timedelta, time
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple, Union
 
-from utils.config_validator import (
+from src.core.validation import (
     validate_user_defined_plans_json,
     validate_multidimensional_config_json,
     ConfigValidationError,
 )
-from src.multidimensional_calculator import (
+from src.domain.multidimensional_calculator import (
     MultidimensionalParkingCalculator,
 )
 from src.core.utils import (

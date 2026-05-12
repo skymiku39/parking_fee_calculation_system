@@ -11,7 +11,7 @@ from datetime import datetime, date
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
-    from src.multidimensional_calculator import (
+    from src.domain.multidimensional_calculator import (
         MultidimensionalParkingCalculator,
         TimeSegmentType,
         HolidayType,

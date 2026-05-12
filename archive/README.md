@@ -1,18 +1,8 @@
-# Archived Assets
+# 封存資料
 
-This directory contains legacy or non-product assets that are no longer part of
-the active web application flow.
+本目錄存放已不屬於正式產品路徑的歷史資源。
 
-- `demo/`: historical demo application and template editor proof-of-concept
-- `examples_manual/`: manual verification scripts for retired billing paths
-- `legacy_tests/`: tests tied to the retired `ParkingCalculator` flow
-- `packaging/`: historical packaging artifacts such as `ParkingCalculator.spec`
-- `reports/`: implementation notes, reports, and generated audit artifacts
+- `demo/`：早期 demo 應用與費率編輯器概念驗證
+- `packaging/`：PyInstaller 打包設定（`ParkingCalculator.spec`）
 
-The active product surface remains in:
-
-- `app.py`
-- `src/`
-- `templates/`
-- `config/multidimensional_rate_plans.json`
-- `tests/`
+如需查看完整歷史（含已移除的報告、舊測試等），請參考 git tag `pre-reorganization`。

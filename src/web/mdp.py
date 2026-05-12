@@ -33,7 +33,7 @@ def _load_mdp_config(path=None) -> dict:
 def _save_mdp_config(config_data: dict, path=None):
     import json
     from pathlib import Path
-    from utils.config_validator import validate_multidimensional_config_json
+    from src.core.validation import validate_multidimensional_config_json
 
     try:
         validate_multidimensional_config_json(config_data)
@@ -185,7 +185,7 @@ def api_mdp_preview():
         temp_id = template.get("template_id") or f"inline_{int(_pytime.perf_counter()*1000)}"
         old = calc.rate_plan_templates.get(temp_id)
         try:
-            from src.multidimensional_calculator import (
+            from src.domain.multidimensional_calculator import (
                 MultidimensionalRatePlan,
                 TimeSegmentType,
                 HolidayType,

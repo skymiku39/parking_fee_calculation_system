@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['launcher.py'],
+    ['scripts/launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('templates', 'templates'), ('config', 'config'), ('templates/rate_plan_template.xlsx', 'templates')],
-    hiddenimports=['app', 'src.rate_plan_manager', 'src.domain.pricing.unified_pricing_engine'],
+    datas=[('templates', 'templates'), ('config', 'config'), ('static', 'static')],
+    hiddenimports=['app', 'src.domain.rate_plan_manager', 'src.domain.pricing.unified_pricing_engine'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

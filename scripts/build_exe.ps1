@@ -43,9 +43,9 @@ $argsList = @(
   '--name', 'ParkingCalculator'
 ) + $addData + @(
   '--hidden-import', 'app',
-  '--hidden-import', 'src.rate_plan_manager',
+  '--hidden-import', 'src.domain.rate_plan_manager',
   '--hidden-import', 'src.domain.pricing.unified_pricing_engine',
-  'launcher.py'
+  'scripts\launcher.py'
 )
 
 & pyinstaller @argsList
