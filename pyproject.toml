@@ -1,0 +1,24 @@
+[project]
+name = "parking-fee-calculation-system"
+version = "2.0.0"
+description = "智能停車費率計算系統"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0.0",
+    "python-dateutil>=2.8.2",
+    "jsonschema>=4.21.1",
+    "flasgger>=0.9.7.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pandas>=2.1.4",
+    "openpyxl>=3.1.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
