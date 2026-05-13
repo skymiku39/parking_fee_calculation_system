@@ -27,4 +27,4 @@ jobs:
         run: uv run pytest -q
 
       - name: Validate configuration JSONs
-        run: uv run python scripts/validate_configs.py
+        run: uv run python tools/validate_configs.py

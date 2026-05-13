@@ -62,7 +62,7 @@
 - 多時段（平日假日）
   - 計費週期測試方案（單一／無日上限／無分段上限／無全局寬裕）
 
-完整屬性表請參見 `docs/plan_catalog.md`（依 `log/plan_inventory.json` 生成）。
+完整屬性表請參見 `tools/plan_catalog.md`。
 
 ## UI 顯示控制
 

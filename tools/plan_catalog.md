@@ -5,7 +5,7 @@
 > 若要更新本表，請執行：
 >
 > ```powershell
-> python scripts/organize_plans.py
+> python tools/organize_plans.py
 > ```
 
 ## 方案列表

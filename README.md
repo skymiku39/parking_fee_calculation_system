@@ -29,17 +29,16 @@
 ### 安裝和啟動
 
 ```powershell
-# 進入專案根目錄
 cd parking_fee_calculation_system
 
 # 一鍵啟動（自動安裝依賴並啟動伺服器）
-./scripts/start.ps1
+./tools/start.ps1
 
 # 若已安裝依賴，略過安裝直接啟動
-./scripts/start.ps1 -NoInstall
+./tools/start.ps1 -NoInstall
 
 # 只安裝依賴，不啟動（CI / 自動化可用）
-./scripts/start.ps1 -NoRun
+./tools/start.ps1 -NoRun
 ```
 
 啟動後開啟瀏覽器：`http://127.0.0.1:5000`
@@ -55,30 +54,31 @@ parking_fee_calculation_system/
 │
 ├── src/                    # 核心程式碼
 │   ├── core/               # 系統啟動、設定、工具
-│   │   ├── context.py      # 全域系統單例
-│   │   ├── system.py       # SmartParkingSystem 主類
-│   │   ├── utils.py        # 共用工具函式
-│   │   └── validation.py   # JSON Schema 驗證
+│   │   ├── context.py
+│   │   ├── system.py
+│   │   ├── utils.py
+│   │   └── validation.py
 │   ├── domain/             # 業務邏輯
 │   │   ├── parking_calculator.py
 │   │   ├── multidimensional_calculator.py
 │   │   ├── rate_plan_manager.py
-│   │   └── pricing/        # 統一計價引擎
-│   └── web/                # Flask 藍圖（REST API）
-│       ├── calc.py          # /api/calculate
-│       ├── calendar.py      # /api/calendar/*
-│       ├── mdp.py           # /api/mdp/*
-│       ├── system.py        # /api/system/*
-│       └── misc.py          # 靜態資源
+│   │   └── pricing/
+│   └── web/                # Flask 藍圖 + 前端資源
+│       ├── calc.py
+│       ├── calendar.py
+│       ├── mdp.py
+│       ├── system.py
+│       ├── templates/      # Jinja HTML
+│       └── static/         # CSS / JS
 │
 ├── config/                 # 執行期 JSON 設定檔
-├── templates/              # Jinja HTML 模板
-├── static/                 # 前端 CSS / JS
 ├── tests/                  # pytest 自動化測試
-├── scripts/                # 啟動、打包、驗證腳本
-├── api/contracts/          # OpenAPI 規格
-├── docs/                   # 方案文件
-└── archive/                # 封存（舊 demo、打包 spec）
+└── tools/                  # 腳本、文件、API 規格
+    ├── start.ps1
+    ├── build_exe.ps1
+    ├── launcher.py
+    ├── openapi.yaml
+    └── ...
 ```
 
 ---
@@ -119,12 +119,6 @@ parking_fee_calculation_system/
 
 使用者自訂方案（`config/user_defined_plans.json`）亦會完整顯示。
 
-### 進階 UI 設定
-
-於 `config/system_config.json` → `ui_settings` 可調整：
-- `max_user_plans_display`：顯示的用戶自訂方案最大數量（預設 5）
-- `show_only_featured_user_plans`：僅顯示被標記為 featured 的用戶方案（預設 false）
-
 ---
 
 ## API 端點
@@ -138,18 +132,17 @@ parking_fee_calculation_system/
 | `/api/mdp/templates` | GET | 多維度範本列表 |
 | `/api/mdp/preview` | POST | 範本試算預覽 |
 
-完整 API 規格：[api/contracts/openapi.yaml](api/contracts/openapi.yaml)
+完整 API 規格：[tools/openapi.yaml](tools/openapi.yaml)
 
 ---
 
 ## 測試
 
 ```powershell
-# 執行所有測試
 uv run pytest
 
 # 驗證設定檔格式
-uv run python scripts/validate_configs.py
+uv run python tools/validate_configs.py
 ```
 
 ---
@@ -163,6 +156,8 @@ uv sync --group dev
 # 執行測試並產出覆蓋率
 uv run pytest --cov=src
 ```
+
+歷史資料（舊 demo、報告等）已在 git tag `pre-reorganization` 中保留。
 
 ---
 

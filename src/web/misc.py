@@ -9,7 +9,7 @@ misc_bp = Blueprint("misc_bp", __name__)
 @misc_bp.route('/static/openapi.yaml')
 def serve_openapi_yaml():
     from flask import send_from_directory
-    path = Path('api/contracts/openapi.yaml')
+    path = Path('tools/openapi.yaml')
     if path.exists():
         return send_from_directory(path.parent.as_posix(), path.name)
     # 提供最小化空白規格，避免 404 但仍提示未定義

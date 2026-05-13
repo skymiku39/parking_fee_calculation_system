@@ -32,8 +32,8 @@ Write-Host '開始打包 ...'
 
 # 動態組合 add-data 參數（Windows 用分號 ; 分隔 src;dest）
 $addData = @()
-if (Test-Path "templates") { $addData += @('--add-data', 'templates;templates') }
-if (Test-Path "static")    { $addData += @('--add-data', 'static;static') }
+if (Test-Path "src/web/templates") { $addData += @('--add-data', 'src/web/templates;templates') }
+if (Test-Path "src/web/static")    { $addData += @('--add-data', 'src/web/static;static') }
 if (Test-Path "config")    { $addData += @('--add-data', 'config;config') }
 if (Test-Path "templates/rate_plan_template.xlsx") { $addData += @('--add-data', 'templates/rate_plan_template.xlsx;templates') }
 
@@ -45,7 +45,7 @@ $argsList = @(
   '--hidden-import', 'app',
   '--hidden-import', 'src.domain.rate_plan_manager',
   '--hidden-import', 'src.domain.pricing.unified_pricing_engine',
-  'scripts\launcher.py'
+  'tools\launcher.py'
 )
 
 & pyinstaller @argsList

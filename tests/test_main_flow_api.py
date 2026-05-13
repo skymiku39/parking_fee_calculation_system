@@ -175,7 +175,7 @@ def test_calendar_endpoints_use_isolated_config_storage(isolated_client):
 
 
 def test_rate_plan_designer_no_longer_points_to_legacy_bulk_export():
-    content = (REPO_ROOT / "templates" / "rate_plan_designer.html").read_text(
+    content = (REPO_ROOT / "src" / "web" / "templates" / "rate_plan_designer.html").read_text(
         encoding="utf-8"
     )
 

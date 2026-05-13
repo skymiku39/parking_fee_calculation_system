@@ -7,7 +7,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 專案根目錄（此腳本位於 scripts/ 底下）
+# 專案根目錄（此腳本位於 tools/ 底下）
 # 兼容在部分環境下 $PSScriptRoot 未定義的情況
 if ($PSScriptRoot) {
   $ScriptDir = $PSScriptRoot

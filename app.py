@@ -12,8 +12,8 @@ from src.core.utils import DEFAULT_DATETIME_DISPLAY_FORMAT
 
 # 讓 Flask 在 PyInstaller 打包後也能正確找到模板與靜態資源
 _BASE_DIR = Path(getattr(sys, "_MEIPASS", os.getcwd()))
-_TEMPLATE_DIR = (_BASE_DIR / "templates").as_posix()
-_STATIC_DIR = (_BASE_DIR / "static").as_posix()
+_TEMPLATE_DIR = (_BASE_DIR / "src" / "web" / "templates").as_posix()
+_STATIC_DIR = (_BASE_DIR / "src" / "web" / "static").as_posix()
 
 app = Flask(__name__, template_folder=_TEMPLATE_DIR, static_folder=_STATIC_DIR)
 app.config["JSON_AS_ASCII"] = False
@@ -74,8 +74,8 @@ def calendar_manager_page():
 
 
 if __name__ == "__main__":
-    if not os.path.exists("templates"):
-        os.makedirs("templates")
+    if not os.path.exists("src/web/templates"):
+        os.makedirs("src/web/templates")
     if not os.path.exists("log"):
         os.makedirs("log")
     app.run(debug=True, host="0.0.0.0", port=5000)
