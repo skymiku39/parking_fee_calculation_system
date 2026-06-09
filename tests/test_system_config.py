@@ -17,11 +17,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _build_isolated_system(tmp_path: Path) -> SmartParkingSystem:
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    copy2(REPO_ROOT / "config" / "multidimensional_rate_plans.json", config_dir)
-    copy2(REPO_ROOT / "config" / "system_templates.json", config_dir)
-    return SmartParkingSystem(base_path=tmp_path)
+    data_dir = tmp_path
+    data_dir.mkdir(parents=True, exist_ok=True)
+    copy2(REPO_ROOT / "config" / "multidimensional_rate_plans.json", data_dir)
+    return SmartParkingSystem(base_path=data_dir)
 
 
 def test_validate_and_normalize_system_config_handles_merge_and_env(monkeypatch):
@@ -44,9 +43,9 @@ def test_validate_and_normalize_system_config_handles_merge_and_env(monkeypatch)
 
 
 def test_smart_parking_system_load_does_not_rewrite_system_config(tmp_path):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
-    config_path = config_dir / "system_config.json"
+    data_dir = tmp_path
+    data_dir.mkdir(parents=True, exist_ok=True)
+    config_path = data_dir / "system_config.json"
     config_payload = {
         "system_mode": "multidimensional",
         "default_calculation_engine": "multidimensional",
@@ -68,13 +67,12 @@ def test_smart_parking_system_load_does_not_rewrite_system_config(tmp_path):
         json.dumps(config_payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    copy2(REPO_ROOT / "config" / "multidimensional_rate_plans.json", config_dir)
-    copy2(REPO_ROOT / "config" / "system_templates.json", config_dir)
+    copy2(REPO_ROOT / "config" / "multidimensional_rate_plans.json", data_dir)
 
     before_content = config_path.read_text(encoding="utf-8")
     before_mtime = config_path.stat().st_mtime_ns
 
-    system = SmartParkingSystem(base_path=tmp_path)
+    system = SmartParkingSystem(base_path=data_dir)
 
     after_content = config_path.read_text(encoding="utf-8")
     after_mtime = config_path.stat().st_mtime_ns
@@ -106,7 +104,7 @@ def test_system_config_api_merges_nested_settings_without_losing_existing_values
     assert system.system_config["ui_settings"]["max_user_plans_display"] == 50
 
     saved_config = json.loads(
-        (tmp_path / "config" / "system_config.json").read_text(encoding="utf-8")
+        (tmp_path / "system_config.json").read_text(encoding="utf-8")
     )
     assert saved_config["ui_settings"]["show_only_featured_user_plans"] is True
     assert saved_config["ui_settings"]["max_user_plans_display"] == 50

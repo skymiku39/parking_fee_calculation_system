@@ -71,6 +71,18 @@ class UnifiedPricingEngine:
     def _segment_key(self, seg_name: str, date_category: str) -> str:
         return f"{seg_name}_{date_category}"
 
+    def _resolve_rate_config(
+        self, rate_matrix: Dict[str, Any], seg_name: str, date_category: str
+    ) -> Tuple[str, Dict[str, Any]]:
+        key = self._segment_key(seg_name, date_category)
+        if key in rate_matrix:
+            return key, rate_matrix[key]
+        for suffix in (date_category, "統一", "平日", "假日", "節慶日"):
+            fb_key = self._segment_key(seg_name, suffix)
+            if fb_key in rate_matrix:
+                return fb_key, rate_matrix[fb_key]
+        return key, {}
+
     def _calc_progressive(self, minutes: int, rates: List[Dict[str, Any]], unit_time: int) -> int:
         """
         支援兩類資料格式：
@@ -108,28 +120,29 @@ class UnifiedPricingEngine:
             rate_matrix: Dict[str, Any] = plan.get("rate_matrix", {})
             global_caps: Dict[str, Any] = plan.get("global_caps", {})
 
-            # 日期類別：預設由 enter_time 判斷；可注入 resolver 供外部客製（含國定/週末等）
-            if date_category_resolver:
-                date_category = date_category_resolver(enter_time)
-            else:
-                # 簡化：週末/平日
-                date_category = "假日" if enter_time.weekday() >= 5 else "平日"
-
             current = enter_time
             global_grace = int(global_caps.get("global_grace_time", 0) or 0)
             global_grace_used = False if global_grace > 0 else True
             cycles: List[Dict[str, Any]] = []
             total_fee = 0
+            original_fee = 0
             # 每日+時段累計 key
             cap_acc: Dict[str, int] = {}
+            daily_cap_acc: Dict[str, int] = {}
+            daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", False))
+            daily_cap_amount = int(global_caps.get("daily_cap_amount", 0) or 0)
+            is_daily_capped = False
 
             while current < exit_time:
                 seg = self._find_active_segment(current, segments)
                 if not seg:
                     current += timedelta(minutes=1)
                     continue
-                key = self._segment_key(seg["name"], date_category)
-                cfg = rate_matrix.get(key) or {}
+                if date_category_resolver:
+                    date_category = date_category_resolver(current)
+                else:
+                    date_category = "假日" if current.weekday() >= 5 else "平日"
+                _, cfg = self._resolve_rate_config(rate_matrix, seg["name"], date_category)
                 unit = int(cfg.get("unit_time", 60) or 60)
                 simple_rate = int(cfg.get("simple_rate", 0) or 0)
                 cycle_end = min(current + timedelta(minutes=unit), exit_time)
@@ -154,6 +167,8 @@ class UnifiedPricingEngine:
                     else:
                         fee = math.ceil(billed_minutes / unit) * simple_rate
 
+                original_fee += fee
+
                 # 區段上限（每日累計）
                 if cfg.get("segment_cap_enabled") and int(cfg.get("segment_cap_amount") or 0) > 0:
                     day_key = f"{current.date()}_{seg['name']}_{date_category}"
@@ -162,6 +177,14 @@ class UnifiedPricingEngine:
                     if acc + fee > cap_amount:
                         fee = max(0, cap_amount - acc)
                     cap_acc[day_key] = acc + fee
+
+                if daily_cap_enabled and daily_cap_amount > 0:
+                    day_key = str(current.date())
+                    acc = daily_cap_acc.get(day_key, 0)
+                    if acc + fee > daily_cap_amount:
+                        fee = max(0, daily_cap_amount - acc)
+                        is_daily_capped = True
+                    daily_cap_acc[day_key] = acc + fee
 
                 total_fee += fee
                 cycles.append({
@@ -176,14 +199,6 @@ class UnifiedPricingEngine:
                 })
 
                 current = cycle_end
-
-            # 全域每日上限
-            daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", False))
-            daily_cap_amount = int(global_caps.get("daily_cap_amount", 0) or 0)
-            is_daily_capped = False
-            if daily_cap_enabled and daily_cap_amount > 0 and total_fee > daily_cap_amount:
-                total_fee = daily_cap_amount
-                is_daily_capped = True
 
             # 合併相鄰同 segment 的顯示
             session_details: List[Dict[str, Any]] = []
@@ -227,7 +242,7 @@ class UnifiedPricingEngine:
             return UnifiedEngineResult(
                 success=True,
                 total_amount=total_fee,
-                original_amount=sum(c["fee"] for c in cycles),
+                original_amount=original_fee,
                 session_details=session_details,
                 calculation_summary=summary,
             )

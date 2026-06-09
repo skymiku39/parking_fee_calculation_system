@@ -1,5 +1,5 @@
 {% extends "layout/base.html" %}
-{% block title %}萬年曆管理 - 智能停車系統{% endblock %}
+{% block title %}萬年曆管理 - 智能停車費率計算系統{% endblock %}
 {% block page_title %}<i class="fas fa-calendar-alt me-2"></i> 萬年曆管理{% endblock %}
 {% block head %}
 <style>
@@ -177,7 +177,7 @@
         </div>
         <div class="d-flex gap-2">
           <button id="btnSyncGov" class="btn-modern btn-gradient-secondary btn-sm" onclick="syncOfficialHolidaysV2('gov_tw')">
-            <i class="fas fa-cloud-download-alt"></i> 政府資料
+            <i class="fas fa-cloud-download-alt"></i> 同步國定假日
           </button>
           <button class="btn-modern btn-gradient-secondary btn-sm" onclick="generateWeekendHolidays()">
             <i class="fas fa-calendar-week"></i> 六日
@@ -1127,7 +1127,19 @@
           const data = await resp.json();
           if (data && data.success){
             const srcLabel = Array.isArray(data.sources)? data.sources.join(',') : (data.source_used || source);
-            showSuccess(`已同步 ${data.synced_year} 年官方假日（來源：${srcLabel}，新增 ${data.added||0} 筆）`);
+            const parts = [
+              `國定 ${data.added_national ?? data.added ?? 0}`,
+              `節慶 ${data.added_festival ?? 0}`,
+              `補班 ${data.added_workdays ?? 0}`,
+            ];
+            const msg = `已同步 ${data.synced_year} 年官方行事曆（來源：${srcLabel}，新增 ${parts.join(' / ')}）`;
+            if ((data.added ?? 0) > 0) {
+              showSuccess(msg);
+            } else if (data.warning) {
+              showError(data.warning);
+            } else {
+              showSuccess(msg);
+            }
             await loadCalendar();
             updateStats();
           } else {

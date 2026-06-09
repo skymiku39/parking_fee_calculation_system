@@ -950,30 +950,38 @@ class ParkingCalculator:
                 final_charge += manual_adjustment
 
             # 組織結果
+            session_rows = [
+                {
+                    "time_slot_id": session.time_slot_id,
+                    "label": session.label,
+                    "start_time": session.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "end_time": session.end_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "duration_minutes": session.duration_minutes,
+                    "duration": session.duration_minutes,
+                    "original_amount": session.original_amount,
+                    "final_amount": session.final_amount,
+                    "fee": session.final_amount,
+                    "amount": session.final_amount,
+                    "is_free_period": session.is_free_period,
+                    "is_capped": session.is_capped,
+                    "calculation_details": session.calculation_details,
+                    "progressive_details": session.progressive_details,
+                }
+                for session in parking_sessions
+            ]
+
             result = {
                 "enter_time": enter_time.strftime("%Y-%m-%d %H:%M:%S"),
                 "exit_time": exit_time.strftime("%Y-%m-%d %H:%M:%S"),
                 "total_duration_minutes": total_duration,
                 "rate_plan_id": rate_plan_id,
+                "plan_id": rate_plan_id,
                 "rate_plan_label": rate_plan.label,
-                "sessions": [
-                    {
-                        "time_slot_id": session.time_slot_id,
-                        "label": session.label,
-                        "start_time": session.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "end_time": session.end_time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "duration_minutes": session.duration_minutes,
-                        "original_amount": session.original_amount,
-                        "final_amount": session.final_amount,
-                        "is_free_period": session.is_free_period,
-                        "is_capped": session.is_capped,
-                        "calculation_details": session.calculation_details,
-                        "progressive_details": session.progressive_details,
-                    }
-                    for session in parking_sessions
-                ],
+                "session_details": session_rows,
+                "sessions": session_rows,
                 "total_charge": total_charge,
                 "manual_adjustment": manual_adjustment,
+                "total_amount": final_charge,
                 "final_charge": final_charge,
                 "daily_cap_applied": rate_plan.daily_cap_enabled,
                 "vehicle_type": vehicle_type.value,
@@ -1000,9 +1008,6 @@ class ParkingCalculator:
                     "manual_adjustment": manual_adjustment != 0,
                 },
             }
-
-            # 添加final_charge作為total_amount的別名以保持向後兼容
-            result["total_amount"] = result["final_charge"]
 
             return result
 

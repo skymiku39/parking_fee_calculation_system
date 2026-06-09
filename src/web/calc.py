@@ -18,12 +18,16 @@ def get_all_available_plans():
         for template_id, label in templates.items():
             plans.append(
                 {
+                    "plan_id": template_id,
                     "rate_plan_id": template_id,
                     "label": label,
                     "type": "multidimensional",
                     "description": f"多維度方案: {label}",
                 }
             )
+
+    user_plans = parking_system.list_user_defined_plans()
+    plans.extend(user_plans)
     return plans
 
 
@@ -97,32 +101,17 @@ def api_calculate_fee():
 def api_get_all_plans():
     try:
         plans = get_all_available_plans()
+        user_defined_count = sum(1 for p in plans if p.get("type") == "user_defined")
         return jsonify(
             {
                 "success": True,
                 "plans": plans,
+                "user_defined_count": user_defined_count,
                 "system_mode": parking_system.system_config.get(
                     "system_mode", "multidimensional"
                 ),
             }
         )
-    except Exception as e:
-        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
-
-
-@calc_bp.route("/api/multidimensional/combinations")
-def api_get_dimension_combinations():
-    try:
-        if not parking_system.multidimensional_calculator:
-            return error_response(
-                code="ENGINE_NOT_READY",
-                message="多維度計算器未初始化",
-                http_status=500,
-            )
-        combinations = (
-            parking_system.multidimensional_calculator.get_dimension_combinations()
-        )
-        return jsonify({"success": True, "combinations": combinations})
     except Exception as e:
         return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 

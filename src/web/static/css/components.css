@@ -597,3 +597,44 @@
     transform: scale(1);
   }
 }
+
+/* 費率組合矩陣：避免區段上限輸入被標籤與勾選框擠壓 */
+#matrixHost table th:not(:first-child),
+#matrixHost table td.rate-matrix-cell {
+  min-width: 11.5rem;
+  vertical-align: top;
+}
+
+.rate-matrix-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 0.5rem;
+}
+
+.rate-matrix-field small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--color-gray-500, #6c757d);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.rate-matrix-field-cap {
+  grid-column: 1 / -1;
+}
+
+.rate-matrix-cap-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+}
+
+.rate-matrix-cap-head small {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.rate-matrix-field-cap input[type="number"] {
+  width: 100%;
+}

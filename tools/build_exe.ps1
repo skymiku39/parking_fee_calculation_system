@@ -5,7 +5,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# 進入專案根目錄
 if ($PSScriptRoot) {
   $ScriptDir = $PSScriptRoot
 } else {
@@ -14,44 +13,84 @@ if ($PSScriptRoot) {
 $ProjectRoot = Split-Path $ScriptDir -Parent
 Set-Location $ProjectRoot
 
-if (-not (Test-Path .venv)) {
-  Write-Host '建立虛擬環境 .venv ...'
-  python -m venv .venv
+function Get-ProjectVersion {
+  $pyproject = Join-Path $ProjectRoot 'pyproject.toml'
+  $content = Get-Content $pyproject -Raw -Encoding UTF8
+  if ($content -match '(?m)^version\s*=\s*"([^"]+)"') {
+    return $Matches[1]
+  }
+  throw 'Cannot read version from pyproject.toml'
 }
-. .\.venv\Scripts\Activate.ps1
 
-Write-Host '安裝/更新打包依賴 (pyinstaller)...'
-python -m pip install --upgrade pip setuptools wheel
-pip install pyinstaller
+$Version = Get-ProjectVersion
+$Version | Set-Content -Path (Join-Path $ProjectRoot 'VERSION') -Encoding UTF8 -NoNewline
+Write-Host "Building ParkingCalculator v$Version ..."
 
-# 清理舊的 build/dist
+Write-Host 'Sync dependencies (uv) ...'
+uv sync --group dev
+
+Write-Host 'Installing PyInstaller ...'
+uv pip install pyinstaller
+
 if (Test-Path build) { Remove-Item -Recurse -Force build }
 if (Test-Path dist) { Remove-Item -Recurse -Force dist }
 
-Write-Host '開始打包 ...'
-
-# 動態組合 add-data 參數（Windows 用分號 ; 分隔 src;dest）
 $addData = @()
-if (Test-Path "src/web/templates") { $addData += @('--add-data', 'src/web/templates;templates') }
-if (Test-Path "src/web/static")    { $addData += @('--add-data', 'src/web/static;static') }
-if (Test-Path "config")    { $addData += @('--add-data', 'config;config') }
-if (Test-Path "templates/rate_plan_template.xlsx") { $addData += @('--add-data', 'templates/rate_plan_template.xlsx;templates') }
+if (Test-Path 'src/web/templates') {
+  $addData += @('--add-data', 'src/web/templates;templates')
+}
+if (Test-Path 'src/web/static') {
+  $addData += @('--add-data', 'src/web/static;static')
+}
+if (Test-Path 'config') {
+  $addData += @('--add-data', 'config;defaults')
+}
+if (Test-Path 'VERSION') {
+  $addData += @('--add-data', 'VERSION;.')
+}
 
-$argsList = @(
+$pyinstallerArgs = @(
   '--noconfirm',
   '--clean',
-  '--name', 'ParkingCalculator'
-) + $addData + @(
+  '--name', 'ParkingCalculator',
+  '--paths', $ProjectRoot,
+  '--collect-submodules', 'src',
   '--hidden-import', 'app',
-  '--hidden-import', 'src.domain.rate_plan_manager',
-  '--hidden-import', 'src.domain.pricing.unified_pricing_engine',
+  '--hidden-import', 'flask',
+  '--hidden-import', 'jsonschema'
+) + $addData + @(
   'tools\launcher.py'
 )
 
-& pyinstaller @argsList
+Write-Host 'Running PyInstaller ...'
+uv run pyinstaller @pyinstallerArgs
 
-Write-Host '打包完成。可執行檔位於 dist\ParkingCalculator\ParkingCalculator.exe'
-Write-Host '提示：執行時可設定 PORT 環境變數變更埠號，例如：'
-Write-Host '  set PORT=5001 && .\dist\ParkingCalculator\ParkingCalculator.exe'
+$distDir = Join-Path $ProjectRoot 'dist\ParkingCalculator'
+$dataDir = Join-Path $distDir 'data'
+New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
+$seedFiles = @(
+  'system_config.json',
+  'system_calendar.json',
+  'multidimensional_rate_plans.json',
+  'user_defined_plans.json'
+)
+foreach ($file in $seedFiles) {
+  $src = Join-Path $ProjectRoot "config\$file"
+  if (Test-Path $src) {
+    Copy-Item $src (Join-Path $dataDir $file) -Force
+  }
+}
 
+@"
+ParkingCalculator v$Version
+Build date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+Data directory: .\data\
+Port: set PORT environment variable (default 5000)
+"@ | Set-Content -Path (Join-Path $distDir 'VERSION.txt') -Encoding UTF8
+
+Write-Host ''
+Write-Host "Build complete: dist\ParkingCalculator\ParkingCalculator.exe"
+Write-Host "Version: $Version"
+Write-Host 'External data: dist\ParkingCalculator\data\'
+Write-Host "Run: `$env:PORT=$Port; .\dist\ParkingCalculator\ParkingCalculator.exe"

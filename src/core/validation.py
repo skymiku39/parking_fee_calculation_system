@@ -3,6 +3,11 @@ from typing import Dict, Any, List
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 
+from src.domain.terminology import (
+    CANONICAL_HOLIDAY_TYPES,
+    CANONICAL_SEGMENT_TYPES,
+)
+
 
 class ConfigValidationError(Exception):
     def __init__(self, message: str, errors: List[str] = None):
@@ -13,6 +18,17 @@ class ConfigValidationError(Exception):
 def _assert(condition: bool, message: str):
     if not condition:
         raise ConfigValidationError(message)
+
+
+SEGMENT_TYPE_SCHEMA = {
+    "type": "string",
+    "enum": list(CANONICAL_SEGMENT_TYPES),
+}
+
+HOLIDAY_TYPE_SCHEMA = {
+    "type": "string",
+    "enum": list(CANONICAL_HOLIDAY_TYPES),
+}
 
 
 USER_DEFINED_SCHEMA: Dict[str, Any] = {
@@ -30,14 +46,8 @@ USER_DEFINED_SCHEMA: Dict[str, Any] = {
                 ],
                 "properties": {
                     "name": {"type": "string", "minLength": 1},
-                    "segment_type": {
-                        "type": "string",
-                        "enum": ["全天", "二段", "三段", "任意段", "多時段"],
-                    },
-                    "holiday_type": {
-                        "type": "string",
-                        "enum": ["無假日", "平日假日", "完整假日"],
-                    },
+                    "segment_type": SEGMENT_TYPE_SCHEMA,
+                    "holiday_type": HOLIDAY_TYPE_SCHEMA,
                     "segments": {
                         "type": "array",
                         "minItems": 1,
@@ -81,14 +91,8 @@ PLAN_V2_SCHEMA: Dict[str, Any] = {
     "required": ["name", "segment_type", "holiday_type", "segments"],
     "properties": {
         "name": {"type": "string"},
-        "segment_type": {
-            "type": "string",
-            "enum": ["全天", "二段", "三段", "任意段", "多時段"],
-        },
-        "holiday_type": {
-            "type": "string",
-            "enum": ["無假日", "平日假日", "完整假日"],
-        },
+        "segment_type": SEGMENT_TYPE_SCHEMA,
+        "holiday_type": HOLIDAY_TYPE_SCHEMA,
         "segments": {
             "type": "array",
             "items": {
@@ -172,4 +176,3 @@ def validate_plan_v2_json(plan_obj: Dict[str, Any]) -> None:
         validate(instance=plan_obj, schema=PLAN_V2_SCHEMA)
     except ValidationError as e:
         raise ConfigValidationError("PlanV2 請求不符合Schema", [e.message])
-

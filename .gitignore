@@ -9,6 +9,7 @@ logs/
 log/app.log
 
 # Python
+.pytest_cache/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -17,6 +18,9 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+release/
+ParkingCalculator.spec
+VERSION
 downloads/
 eggs/
 .eggs/

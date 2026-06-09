@@ -68,14 +68,14 @@
       "template_type": "multidimensional",
       "time_segment_types": [
         "全天",
-        "兩段",
+        "二段",
         "三段",
-        "四段"
+        "多時段"
       ],
       "holiday_types": [
-        "無假日費率",
-        "六日費率",
-        "國定假費率"
+        "無假日",
+        "平日假日",
+        "完整假日"
       ]
     }
   },

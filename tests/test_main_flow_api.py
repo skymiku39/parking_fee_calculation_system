@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from shutil import copy2
 import sys
+from unittest.mock import patch
 
 import pytest
 
@@ -19,15 +20,15 @@ from src.core.system import SmartParkingSystem
 
 
 def _build_isolated_system(tmp_path: Path) -> SmartParkingSystem:
-    config_dir = tmp_path / "config"
-    config_dir.mkdir(parents=True, exist_ok=True)
+    data_dir = tmp_path
+    data_dir.mkdir(parents=True, exist_ok=True)
     for filename in (
         "multidimensional_rate_plans.json",
         "system_config.json",
-        "system_templates.json",
+        "user_defined_plans.json",
     ):
-        copy2(REPO_ROOT / "config" / filename, config_dir / filename)
-    return SmartParkingSystem(base_path=tmp_path)
+        copy2(REPO_ROOT / "config" / filename, data_dir / filename)
+    return SmartParkingSystem(base_path=data_dir)
 
 
 @pytest.fixture
@@ -51,6 +52,11 @@ def test_public_api_surface_keeps_only_current_calendar_sync_route():
     expected_routes = {
         "/api/calculate",
         "/api/plans",
+        "/api/rate_plans",
+        "/api/rate_plans/export",
+        "/api/rate_plans/load/<path:plan_id>",
+        "/api/rate_plans/save",
+        "/api/rate_plans/<path:plan_id>",
         "/api/mdp/templates",
         "/api/mdp/templates/<template_id>",
         "/api/mdp/templates/save",
@@ -75,7 +81,8 @@ def test_main_flow_endpoints_run_against_multidimensional_templates(isolated_cli
     plans_payload = plans_response.get_json()
     assert plans_payload["success"] is True
     assert plans_payload["plans"]
-    assert all(plan["type"] == "multidimensional" for plan in plans_payload["plans"])
+    assert any(plan["type"] == "multidimensional" for plan in plans_payload["plans"])
+    assert plans_payload.get("user_defined_count", 0) >= 1
 
     calculate_response = client.post(
         "/api/calculate",
@@ -157,21 +164,35 @@ def test_calendar_endpoints_use_isolated_config_storage(isolated_client):
     assert weekend_payload["success"] is True
     assert weekend_payload["generated_year"] == 2026
 
-    sync_response = client.post(
-        "/api/calendar/sync_official_v2",
-        json={"year": 2026, "source": "gov_tw"},
-    )
+    mock_calendar = {
+        "national_holidays": [{"date": "2026-01-01", "name": "開國紀念日"}],
+        "festival_holidays": [{"date": "2026-02-17", "name": "春節"}],
+        "custom_workdays": ["2026-02-14"],
+    }
+    with patch(
+        "src.web.calendar._fetch_taiwan_cdn_holidays",
+        return_value=mock_calendar,
+    ):
+        sync_response = client.post(
+            "/api/calendar/sync_official_v2",
+            json={"year": 2026, "source": "gov_tw"},
+        )
     assert sync_response.status_code == 200
     sync_payload = sync_response.get_json()
     assert sync_payload["success"] is True
     assert sync_payload["synced_year"] == 2026
+    assert sync_payload["added_national"] == 1
+    assert sync_payload["added_festival"] == 1
+    assert sync_payload["added_workdays"] == 1
 
     saved_calendar = json.loads(
-        (tmp_path / "config" / "system_calendar.json").read_text(encoding="utf-8")
+        (tmp_path / "system_calendar.json").read_text(encoding="utf-8")
     )
     assert saved_calendar["description"] == "test calendar"
     assert "weekend_holidays" in saved_calendar
-    assert "national_holidays" in saved_calendar
+    assert saved_calendar["national_holidays"][0]["date"] == "2026-01-01"
+    assert saved_calendar["festival_holidays"][0]["date"] == "2026-02-17"
+    assert "2026-02-14" in saved_calendar["custom_workdays"]
 
 
 def test_rate_plan_designer_no_longer_points_to_legacy_bulk_export():
@@ -181,5 +202,6 @@ def test_rate_plan_designer_no_longer_points_to_legacy_bulk_export():
 
     assert "/api/rate_plans/export_all" not in content
     assert "convertLegacyPlanToMDP" not in content
+    assert "archivedLegacyPlanToMDP" not in content
+    assert "legacyImportTemplateFromFile" not in content
     assert "isMDPTemplatePayload" in content
-    assert "archivedLegacyPlanToMDP" in content

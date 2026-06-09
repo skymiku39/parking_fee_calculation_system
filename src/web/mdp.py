@@ -4,6 +4,11 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from src.core.context import parking_system
+from src.domain.terminology import (
+    normalize_holiday_type,
+    normalize_segment_type,
+    resolve_template_id,
+)
 from src.web.utils import error_response
 
 
@@ -14,7 +19,7 @@ def _mdp_config_path():
     from pathlib import Path
 
     base_path = getattr(parking_system, "base_path", Path("."))
-    return Path(base_path) / "config" / "multidimensional_rate_plans.json"
+    return Path(base_path) / "multidimensional_rate_plans.json"
 
 
 def _load_mdp_config(path=None) -> dict:
@@ -55,11 +60,13 @@ def api_mdp_list_templates():
         templates = cfg.get("rate_plan_templates", [])
         items = []
         for t in templates:
+            seg = t.get("segment_type") or t.get("time_segment_type")
             items.append({
                 "template_id": t.get("template_id"),
+                "plan_id": t.get("template_id"),
                 "label": t.get("label"),
                 "description": t.get("description"),
-                "time_segment_type": t.get("time_segment_type"),
+                "segment_type": seg,
                 "holiday_type": t.get("holiday_type"),
             })
         return jsonify({"success": True, "templates": items, "total": len(items)})
@@ -85,10 +92,16 @@ def api_mdp_save_template():
     try:
         payload = request.get_json() or {}
         tpl = payload.get("template") or {}
-        required = ["template_id", "label", "description", "time_segment_type", "holiday_type"]
+        seg = tpl.get("segment_type") or tpl.get("time_segment_type")
+        required = ["template_id", "label", "description", "holiday_type"]
         for k in required:
             if not tpl.get(k):
                 return error_response("INVALID_INPUT", f"缺少必要欄位: {k}", 400)
+        if not seg:
+            return error_response("INVALID_INPUT", "缺少必要欄位: segment_type", 400)
+        tpl["segment_type"] = normalize_segment_type(seg)
+        tpl["holiday_type"] = normalize_holiday_type(tpl["holiday_type"])
+        tpl.pop("time_segment_type", None)
 
         cfg = _load_mdp_config()
         templates = cfg.setdefault("rate_plan_templates", [])
@@ -185,11 +198,10 @@ def api_mdp_preview():
         temp_id = template.get("template_id") or f"inline_{int(_pytime.perf_counter()*1000)}"
         old = calc.rate_plan_templates.get(temp_id)
         try:
-            from src.domain.multidimensional_calculator import (
-                MultidimensionalRatePlan,
-                TimeSegmentType,
-                HolidayType,
-            )
+            from src.domain.multidimensional_calculator import MultidimensionalRatePlan
+            from src.domain.terminology import SegmentType, HolidayType
+            seg_raw = template.get("segment_type") or template.get("time_segment_type", "二段")
+            hol_raw = template.get("holiday_type", "平日假日")
             plan_variants = {
                 "weekday_plan": template.get("weekday_plan"),
                 "weekend_plan": template.get("weekend_plan"),
@@ -201,43 +213,22 @@ def api_mdp_preview():
                 flat_plan = {
                     "label": template.get("label", temp_id),
                     "time_slots": template.get("time_slots", []),
-                    "daily_cap_enabled": bool(
-                        template.get("daily_cap_enabled", False)
-                    ),
-                    "daily_cap_amount": int(
-                        template.get("daily_cap_amount", 0) or 0
-                    ),
-                    "global_grace_time": int(
-                        template.get("global_grace_time", 0) or 0
-                    ),
+                    "daily_cap_enabled": bool(template.get("daily_cap_enabled", False)),
+                    "daily_cap_amount": int(template.get("daily_cap_amount", 0) or 0),
+                    "global_grace_time": int(template.get("global_grace_time", 0) or 0),
                     "global_caps": {
-                        "daily_cap_enabled": bool(
-                            template.get("daily_cap_enabled", False)
-                        ),
-                        "daily_cap_amount": int(
-                            template.get("daily_cap_amount", 0) or 0
-                        ),
-                        "global_grace_time": int(
-                            template.get("global_grace_time", 0) or 0
-                        ),
+                        "daily_cap_enabled": bool(template.get("daily_cap_enabled", False)),
+                        "daily_cap_amount": int(template.get("daily_cap_amount", 0) or 0),
+                        "global_grace_time": int(template.get("global_grace_time", 0) or 0),
                     },
                 }
-                plan_variants = {
-                    key: flat_plan
-                    for key in (
-                        "weekday_plan",
-                        "weekend_plan",
-                        "national_holiday_plan",
-                        "custom_holiday_plan",
-                        "unified_plan",
-                    )
-                }
+                plan_variants = {key: flat_plan for key in plan_variants}
             rp = MultidimensionalRatePlan(
                 template_id=temp_id,
                 label=template.get("label", temp_id),
                 description=template.get("description", ""),
-                time_segment_type=TimeSegmentType(template.get("time_segment_type", "兩段")),
-                holiday_type=HolidayType(template.get("holiday_type", "六日費率")),
+                segment_type=SegmentType(normalize_segment_type(seg_raw)),
+                holiday_type=HolidayType(normalize_holiday_type(hol_raw)),
                 dimension_combination=temp_id,
                 weekday_plan=plan_variants["weekday_plan"],
                 weekend_plan=plan_variants["weekend_plan"],
@@ -260,6 +251,7 @@ def api_mdp_preview():
             "total_duration_minutes": total_minutes,
             "total_duration_display": parking_system.format_duration_display(total_minutes),
             "session_details": res.session_details,
+            "calculation_summary": res.calculation_summary,
         }
         return jsonify({"request_id": request_id, **result})
     except Exception as e:
@@ -320,6 +312,23 @@ def api_validate_segments():
         })
     except Exception as e:
         return jsonify({"success": False, "message": str(e)})
+
+
+@mdp_bp.route("/api/multidimensional/combinations")
+def api_get_dimension_combinations():
+    try:
+        if not parking_system.multidimensional_calculator:
+            return error_response(
+                code="ENGINE_NOT_READY",
+                message="多維度計算器未初始化",
+                http_status=500,
+            )
+        combinations = (
+            parking_system.multidimensional_calculator.get_dimension_combinations()
+        )
+        return jsonify({"success": True, "combinations": combinations})
+    except Exception as e:
+        return error_response(code="INTERNAL_ERROR", message=str(e), http_status=500)
 
 
 

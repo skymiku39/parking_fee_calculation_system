@@ -10,6 +10,9 @@ DEFAULT_TIME_FORMAT = "%H:%M"
 DEFAULT_DATETIME_DISPLAY_FORMAT = "%Y-%m-%d %H:%M"
 
 NAGER_BASE_URL = "https://date.nager.at/api/v3/PublicHolidays/{year}/TW"
+TAIWAN_CALENDAR_CDN_URL = (
+    "https://cdn.jsdelivr.net/gh/ruyut/TaiwanCalendar/data/{year}.json"
+)
 
 TRUE_SET = {"1", "true", "yes", "y", "on"}
 FALSE_SET = {"0", "false", "no", "n", "off"}

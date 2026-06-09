@@ -1,6 +1,6 @@
 {
   "description": "多維度標籤停車收費系統配置",
-  "version": "3.0",
+  "version": "3.1",
   "system_info": {
     "created_date": "2024-12-19",
     "author": "停車收費系統",
@@ -28,7 +28,7 @@
             }
           ]
         },
-        "兩段": {
+        "二段": {
           "segment_count": 2,
           "label": "日間夜間",
           "description": "日間和夜間兩個時段",
@@ -72,38 +72,7 @@
             }
           ]
         },
-        "四段": {
-          "segment_count": 4,
-          "label": "上午下午傍晚夜間",
-          "description": "四個時段精細計費",
-          "default_slots": [
-            {
-              "slot_id": "morning",
-              "label": "上午時段",
-              "start": "08:00",
-              "end": "12:00"
-            },
-            {
-              "slot_id": "afternoon",
-              "label": "下午時段",
-              "start": "12:00",
-              "end": "18:00"
-            },
-            {
-              "slot_id": "evening",
-              "label": "傍晚時段",
-              "start": "18:00",
-              "end": "22:00"
-            },
-            {
-              "slot_id": "night",
-              "label": "夜間時段",
-              "start": "22:00",
-              "end": "08:00"
-            }
-          ]
-        },
-        "自訂": {
+        "多時段": {
           "segment_count": "custom",
           "label": "自訂時段",
           "description": "可自由定義時段數量和時間",
@@ -114,7 +83,7 @@
     "holiday_types": {
       "description": "假日維度配置",
       "types": {
-        "無假日費率": {
+        "無假日": {
           "holiday_multiplier": 1,
           "label": "統一費率",
           "description": "平日假日同一費率",
@@ -123,7 +92,7 @@
           "national_holiday_multiplier": 1.0,
           "custom_holiday_multiplier": 1.0
         },
-        "六日費率": {
+        "平日假日": {
           "holiday_multiplier": 2,
           "label": "週末差別費率",
           "description": "平日和週末不同費率",
@@ -132,7 +101,7 @@
           "national_holiday_multiplier": 1.0,
           "custom_holiday_multiplier": 1.0
         },
-        "國定假費率": {
+        "完整假日": {
           "holiday_multiplier": 3,
           "label": "完整假日差別費率",
           "description": "平日、週末、國定假日、客製假日分別計費",
@@ -151,11 +120,10 @@
   },
   "rate_plan_templates": [
     {
-      "template_id": "全天_無假日費率",
+      "template_id": "全天_無假日",
       "label": "全天統一費率方案",
       "description": "24小時統一費率，無假日差別",
-      "time_segment_type": "全天",
-      "holiday_type": "無假日費率",
+      "holiday_type": "無假日",
       "rate_plan_id": "unified_all_day",
       "apply_on_holiday": false,
       "daily_cap_enabled": true,
@@ -175,14 +143,14 @@
           "default_unit_price": 30,
           "progressive_rates": []
         }
-      ]
+      ],
+      "segment_type": "全天"
     },
     {
-      "template_id": "兩段_六日費率",
+      "template_id": "二段_平日假日",
       "label": "日夜分段週末差別費率",
       "description": "日間夜間分段，週末加價",
-      "time_segment_type": "兩段",
-      "holiday_type": "六日費率",
+      "holiday_type": "平日假日",
       "weekday_plan": {
         "rate_plan_id": "two_segment_weekday",
         "label": "平日兩段費率",
@@ -256,14 +224,14 @@
             "progressive_rates": []
           }
         ]
-      }
+      },
+      "segment_type": "二段"
     },
     {
-      "template_id": "四段_國定假費率",
+      "template_id": "多時段_完整假日",
       "label": "四段精細時段完整假日費率",
       "description": "四個時段精細計費，完整假日差別費率",
-      "time_segment_type": "四段",
-      "holiday_type": "國定假費率",
+      "holiday_type": "完整假日",
       "weekday_plan": {
         "rate_plan_id": "four_segment_weekday",
         "label": "平日四段費率",
@@ -284,9 +252,24 @@
             "progressive_enabled": true,
             "default_unit_price": 25,
             "progressive_rates": [
-              {"start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 25},
-              {"start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 35},
-              {"start_min": 120, "end_min": null, "unit_minutes": 30, "unit_price": 40}
+              {
+                "start_min": 0,
+                "end_min": 60,
+                "unit_minutes": 30,
+                "unit_price": 25
+              },
+              {
+                "start_min": 60,
+                "end_min": 120,
+                "unit_minutes": 30,
+                "unit_price": 35
+              },
+              {
+                "start_min": 120,
+                "end_min": null,
+                "unit_minutes": 30,
+                "unit_price": 40
+              }
             ]
           },
           {
@@ -353,9 +336,24 @@
             "progressive_enabled": true,
             "default_unit_price": 30,
             "progressive_rates": [
-              {"start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 30},
-              {"start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 42},
-              {"start_min": 120, "end_min": null, "unit_minutes": 30, "unit_price": 48}
+              {
+                "start_min": 0,
+                "end_min": 60,
+                "unit_minutes": 30,
+                "unit_price": 30
+              },
+              {
+                "start_min": 60,
+                "end_min": 120,
+                "unit_minutes": 30,
+                "unit_price": 42
+              },
+              {
+                "start_min": 120,
+                "end_min": null,
+                "unit_minutes": 30,
+                "unit_price": 48
+              }
             ]
           },
           {
@@ -422,9 +420,24 @@
             "progressive_enabled": true,
             "default_unit_price": 38,
             "progressive_rates": [
-              {"start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 38},
-              {"start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 53},
-              {"start_min": 120, "end_min": null, "unit_minutes": 30, "unit_price": 60}
+              {
+                "start_min": 0,
+                "end_min": 60,
+                "unit_minutes": 30,
+                "unit_price": 38
+              },
+              {
+                "start_min": 60,
+                "end_min": 120,
+                "unit_minutes": 30,
+                "unit_price": 53
+              },
+              {
+                "start_min": 120,
+                "end_min": null,
+                "unit_minutes": 30,
+                "unit_price": 60
+              }
             ]
           },
           {
@@ -491,9 +504,24 @@
             "progressive_enabled": true,
             "default_unit_price": 45,
             "progressive_rates": [
-              {"start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 45},
-              {"start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 63},
-              {"start_min": 120, "end_min": null, "unit_minutes": 30, "unit_price": 72}
+              {
+                "start_min": 0,
+                "end_min": 60,
+                "unit_minutes": 30,
+                "unit_price": 45
+              },
+              {
+                "start_min": 60,
+                "end_min": 120,
+                "unit_minutes": 30,
+                "unit_price": 63
+              },
+              {
+                "start_min": 120,
+                "end_min": null,
+                "unit_minutes": 30,
+                "unit_price": 72
+              }
             ]
           },
           {
@@ -539,7 +567,15 @@
             "progressive_rates": []
           }
         ]
-      }
+      },
+      "segment_type": "多時段"
     }
-  ]
-} 
+  ],
+  "metadata": {
+    "legacy_template_ids": {
+      "全天_無假日費率": "全天_無假日",
+      "兩段_六日費率": "二段_平日假日",
+      "四段_國定假費率": "多時段_完整假日"
+    }
+  }
+}

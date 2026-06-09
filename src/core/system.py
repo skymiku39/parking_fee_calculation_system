@@ -8,11 +8,14 @@ from typing import Dict, List, Any, Optional, Tuple, Union
 from src.core.validation import (
     validate_user_defined_plans_json,
     validate_multidimensional_config_json,
+    validate_plan_v2_json,
     ConfigValidationError,
 )
 from src.domain.multidimensional_calculator import (
     MultidimensionalParkingCalculator,
 )
+from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
+from src.core.calendar_resolver import HolidayCalendar
 from src.core.utils import (
     format_duration_display,
     get_rate_description,
@@ -30,8 +33,10 @@ class SmartParkingSystem:
         self.multidimensional_calculator: Optional[MultidimensionalParkingCalculator] = None
         self.system_config: Dict[str, Any] = {}
         self.persisted_system_config: Dict[str, Any] = {}
+        self.holiday_calendar: Optional[HolidayCalendar] = None
 
         self.load_system_config()
+        self.reload_holiday_calendar()
         self.init_multidimensional_calculator()
 
     def _config_path(self, *parts: str) -> Path:
@@ -39,7 +44,7 @@ class SmartParkingSystem:
 
     def load_system_config(self):
         try:
-            config_path = self._config_path("config", "system_config.json")
+            config_path = self._config_path("system_config.json")
             if config_path.exists():
                 with open(config_path, "r", encoding="utf-8") as f:
                     file_cfg = json.load(f)
@@ -60,7 +65,7 @@ class SmartParkingSystem:
 
     def save_system_config(self):
         try:
-            config_path = self._config_path("config", "system_config.json")
+            config_path = self._config_path("system_config.json")
             config_path.parent.mkdir(exist_ok=True)
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(self.persisted_system_config, f, ensure_ascii=False, indent=2)
@@ -79,22 +84,172 @@ class SmartParkingSystem:
         self.save_system_config()
         return self.system_config
 
+    def reload_holiday_calendar(self) -> None:
+        try:
+            self.holiday_calendar = HolidayCalendar(
+                self._config_path("system_calendar.json")
+            )
+        except Exception as e:
+            logger.exception("載入假日日曆失敗: %s", e)
+            self.holiday_calendar = HolidayCalendar(
+                self._config_path("system_calendar.json")
+            )
+
     def init_multidimensional_calculator(self):
         try:
-            cfg_path = self._config_path("config", "multidimensional_rate_plans.json")
+            cfg_path = self._config_path("multidimensional_rate_plans.json")
             if cfg_path.exists():
                 with open(cfg_path, "r", encoding="utf-8") as f:
                     _cfg = json.load(f)
                 validate_multidimensional_config_json(_cfg)
 
+            calendar = self.holiday_calendar
+            if calendar is None:
+                self.reload_holiday_calendar()
+                calendar = self.holiday_calendar
+
             self.multidimensional_calculator = MultidimensionalParkingCalculator(
-                str(cfg_path)
+                str(cfg_path),
+                holiday_calendar=calendar,
             )
             logger.info("多維度標籤計算器載入成功")
         except Exception as e:
             logger.exception("多維度標籤計算器載入失敗: %s", e)
 
-    # ====== 計算相關（包含舊用戶自訂方案能力，避免破壞既有行為） ======
+    def _user_plans_path(self) -> Path:
+        return self._config_path("user_defined_plans.json")
+
+    def load_user_defined_plans_config(self) -> Dict[str, Any]:
+        path = self._user_plans_path()
+        if not path.exists():
+            return {"plans": {}, "metadata": {}}
+        with open(path, "r", encoding="utf-8") as f:
+            config_obj = json.load(f)
+        validate_user_defined_plans_json(config_obj)
+        return config_obj
+
+    def _save_user_defined_plans_config(self, config_obj: Dict[str, Any]) -> None:
+        validate_user_defined_plans_json(config_obj)
+        path = self._user_plans_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(config_obj, f, ensure_ascii=False, indent=2)
+
+    @staticmethod
+    def _is_plan_featured(plan_data: Dict[str, Any]) -> bool:
+        if plan_data.get("featured") is True:
+            return True
+        tags = plan_data.get("tags") or []
+        return "featured" in tags or "推薦" in tags
+
+    def list_user_defined_plans(self, *, apply_ui_filters: bool = True) -> List[Dict[str, Any]]:
+        try:
+            config_obj = self.load_user_defined_plans_config()
+        except (FileNotFoundError, ConfigValidationError):
+            return []
+
+        plans = config_obj.get("plans", {})
+        items: List[Dict[str, Any]] = []
+        for plan_id, plan_data in plans.items():
+            if plan_data.get("active") is False:
+                continue
+            items.append(
+                {
+                    "rate_plan_id": plan_id,
+                    "plan_id": plan_id,
+                    "label": plan_data.get("name", plan_id),
+                    "description": plan_data.get("description", ""),
+                    "type": "user_defined",
+                    "segment_type": plan_data.get("segment_type"),
+                    "holiday_type": plan_data.get("holiday_type"),
+                    "featured": self._is_plan_featured(plan_data),
+                    "active": plan_data.get("active", True),
+                }
+            )
+
+        if not apply_ui_filters:
+            return sorted(items, key=lambda x: (not x["featured"], x["label"]))
+
+        ui_settings = self.system_config.get("ui_settings") or {}
+        if ui_settings.get("show_only_featured_user_plans"):
+            items = [item for item in items if item["featured"]]
+
+        items.sort(key=lambda x: (not x["featured"], x["label"]))
+        max_display = ui_settings.get("max_user_plans_display")
+        if isinstance(max_display, int) and max_display > 0:
+            items = items[:max_display]
+        return items
+
+    def get_user_defined_plan(self, plan_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            config_obj = self.load_user_defined_plans_config()
+        except (FileNotFoundError, ConfigValidationError):
+            return None
+        return config_obj.get("plans", {}).get(plan_id)
+
+    def save_user_defined_plan(self, plan_id: str, plan_data: Dict[str, Any]) -> Dict[str, Any]:
+        if not plan_id or not str(plan_id).strip():
+            raise ValueError("plan_id 不可為空")
+
+        validate_plan_v2_json(plan_data)
+        plan_id = str(plan_id).strip()
+
+        try:
+            config_obj = self.load_user_defined_plans_config()
+        except FileNotFoundError:
+            config_obj = {"plans": {}, "metadata": {}}
+        except ConfigValidationError as exc:
+            raise ValueError(
+                f"現有自訂方案配置不合法: {', '.join(exc.errors) if exc.errors else str(exc)}"
+            ) from exc
+
+        plans = config_obj.setdefault("plans", {})
+        now = datetime.now().isoformat()
+        existing = plans.get(plan_id)
+        if existing:
+            plan_data.setdefault("created_date", existing.get("created_date", now))
+        else:
+            plan_data.setdefault("created_date", now)
+        plan_data["modified_date"] = now
+        plan_data.setdefault("version", "1.0")
+        plan_data.setdefault("active", True)
+        if "name" not in plan_data or not plan_data["name"]:
+            plan_data["name"] = plan_id
+
+        plans[plan_id] = plan_data
+        metadata = config_obj.setdefault("metadata", {})
+        metadata["last_modified"] = now
+        metadata.setdefault("version", "1.0")
+
+        self._save_user_defined_plans_config(config_obj)
+        return plan_data
+
+    def delete_user_defined_plan(self, plan_id: str) -> bool:
+        try:
+            config_obj = self.load_user_defined_plans_config()
+        except (FileNotFoundError, ConfigValidationError):
+            return False
+
+        plans = config_obj.get("plans", {})
+        if plan_id not in plans:
+            return False
+
+        del plans[plan_id]
+        metadata = config_obj.setdefault("metadata", {})
+        metadata["last_modified"] = datetime.now().isoformat()
+        self._save_user_defined_plans_config(config_obj)
+        return True
+
+    def is_multidimensional_plan(self, plan_id: str) -> bool:
+        calc = self.multidimensional_calculator
+        if not calc:
+            return False
+        return plan_id in calc.rate_plan_templates
+
+    def is_user_defined_plan(self, plan_id: str) -> bool:
+        return self.get_user_defined_plan(plan_id) is not None
+
+    # ====== 計算相關 ======
     def calculate_parking_fee(
         self,
         enter_time: datetime,
@@ -107,19 +262,17 @@ class SmartParkingSystem:
             if not plan_id:
                 raise ValueError("請提供 plan_id 或使用 plan_inline 進行即時試算")
 
-            return self.calculate_with_multidimensional(
-                enter_time, exit_time, plan_id, manual_adjustment, context
-            )
+            if self.is_multidimensional_plan(plan_id):
+                return self.calculate_with_multidimensional(
+                    enter_time, exit_time, plan_id, manual_adjustment, context
+                )
+            if self.is_user_defined_plan(plan_id):
+                return self.calculate_with_user_defined_plan(
+                    enter_time, exit_time, plan_id, manual_adjustment, context
+                )
+            raise ValueError(f"找不到費率方案: {plan_id}")
         except Exception as e:
             return {"success": False, "error": str(e), "calculation_engine": "none"}
-
-    def is_user_defined_plan(self, plan_id: str) -> bool:
-        try:
-            with open(self._config_path("config", "user_defined_plans.json"), "r", encoding="utf-8") as f:
-                user_plans = json.load(f)
-                return plan_id in user_plans.get("plans", {})
-        except FileNotFoundError:
-            return False
 
     def calculate_with_user_defined_plan(
         self,
@@ -130,21 +283,10 @@ class SmartParkingSystem:
         context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         try:
-            with open(self._config_path("config", "user_defined_plans.json"), "r", encoding="utf-8") as f:
-                user_plans = json.load(f)
-            try:
-                validate_user_defined_plans_json(user_plans)
-            except ConfigValidationError as ve:
-                return {
-                    "success": False,
-                    "code": "INVALID_CONFIG",
-                    "message": f"用戶方案配置不合法: {', '.join(ve.errors) if ve.errors else str(ve)}",
-                }
-
-            if plan_id not in user_plans.get("plans", {}):
+            plan_data = self.get_user_defined_plan(plan_id)
+            if not plan_data:
                 raise ValueError(f"找不到用戶自訂方案: {plan_id}")
 
-            plan_data = user_plans["plans"][plan_id]
             result = self.calculate_fee_by_billing_cycles(
                 enter_time=enter_time,
                 exit_time=exit_time,
@@ -159,6 +301,61 @@ class SmartParkingSystem:
                 "calculation_engine": "user_defined_billing_cycle",
             }
 
+    def _build_upe_plan_from_user_defined(self, plan_data: dict) -> Dict[str, Any]:
+        global_caps = dict(plan_data.get("global_caps") or {})
+        if plan_data.get("global_grace_time") is not None:
+            global_caps["global_grace_time"] = plan_data.get("global_grace_time", 0)
+        return {
+            "segment_type": plan_data.get("segment_type"),
+            "holiday_type": plan_data.get("holiday_type"),
+            "segments": plan_data.get("segments", []),
+            "rate_matrix": plan_data.get("rate_matrix", {}),
+            "global_caps": global_caps,
+        }
+
+    def _user_defined_date_resolver(self, plan_data: dict):
+        holiday_type = plan_data["holiday_type"]
+        segments = plan_data.get("segments", [])
+
+        def resolver(dt: datetime) -> str:
+            seg = self.find_active_segment_at_time(dt, segments)
+            if seg:
+                return self.determine_segment_date_category(dt, seg, holiday_type)
+            return self.determine_date_category(dt, holiday_type)
+
+        return resolver
+
+    def _format_upe_session_details(
+        self, upe_details: List[Dict[str, Any]]
+    ) -> Tuple[List[Dict[str, Any]], str]:
+        session_details: List[Dict[str, Any]] = []
+        summary_parts: List[str] = []
+        for detail in upe_details:
+            label = detail.get("label", "時段")
+            time_range = detail.get("time_range", "")
+            if detail.get("progressive"):
+                rate_desc = "累進費率"
+            else:
+                unit = detail.get("unit", 60)
+                rate_desc = f"{detail.get('rate', 0)}元/{unit}分"
+            period = f"{label} ({time_range})" if time_range else label
+            duration_minutes = int(detail.get("duration", 0) or 0)
+            fee = int(detail.get("fee", 0) or 0)
+            session_details.append(
+                {
+                    "period": period,
+                    "duration": format_duration_display(duration_minutes),
+                    "rate": rate_desc,
+                    "amount": fee,
+                    "segment_label": label,
+                }
+            )
+            summary_parts.append(
+                f"{label}: {format_duration_display(duration_minutes)} × {rate_desc} = {fee}元"
+            )
+        calculation_summary = " | ".join(summary_parts) if summary_parts else "無計費明細"
+        return session_details, calculation_summary
+
     def calculate_fee_by_billing_cycles(
         self,
         enter_time: datetime,
@@ -168,65 +365,29 @@ class SmartParkingSystem:
     ) -> Dict[str, Any]:
         try:
             total_minutes = int((exit_time - enter_time).total_seconds() / 60)
-
-            date_category = self.determine_date_category(
-                enter_time, plan_data["holiday_type"]
+            upe_plan = self._build_upe_plan_from_user_defined(plan_data)
+            upe = UnifiedPricingEngine()
+            res = upe.calculate(
+                enter_time,
+                exit_time,
+                upe_plan,
+                self._user_defined_date_resolver(plan_data),
             )
+            if not res.success:
+                raise ValueError(res.calculation_summary)
 
-            global_grace_time = plan_data.get("global_grace_time", 0)
-
-            segments = plan_data.get("segments", [])
-            rate_matrix = plan_data.get("rate_matrix", {})
-
-            if plan_data["segment_type"] == "全天":
-                segment_key = f"全天_{date_category}"
-                if segment_key in rate_matrix:
-                    rate_config = rate_matrix[segment_key]
-                    total_amount = self.calculate_segment_fee(
-                        total_minutes, rate_config, global_grace_time
-                    )
-                    session_details = [
-                        {
-                            "period": f"{enter_time.strftime('%H:%M')}-{exit_time.strftime('%H:%M')}",
-                            "duration": format_duration_display(total_minutes),
-                            "rate": get_rate_description(rate_config),
-                            "amount": total_amount,
-                            "date": enter_time.strftime("%m-%d"),
-                        }
-                    ]
-                    calculation_summary = f"全天費率 {total_minutes}分鐘"
-                else:
-                    total_amount = 0
-                    session_details = []
-                    calculation_summary = "無適用費率"
-            else:
-                billing_cycles, total_amount = self.generate_billing_cycles(
-                    enter_time,
-                    exit_time,
-                    segments,
-                    rate_matrix,
-                    plan_data["holiday_type"],
-                    global_grace_time,
-                )
-                session_details, calculation_summary = self.consolidate_billing_cycles(
-                    billing_cycles, enter_time, plan_data["holiday_type"]
-                )
-
-            global_caps = plan_data.get("global_caps", {})
-            cap_applied = False
+            session_details, calculation_summary = self._format_upe_session_details(
+                res.session_details
+            )
+            total_amount = res.total_amount
+            original_amount = res.original_amount
+            global_caps = upe_plan.get("global_caps", {})
+            cap_applied = original_amount > total_amount
             cap_amount = None
-            original_amount = total_amount
-            if global_caps.get("daily_cap_enabled") and global_caps.get(
-                "daily_cap_amount"
-            ):
-                daily_cap = global_caps["daily_cap_amount"]
-                if total_amount > daily_cap:
-                    total_amount = daily_cap
-                    cap_applied = True
-                    cap_amount = daily_cap
+            if cap_applied and global_caps.get("daily_cap_amount"):
+                cap_amount = int(global_caps["daily_cap_amount"])
 
             total_amount += manual_adjustment
-
             primary_date_category = self.determine_date_category(
                 enter_time, plan_data["holiday_type"]
             )
@@ -529,7 +690,8 @@ class SmartParkingSystem:
                 "manual_adjustment": manual_adjustment,
                 "date_category": result.date_category.value,
                 "applied_rate_plan": result.applied_rate_plan,
-                "time_segment_type": result.time_segment_type,
+                "segment_type": result.segment_type,
+                "time_segment_type": result.segment_type,
                 "holiday_type": result.holiday_type,
                 "session_details": result.session_details,
                 "calculation_summary": result.calculation_summary,
@@ -549,20 +711,20 @@ class SmartParkingSystem:
         return format_duration_display(minutes)
 
     def determine_date_category(self, check_time: datetime, holiday_type: str) -> str:
+        if self.holiday_calendar is None:
+            self.reload_holiday_calendar()
+        calendar = self.holiday_calendar
+        if calendar is not None:
+            return calendar.classify_user_defined_date(check_time.date(), holiday_type)
+
         weekday = check_time.weekday()
         if holiday_type == "無假日":
             return "統一"
-        elif holiday_type == "平日假日":
+        if holiday_type == "平日假日":
             return "平日" if weekday < 5 else "假日"
-        elif holiday_type == "完整假日":
-            if weekday < 5:
-                return "平日"
-            elif weekday == 5:
-                return "假日"
-            else:
-                return "節慶日"
-        else:
-            return "統一"
+        if holiday_type == "完整假日":
+            return "節慶日" if weekday == 6 else ("假日" if weekday == 5 else "平日")
+        return "統一"
 
     def calculate_segment_fee(self, minutes: int, rate_config: dict, global_grace_time: int = 0) -> int:
         if not rate_config:

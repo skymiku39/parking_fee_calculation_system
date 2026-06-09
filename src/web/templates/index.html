@@ -1,5 +1,5 @@
 {% extends "layout/base.html" %}
-{% block title %}價格試算 - 智能停車系統{% endblock %}
+{% block title %}價格試算 - 智能停車費率計算系統{% endblock %}
 {% block page_title %}<i class="fas fa-calculator me-2"></i> 價格試算{% endblock %}
 {% block head %}
 <style>
@@ -273,12 +273,22 @@
               <label for="ratePlanSelect">費率方案</label>
               <select id="ratePlanSelect" class="form-control-modern" onchange="handlePlanSelection()">
                 <option value="">請選擇費率方案</option>
-                {% for plan in rate_plans %}
-                <option value="{{ plan.rate_plan_id or plan.template_id }}" 
+                <optgroup label="內建多維度模板">
+                {% for plan in rate_plans if plan.type == 'multidimensional' %}
+                <option value="{{ plan.rate_plan_id or plan.template_id }}"
                         data-type="{{ plan.type }}">
                   {{ plan.label }}
                 </option>
                 {% endfor %}
+                </optgroup>
+                <optgroup label="使用者自訂方案">
+                {% for plan in rate_plans if plan.type == 'user_defined' %}
+                <option value="{{ plan.rate_plan_id or plan.plan_id }}"
+                        data-type="{{ plan.type }}">
+                  {{ plan.label }}{% if plan.featured %} ★{% endif %}
+                </option>
+                {% endfor %}
+                </optgroup>
               </select>
               <span class="form-help-text">選擇要使用的停車費率方案</span>
             </div>
@@ -391,6 +401,7 @@
   </div>
 {% endblock %}
 {% block scripts %}
+<script src="/static/js/preview-result.js"></script>
 <script>
   let selectedPlanId = '';
   let availablePlans = [];
@@ -478,9 +489,11 @@
       // 更新方案資訊
       document.getElementById('selectedPlanName').textContent = planName;
       
-      let description = '多維度時間區段智能計費方案';
+      let description = '停車費率計費方案';
       if (planType === 'multidimensional') {
         description = '支援多維度時間區段和假日類型的智能計費';
+      } else if (planType === 'user_defined') {
+        description = '使用者自訂的收費週期方案，支援時段矩陣與假日差別定價';
       }
       
       document.getElementById('selectedPlanDescription').textContent = description;
@@ -499,14 +512,20 @@
         chips.innerHTML = '';
         grid.innerHTML = '';
 
-        // 僅保留多維度：直接顯示多維度說明，移除自訂方案預覽
-        preview.style.display = 'block';
-        chips.innerHTML = `<span class="badge bg-secondary">多維度模板（目前無費率矩陣預覽）</span>`;
-        return;
+        if (planType === 'multidimensional') {
+          preview.style.display = 'block';
+          chips.innerHTML = `<span class="badge bg-secondary">多維度模板</span>`;
+          return;
+        }
+
+        if (planType !== 'user_defined') {
+          preview.style.display = 'none';
+          return;
+        }
 
         const planId = optionEl.value;
         try {
-          const resp = await fetch(`/api/rate_plans/load/${planId}`);
+          const resp = await fetch(`/api/rate_plans/load/${encodeURIComponent(planId)}`);
           const data = await resp.json();
           if (!data.success) {
             preview.style.display = 'none';
@@ -514,18 +533,17 @@
           }
           const plan = data.plan || {};
           const caps = plan.global_caps || {};
+          const globalGrace = plan.global_grace_time || caps.global_grace_time || 0;
           const hasDailyCap = !!caps.daily_cap_enabled && !!caps.daily_cap_amount;
-          const hasGlobalGrace = (plan.global_grace_time || 0) > 0;
+          const hasGlobalGrace = globalGrace > 0;
 
-          // 特殊設定 chips
           const chipList = [];
-          if (hasGlobalGrace) chipList.push(`<span class="badge bg-info me-2"><i class="fas fa-gift"></i> 全域免費 ${plan.global_grace_time} 分</span>`);
-          if (hasDailyCap) chipList.push(`<span class="badge bg-warning text-dark me-2"><i class="fas fa-coins"></i> 日封頂 ${caps.daily_cap_amount} 元</span>`);
+          if (hasGlobalGrace) chipList.push(`<span class="badge bg-info me-2"><i class="fas fa-gift"></i> 全域免費 ${globalGrace} 分</span>`);
+          if (hasDailyCap) chipList.push(`<span class="badge bg-warning text-dark me-2"><i class="fas fa-coins"></i> 日上限 ${caps.daily_cap_amount} 元</span>`);
           chipList.push(`<span class="badge bg-primary me-2"><i class="fas fa-layer-group"></i> ${plan.segment_type}</span>`);
           chipList.push(`<span class="badge bg-primary me-2"><i class="fas fa-calendar-day"></i> ${plan.holiday_type}</span>`);
           chips.innerHTML = chipList.join('');
 
-          // 費率組合矩陣
           const segments = plan.segments || [];
           const rateMatrix = plan.rate_matrix || {};
           if (!segments.length || !Object.keys(rateMatrix).length) {
@@ -537,13 +555,12 @@
           const dateCats = new Set();
           Object.keys(rateMatrix).forEach(k => {
             const parts = k.split('_');
-            if (parts.length >= 2) dateCats.add(parts[1]);
+            if (parts.length >= 2) dateCats.add(parts.slice(1).join('_'));
           });
           const dateCategories = Array.from(dateCats);
 
-          // 以日期類別為列，區段為欄
           let html = '<div class="table-responsive"><table class="table table-sm table-bordered align-middle">';
-          html += '<thead><tr><th style="white-space:nowrap">日期類別 \ 區段</th>';
+          html += '<thead><tr><th style="white-space:nowrap">日期類別 \\ 區段</th>';
           segments.forEach(s => { html += `<th>${s.name}<br><small>${s.start}-${s.end}</small></th>`; });
           html += '</tr></thead><tbody>';
           dateCategories.forEach(dc => {
@@ -559,8 +576,8 @@
               } else if (cfg.simple_rate) {
                 cell = `<div>${cfg.simple_rate} 元/${unit}分</div>`;
               }
-              const grace = cfg.grace_time ? `<span class=\"badge bg-info-subtle text-dark border me-1\"><i class=\"fas fa-gift\"></i> 免 ${cfg.grace_time}分</span>` : '';
-              const sc = cfg.segment_cap_enabled && cfg.segment_cap_amount ? `<span class=\"badge bg-warning-subtle text-dark border\"><i class=\"fas fa-coins\"></i> 封 ${cfg.segment_cap_amount}</span>` : '';
+              const grace = cfg.grace_time ? `<span class="badge bg-info-subtle text-dark border me-1"><i class="fas fa-gift"></i> 免 ${cfg.grace_time}分</span>` : '';
+              const sc = cfg.segment_cap_enabled && cfg.segment_cap_amount ? `<span class="badge bg-warning-subtle text-dark border"><i class="fas fa-coins"></i> 封 ${cfg.segment_cap_amount}</span>` : '';
               html += `<td>${cell}<div class="mt-1">${grace}${sc}</div></td>`;
             });
             html += '</tr>';
@@ -576,7 +593,8 @@
 
       function getTypeDisplayName(type) {
         const typeMap = {
-          'multidimensional': '🔬 多維度方案'
+          'multidimensional': '🔬 多維度方案',
+          'user_defined': '📝 自訂方案'
         };
         return typeMap[type] || type;
       }
@@ -643,49 +661,16 @@
 
   function displayResult(result) {
     const resultDiv = document.getElementById('calculationResult');
-    
-    // 建立計費明細 HTML（支援摺疊）
-    let sessionDetailsHtml = '';
-    if (result.session_details && result.session_details.length > 0) {
-      sessionDetailsHtml = `
-        <div class="mt-4">
-          <div class="details-toggle" onclick="toggleDetails()">
-            <div>
-              <strong><i class="fas fa-list-ul me-2"></i>計費明細</strong>
-              <span class="text-sm text-gray-500 ms-2">(${result.session_details.length} 個時段)</span>
-            </div>
-            <i class="fas fa-chevron-down"></i>
-          </div>
-          <div class="details-content" id="detailsContent">
-            <div class="mt-3">
-              ${result.session_details.map((session, idx) => `
-                <div class="card-modern mb-2" style="padding: 16px;">
-                  <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                      <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge-modern badge-primary">#${idx + 1}</span>
-                        <strong class="text-base">${session.period || session.time_slot || '時段'}</strong>
-                      </div>
-                      <div class="text-sm text-gray-600">
-                        <i class="fas fa-clock me-1"></i>${session.duration || '時長'}
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-tag me-1"></i>${session.rate || session.unit_price || '未知費率'}
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <div class="text-2xl font-bold" style="color: var(--color-error);">
-                        ${session.amount || session.fee || 0} <span class="text-sm font-normal text-gray-600">元</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-    
+    const previewPayload = {
+      ...result,
+      total_duration_display: result.total_duration_display || result.total_duration_minutes != null
+        ? `${result.total_duration_minutes} 分鐘`
+        : '',
+    };
+    const sessionDetailsHtml = (result.session_details && result.session_details.length > 0)
+      ? `<div class="mt-4"><div class="details-toggle expanded" onclick="toggleDetails()"><div><strong><i class="fas fa-list-ul me-2"></i>計費明細</strong></div><i class="fas fa-chevron-down"></i></div><div class="details-content show" id="detailsContent">${renderPreviewDetails(previewPayload)}</div></div>`
+      : '';
+
     // 主要結果顯示
     resultDiv.innerHTML = `
       <div class="card-modern fade-in">

@@ -21,8 +21,13 @@ paths:
                 exit_time:
                   type: string
                   example: '2025-09-01T10:00'
+                plan_id:
+                  type: string
+                  description: 方案 ID（多維度 template_id 或自訂 plan_id）；deprecated alias rate_plan_id
                 rate_plan_id:
                   type: string
+                  deprecated: true
+                  description: 請改用 plan_id
                 manual_adjustment:
                   type: integer
                   default: 0
@@ -35,13 +40,61 @@ paths:
           description: 輸入錯誤
   /api/plans:
     get:
-      summary: 取得可用方案清單
+      summary: 取得可用方案清單（多維度 + 自訂）
+      responses:
+        '200':
+          description: 成功
+  /api/rate_plans:
+    get:
+      summary: 列出使用者自訂方案
+      responses:
+        '200':
+          description: 成功
+  /api/rate_plans/load/{plan_id}:
+    get:
+      summary: 讀取自訂方案
+      parameters:
+        - in: path
+          name: plan_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+  /api/rate_plans/save:
+    post:
+      summary: 儲存自訂方案
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/rate_plans/{plan_id}:
+    delete:
+      summary: 刪除自訂方案
+      parameters:
+        - in: path
+          name: plan_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+  /api/rate_plans/export:
+    get:
+      summary: 匯出自訂方案設定檔
       responses:
         '200':
           description: 成功
   /api/multidimensional/combinations:
     get:
-      summary: 取得多維度方案維度組合
+      summary: 取得多維度方案維度組合（mdp 藍圖）
       responses:
         '200':
           description: 成功
@@ -136,18 +189,6 @@ paths:
   /api/calendar/sync_official_v2:
     post:
       summary: 同步官方與 Nager 假日
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: 成功
-  /api/calendar/sync_official:
-    post:
-      summary: 同步官方或 Nager 假日（相容路徑）
       requestBody:
         required: true
         content:

@@ -10,10 +10,19 @@ from pathlib import Path
 from flask import Flask, render_template
 from src.core.utils import DEFAULT_DATETIME_DISPLAY_FORMAT
 
-# 讓 Flask 在 PyInstaller 打包後也能正確找到模板與靜態資源
-_BASE_DIR = Path(getattr(sys, "_MEIPASS", os.getcwd()))
-_TEMPLATE_DIR = (_BASE_DIR / "src" / "web" / "templates").as_posix()
-_STATIC_DIR = (_BASE_DIR / "src" / "web" / "static").as_posix()
+def _resolve_resource_dirs() -> tuple[str, str]:
+    """Dev 用 src/web/*；PyInstaller 打包後用 bundle 內 templates/、static/。"""
+    if getattr(sys, "frozen", False):
+        base = Path(getattr(sys, "_MEIPASS", os.getcwd()))
+        return (base / "templates").as_posix(), (base / "static").as_posix()
+    base = Path(__file__).resolve().parent
+    return (
+        (base / "src" / "web" / "templates").as_posix(),
+        (base / "src" / "web" / "static").as_posix(),
+    )
+
+
+_TEMPLATE_DIR, _STATIC_DIR = _resolve_resource_dirs()
 
 app = Flask(__name__, template_folder=_TEMPLATE_DIR, static_folder=_STATIC_DIR)
 app.config["JSON_AS_ASCII"] = False
@@ -35,12 +44,14 @@ from src.web.mdp import mdp_bp
 from src.web.calendar import calendar_bp
 from src.web.misc import misc_bp
 from src.web.system import system_bp
+from src.web.user_plans import user_plans_bp
 
 app.register_blueprint(calc_bp)
 app.register_blueprint(mdp_bp)
 app.register_blueprint(calendar_bp)
 app.register_blueprint(misc_bp)
 app.register_blueprint(system_bp)
+app.register_blueprint(user_plans_bp)
 
 
 @app.route("/")
@@ -71,6 +82,11 @@ def plan_manager_page():
 @app.route("/calendar_manager")
 def calendar_manager_page():
     return render_template("calendar_manager.html")
+
+
+@app.route("/user_plan_designer")
+def user_plan_designer_page():
+    return render_template("user_plan_designer.html")
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ import threading
 import time
 import webbrowser
 from urllib.request import urlopen
-from urllib.error import URLError
 
 
 DEFAULT_PORT = int(os.getenv("PORT", "5000"))
@@ -26,22 +25,24 @@ def open_browser(url: str) -> None:
         pass
 
 
-def run_server() -> None:
-    # 確保日誌與必要資料夾
+def _prepare_runtime() -> None:
+    from src.core.paths import DATA_ENV_VAR, ensure_data_dir, executable_dir
+
+    os.chdir(executable_dir())
+    data_dir = ensure_data_dir(seed_if_missing=True)
+    os.environ[DATA_ENV_VAR] = str(data_dir)
     os.makedirs("log", exist_ok=True)
-    # 啟動 Flask（不使用 reloader，避免多進程）
-    from app import app  # 延遲載入，確保當前工作目錄已就緒
+
+
+def run_server() -> None:
+    from app import app
+
     app.run(host="127.0.0.1", port=DEFAULT_PORT, debug=False, use_reloader=False)
 
 
 def main() -> int:
     try:
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if base_dir:
-            os.chdir(base_dir)
+        _prepare_runtime()
     except Exception:
         pass
 
@@ -49,18 +50,15 @@ def main() -> int:
         open_browser(SERVER_URL)
         return 0
 
-    # 尚未啟動：開一個執行緒跑 Flask，再等待存活後開瀏覽器
     t = threading.Thread(target=run_server, daemon=True)
     t.start()
 
-    # 等待最多 10 秒確認啟動
     for _ in range(100):
         if is_server_up(SERVER_URL, timeout=0.5):
             open_browser(SERVER_URL)
             break
         time.sleep(0.1)
 
-    # 主執行緒阻塞，讓服務常駐
     try:
         while t.is_alive():
             time.sleep(0.5)
@@ -71,5 +69,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

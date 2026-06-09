@@ -59,19 +59,21 @@ parking_fee_calculation_system/
 │   │   ├── utils.py
 │   │   └── validation.py
 │   ├── domain/             # 業務邏輯
-│   │   ├── parking_calculator.py
 │   │   ├── multidimensional_calculator.py
-│   │   ├── rate_plan_manager.py
-│   │   └── pricing/
+│   │   ├── terminology.py
+│   │   └── pricing/        # UnifiedPricingEngine
 │   └── web/                # Flask 藍圖 + 前端資源
 │       ├── calc.py
 │       ├── calendar.py
 │       ├── mdp.py
+│       ├── user_plans.py   # 自訂方案 CRUD API
 │       ├── system.py
 │       ├── templates/      # Jinja HTML
 │       └── static/         # CSS / JS
 │
-├── config/                 # 執行期 JSON 設定檔
+├── config/                 # 執行期 JSON 設定檔（見 config/README.md）
+├── archive/                # 已封存 legacy 程式與設定
+├── docs/                   # 術語與設計文件（terminology.md）
 ├── tests/                  # pytest 自動化測試
 └── tools/                  # 腳本、文件、API 規格
     ├── start.ps1
@@ -101,23 +103,87 @@ parking_fee_calculation_system/
 
 ### 方案管理
 
-- **預設方案**：提供多種常用的費率方案
-- **自訂方案**：用戶可創建和儲存自己的費率方案
-- **方案匯入匯出**：支援方案的備份和分享
+- **MDP 內建模板**：3 個多維度精選方案（全天 / 兩段週末 / 四段國定）
+- **自訂方案**：10 個範例方案，可透過 UI 新增、編輯、刪除、匯出
+- **雙設計器**：MDP 模板用「MDP 設計器」，自訂方案用「自訂方案設計器」
+
+---
+
+## 使用教學
+
+### 1. 價格試算（首頁 `/`）
+
+1. 啟動服務後開啟 `http://127.0.0.1:5000`
+2. 在「費率方案」下拉選單選擇方案（分為 **內建多維度模板** 與 **使用者自訂方案** 兩組）
+3. 選擇自訂方案時，下方會顯示費率矩陣預覽
+4. 設定進場 / 出場時間，按「計算停車費」
+5. 結果會顯示總金額、計費引擎類型與分段明細
+
+**試算範例（自訂方案）**
+
+```json
+POST /api/calculate
+{
+  "enter_time": "2025-06-20T10:00",
+  "exit_time": "2025-06-20T12:00",
+  "plan_id": "跨日測試方案"
+}
+```
+
+回應中 `calculation_engine` 為 `user_defined_billing_cycle` 表示走自訂方案引擎。
+
+### 2. 方案管理（`/plan_manager`）
+
+| 類型 | 標記 | 編輯入口 | 匯出 |
+|------|------|----------|------|
+| MDP 模板 | `MDP` | `/rate_plan_designer` | `/api/mdp/export` |
+| 自訂方案 | `自訂` | `/user_plan_designer` | `/api/rate_plans/export` |
+
+- **新增 MDP 模板**：方案管理 →「新增 MDP 模板」
+- **新增自訂方案**：方案管理 →「新增自訂方案」
+- **刪除 / 下載**：各方案卡片上的操作按鈕
+
+### 3. 自訂方案設計器（`/user_plan_designer`）
+
+適用於 `config/user_defined_plans.json` 格式的收費週期方案。
+
+1. 填寫方案 ID、名稱、時段類型、假日類型
+2. 設定時間區段（可用「驗證」確認 24 小時覆蓋）
+3. 在費率矩陣填入各時段 × 日期類別的單價
+4. 按「儲存」寫入設定檔
+5. 可用「試算」按鈕即時驗證
+
+欄位與假日類型對照見 [docs/terminology.md](docs/terminology.md) 與 [config/README.md](config/README.md)。
+
+### 4. MDP 設計器（`/rate_plan_designer`）
+
+適用於 `config/multidimensional_rate_plans.json` 的多維度模板，假日類型為「無假日 / 平日假日 / 完整假日」（與自訂方案一致）。術語詳見 [docs/terminology.md](docs/terminology.md)。
+
+### 5. 日曆與假日（`/calendar_manager`）
+
+流程：同步官方假日 → 手動新增節慶日 / 補班日 → 儲存。日曆欄位與計費對應見 [config/README.md](config/README.md#system_calendarjson--假日日曆)。
+
+### 6. 系統設定（`/system_settings`）
+
+調整首頁自訂方案顯示（`ui_settings`）見 [config/README.md](config/README.md#system_configjson--ui-顯示控制)。
 
 ---
 
 ## 配置說明
 
-主要配置文件位於 `config/` 目錄，詳見 [config/README.md](config/README.md)。
+主要配置文件位於 `config/` 目錄，詳見 [config/README.md](config/README.md)。  
+方案分組與推薦清單見 [tools/plan_groups.md](tools/plan_groups.md)。
 
-### 精選方案（UI 顯示）
+### 內建 MDP 模板（首頁固定顯示 3 個）
 
-- 全天統一：`全天_無假日費率`
-- 兩段週末：`兩段_六日費率`
-- 四段國定：`四段_國定假費率`
+- 全天統一：`全天_無假日`
+- 二段平日假日：`二段_平日假日`
+- 多時段完整假日：`多時段_完整假日`（舊 ID `四段_國定假費率` 仍可透過 API alias 使用）
 
-使用者自訂方案（`config/user_defined_plans.json`）亦會完整顯示。
+### 自訂方案（`user_defined_plans.json`）
+
+首頁依 `ui_settings` 顯示（預設最多 5 個）；方案管理頁可查看全部。  
+推薦入門方案：`跨日測試方案`（驗證跨日）、`萬華西園`（平日假日差價）。
 
 ---
 
@@ -125,14 +191,59 @@ parking_fee_calculation_system/
 
 | 端點 | 方法 | 用途 |
 |------|------|------|
-| `/api/calculate` | POST | 停車費計算 |
-| `/api/plans` | GET | 獲取費率方案列表 |
+| `/api/calculate` | POST | 停車費計算（支援 MDP 模板與自訂方案） |
+| `/api/plans` | GET | 獲取可用方案列表（含多維度模板與自訂方案） |
+| `/api/rate_plans` | GET | 自訂方案列表 |
+| `/api/rate_plans/load/<plan_id>` | GET | 讀取單一自訂方案 |
 | `/api/rate_plans/save` | POST | 儲存自訂方案 |
+| `/api/rate_plans/<plan_id>` | DELETE | 刪除自訂方案 |
+| `/api/rate_plans/export` | GET | 匯出自訂方案設定檔 |
 | `/api/system/config` | GET/POST | 系統配置管理 |
+| `/api/system/version` | GET | 應用版本與資料目錄路徑 |
 | `/api/mdp/templates` | GET | 多維度範本列表 |
 | `/api/mdp/preview` | POST | 範本試算預覽 |
 
 完整 API 規格：[tools/openapi.yaml](tools/openapi.yaml)
+
+---
+
+## 打包與發佈
+
+版本號以 `pyproject.toml` 的 `version` 為唯一來源（目前 **3.0.0**）。
+
+### 建置可執行檔
+
+```powershell
+./tools/build_exe.ps1
+```
+
+產出目錄：
+
+```
+dist/ParkingCalculator/
+├── ParkingCalculator.exe    # 雙擊啟動（自動開瀏覽器）
+├── data/                    # 外部可編輯的方案與設定（JSON）
+│   ├── user_defined_plans.json
+│   ├── multidimensional_rate_plans.json
+│   ├── system_calendar.json
+│   └── system_config.json
+├── VERSION.txt
+└── log/
+```
+
+- 開發環境仍使用 `config/`；打包後使用 exe 旁的 `data/`
+- 可透過環境變數 `PARKING_DATA_DIR` 指定其他資料目錄
+- 變更埠號：`$env:PORT=5001; .\ParkingCalculator.exe`
+
+### 完整 Release（測試 + 打包 + ZIP + Git tag）
+
+```powershell
+./tools/release.ps1
+```
+
+會依序：執行 pytest → 打包 → 產生 `release/ParkingCalculator-{version}-win64.zip` → 建立 git tag `v{version}`。
+
+發佈新版本時，先更新 `pyproject.toml` 的 `version`，再執行 `./tools/release.ps1`。
 
 ---
 

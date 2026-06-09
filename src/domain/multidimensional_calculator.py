@@ -1,6 +1,6 @@
 """
 多維度標籤停車費計算器
-支援時段選擇（全天、兩段、多段）與假日類型（無假日、六日、國定假）的組合計算
+支援時段選擇（全天、二段、多時段）與假日類型（無假日、平日假日、完整假日）的組合計算
 """
 
 import json
@@ -10,34 +10,22 @@ from typing import List, Dict, Optional, Tuple, Any, Union
 from dataclasses import dataclass
 from enum import Enum
 from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
+from src.core.calendar_resolver import HolidayCalendar
+from src.domain.terminology import (
+    DateCategory,
+    HolidayType,
+    MdpPlanTier,
+    SegmentType,
+    TEMPLATE_ID_ALIASES,
+    normalize_holiday_type,
+    normalize_segment_type,
+    normalize_template_id,
+    resolve_template_id,
+)
 import calendar
 
-
-class TimeSegmentType(Enum):
-    """時段類型枚舉"""
-
-    ALL_DAY = "全天"
-    TWO_SEGMENT = "兩段"
-    THREE_SEGMENT = "三段"
-    FOUR_SEGMENT = "四段"
-    CUSTOM = "自訂"
-
-
-class HolidayType(Enum):
-    """假日類型枚舉"""
-
-    NO_HOLIDAY_RATE = "無假日費率"
-    WEEKEND_RATE = "六日費率"
-    NATIONAL_HOLIDAY_RATE = "國定假費率"
-
-
-class DateCategory(Enum):
-    """日期類別枚舉"""
-
-    WEEKDAY = "平日"
-    WEEKEND = "週末"
-    NATIONAL_HOLIDAY = "國定假日"
-    CUSTOM_HOLIDAY = "客製假日"
+# Backward-compatible re-exports
+TimeSegmentType = SegmentType
 
 
 @dataclass
@@ -67,14 +55,18 @@ class MultidimensionalRatePlan:
     template_id: str
     label: str
     description: str
-    time_segment_type: TimeSegmentType
+    segment_type: SegmentType
     holiday_type: HolidayType
-    dimension_combination: str  # 例如: "四段_國定假費率"
+    dimension_combination: str
     weekday_plan: Optional[Dict[str, Any]] = None
     weekend_plan: Optional[Dict[str, Any]] = None
     national_holiday_plan: Optional[Dict[str, Any]] = None
     custom_holiday_plan: Optional[Dict[str, Any]] = None
-    unified_plan: Optional[Dict[str, Any]] = None  # 用於無假日費率的情況
+    unified_plan: Optional[Dict[str, Any]] = None
+
+    @property
+    def time_segment_type(self) -> SegmentType:
+        return self.segment_type
 
 
 @dataclass
@@ -85,22 +77,32 @@ class ParkingCalculationResult:
     original_amount: int
     date_category: DateCategory
     applied_rate_plan: str
-    time_segment_type: str
+    segment_type: str
     holiday_type: str
     session_details: List[Dict[str, Any]]
     calculation_summary: str
     dimension_tags: List[str]
 
+    @property
+    def time_segment_type(self) -> str:
+        return self.segment_type
+
 
 class MultidimensionalParkingCalculator:
     """多維度標籤停車費計算器"""
 
-    def __init__(self, config_path: str = "config/multidimensional_rate_plans.json"):
+    def __init__(
+        self,
+        config_path: str = "config/multidimensional_rate_plans.json",
+        holiday_calendar: Optional[HolidayCalendar] = None,
+    ):
         """初始化多維度計算器"""
         self.config = {}
         self.rate_plan_templates = {}
         self.dimension_configs = {}
         self.custom_holidays = []
+        self.holiday_calendar = holiday_calendar
+        self._legacy_template_ids: Dict[str, str] = {}
         self.load_config(config_path)
 
     def load_config(self, config_path: str):
@@ -109,19 +111,23 @@ class MultidimensionalParkingCalculator:
             with open(config_path, "r", encoding="utf-8") as f:
                 self.config = json.load(f)
 
-            # 載入維度配置
             self.dimension_configs = self.config.get("dimension_configs", {})
+            metadata = self.config.get("metadata", {})
+            self._legacy_template_ids = metadata.get("legacy_template_ids", {})
+            self._legacy_template_ids.update(TEMPLATE_ID_ALIASES)
 
-            # 載入費率方案範本
             self.rate_plan_templates = {}
             for template in self.config.get("rate_plan_templates", []):
-                template_id = template["template_id"]
-                self.rate_plan_templates[template_id] = MultidimensionalRatePlan(
+                raw_id = template["template_id"]
+                template_id = normalize_template_id(raw_id)
+                seg_raw = template.get("segment_type") or template.get("time_segment_type", "全天")
+                hol_raw = template.get("holiday_type", "無假日")
+                plan = MultidimensionalRatePlan(
                     template_id=template_id,
                     label=template["label"],
                     description=template["description"],
-                    time_segment_type=TimeSegmentType(template["time_segment_type"]),
-                    holiday_type=HolidayType(template["holiday_type"]),
+                    segment_type=SegmentType(normalize_segment_type(seg_raw)),
+                    holiday_type=HolidayType(normalize_holiday_type(hol_raw)),
                     dimension_combination=template_id,
                     weekday_plan=template.get("weekday_plan"),
                     weekend_plan=template.get("weekend_plan"),
@@ -129,74 +135,99 @@ class MultidimensionalParkingCalculator:
                     custom_holiday_plan=template.get("custom_holiday_plan"),
                     unified_plan=template.get("rate_plan_id") and template or None,
                 )
+                self.rate_plan_templates[template_id] = plan
+                if raw_id != template_id:
+                    self.rate_plan_templates[raw_id] = plan
+                for old_id, new_id in self._legacy_template_ids.items():
+                    if new_id == template_id:
+                        self.rate_plan_templates[old_id] = plan
 
-            # 載入客製假日
-            holiday_config = (
-                self.dimension_configs.get("holiday_types", {})
-                .get("types", {})
-                .get("國定假費率", {})
+            hol_types = self.dimension_configs.get("holiday_types", {}).get("types", {})
+            full_holiday_cfg = (
+                hol_types.get("完整假日")
+                or hol_types.get("國定假費率")
+                or {}
             )
-            self.custom_holidays = holiday_config.get("custom_holidays", [])
+            self.custom_holidays = full_holiday_cfg.get("custom_holidays", [])
 
         except Exception as e:
             print(f"載入多維度配置失敗: {e}")
             self.config = {}
             self.rate_plan_templates = {}
 
-    def get_date_category(self, check_date: date) -> DateCategory:
-        """判斷日期類別"""
-        # 檢查是否為客製假日
+    def _resolve_template_id(self, template_id: str) -> str:
+        resolved = resolve_template_id(template_id, self._legacy_template_ids)
+        if resolved in self.rate_plan_templates:
+            return resolved
+        if template_id in self.rate_plan_templates:
+            return template_id
+        canonical = normalize_template_id(template_id)
+        if canonical in self.rate_plan_templates:
+            return canonical
+        raise ValueError(f"找不到費率範本: {template_id}")
+
+    def get_date_category(
+        self, check_date: date, holiday_type: Optional[str] = None
+    ) -> DateCategory:
+        """判斷 canonical 日期類別"""
+        hol = normalize_holiday_type(holiday_type or HolidayType.NO_HOLIDAY.value)
+        if self.holiday_calendar is not None:
+            category = self.holiday_calendar.classify_date(
+                check_date,
+                hol,
+                extra_custom_holidays=self.custom_holidays,
+            )
+            return DateCategory(category)
+
         date_str = check_date.strftime("%Y-%m-%d")
         if date_str in self.custom_holidays:
-            return DateCategory.CUSTOM_HOLIDAY
-
-        # 檢查是否為國定假日 (簡化版，實際應該使用完整的假日曆)
-        national_holidays = [
-            "01-01",  # 元旦
-            "02-28",  # 和平紀念日
-            "04-04",  # 兒童節
-            "04-05",  # 清明節
-            "05-01",  # 勞動節
-            "10-10",  # 國慶日
-        ]
-
-        month_day = check_date.strftime("%m-%d")
-        if month_day in national_holidays:
-            return DateCategory.NATIONAL_HOLIDAY
-
-        # 檢查是否為週末
-        if check_date.weekday() >= 5:  # 5=週六, 6=週日
-            return DateCategory.WEEKEND
-
+            return DateCategory.FESTIVAL
+        if check_date.weekday() >= 5:
+            return DateCategory.HOLIDAY
         return DateCategory.WEEKDAY
 
     def get_applicable_plan(
-        self, template_id: str, date_category: DateCategory
+        self, template_id: str, check_date: date
     ) -> Dict[str, Any]:
-        """根據範本ID和日期類別獲取適用的費率方案"""
-        if template_id not in self.rate_plan_templates:
-            raise ValueError(f"找不到範本: {template_id}")
-
+        """根據範本ID和日期獲取適用的費率方案"""
+        template_id = self._resolve_template_id(template_id)
         template = self.rate_plan_templates[template_id]
 
-        # 如果是統一費率（無假日費率）
-        if template.holiday_type == HolidayType.NO_HOLIDAY_RATE:
+        if template.holiday_type == HolidayType.NO_HOLIDAY:
             if template.unified_plan:
                 return template.unified_plan
             return template.weekday_plan
 
-        # 根據日期類別選擇對應的費率方案
-        if date_category == DateCategory.WEEKDAY:
+        if self.holiday_calendar is not None:
+            tier = self.holiday_calendar.get_mdp_plan_tier(
+                check_date,
+                template.holiday_type.value,
+                extra_custom_holidays=self.custom_holidays,
+            )
+        else:
+            dc = self.get_date_category(check_date, template.holiday_type.value)
+            if dc == DateCategory.UNIFIED:
+                tier = MdpPlanTier.UNIFIED
+            elif dc == DateCategory.FESTIVAL:
+                tier = MdpPlanTier.CUSTOM_HOLIDAY
+            elif dc == DateCategory.HOLIDAY:
+                tier = MdpPlanTier.WEEKEND
+            else:
+                tier = MdpPlanTier.WEEKDAY
+
+        if tier == MdpPlanTier.UNIFIED:
+            return template.unified_plan or template.weekday_plan
+        if tier == MdpPlanTier.WEEKDAY:
             return template.weekday_plan
-        elif date_category == DateCategory.WEEKEND:
+        if tier == MdpPlanTier.WEEKEND:
             return template.weekend_plan or template.weekday_plan
-        elif date_category == DateCategory.NATIONAL_HOLIDAY:
+        if tier == MdpPlanTier.NATIONAL_HOLIDAY:
             return (
                 template.national_holiday_plan
                 or template.weekend_plan
                 or template.weekday_plan
             )
-        elif date_category == DateCategory.CUSTOM_HOLIDAY:
+        if tier == MdpPlanTier.CUSTOM_HOLIDAY:
             return (
                 template.custom_holiday_plan
                 or template.national_holiday_plan
@@ -385,301 +416,156 @@ class MultidimensionalParkingCalculator:
             "calculation_details": calculation_details,
         }
 
-    # ===== 高風險合併：以收費週期為核心的計算（跨日與邊界遵循週期起點規則） =====
-    def _parse_slot_time(self, hhmm: str) -> time:
-        try:
-            if hhmm == "24:00":
-                return time(23, 59, 59)
-            h, m = map(int, hhmm.split(":"))
-            return time(h, m)
-        except Exception:
-            return time(0, 0)
-
-    def _is_time_in_slot(self, t: time, slot: Dict) -> bool:
-        start = self._parse_slot_time(slot.get("start", "00:00"))
-        end = self._parse_slot_time(slot.get("end", "24:00"))
-        if start <= end:
-            return start <= t <= end
-        # 跨日
-        return t >= start or t <= end
-
-    def _extract_rate_description(self, cycle: Dict) -> str:
-        """從週期資料中提取費率描述"""
-        detail = cycle.get("detail", {})
-        mode = detail.get("mode", "simple")
-        
-        if mode == "progressive":
-            return "累進費率"
-        else:
-            unit = detail.get("unit", 60)
-            unit_price = detail.get("unit_price", 0)
-            return f"{unit_price}元/{unit}分"
-
-    def _find_active_slot(self, current_dt: datetime, time_slots: List[Dict]) -> Optional[Dict]:
-        ct = current_dt.time()
-        for slot in time_slots:
-            if self._is_time_in_slot(ct, slot):
-                return slot
-        return None
-
-    def _generate_billing_cycles(
-        self,
-        enter_time: datetime,
-        exit_time: datetime,
-        time_slots: List[Dict],
-        global_grace_time: int = 0,
-        seg_cap_enabled: bool = True,
-    ) -> Tuple[List[Dict], int]:
-        cycles: List[Dict] = []
-        total_fee = 0
-        current = enter_time
-        global_grace_used = False if global_grace_time and global_grace_time > 0 else True
-        # 追蹤每日期+時段上限累計
-        cap_acc: Dict[str, int] = {}
-
-        while current < exit_time:
-            slot = self._find_active_slot(current, time_slots)
-            if not slot:
-                current += timedelta(minutes=1)
-                continue
-            unit = int(slot.get("unit_minutes", 60) or 60)
-            cycle_end = min(current + timedelta(minutes=unit), exit_time)
-            cycle_minutes = int((cycle_end - current).total_seconds() / 60)
-            if cycle_minutes <= 0:
-                break
-
-            # 有全域免費時間則於第一個週期使用
-            effective_grace = 0
-            if not global_grace_used and global_grace_time > 0:
-                effective_grace = global_grace_time
-                global_grace_used = True
-            elif slot.get("grace_enabled", False):
-                effective_grace = int(slot.get("grace_minutes", 0) or 0)
-
-            # 計算週期費用（以 slot 的設定計費，週期內不因跨邊界改費率）
-            cycle_fee_detail = {}
-            if slot.get("progressive_enabled", False) and slot.get("progressive_rates"):
-                # 以週期分鐘計入累進
-                fee, _prog = self.calculate_progressive_fee(max(0, cycle_minutes - effective_grace), slot.get("progressive_rates", []))
-                cycle_fee_detail = {"mode": "progressive", "rates": slot.get("progressive_rates", [])}
+    def _slot_to_upe_rate_config(self, slot: Dict[str, Any]) -> Dict[str, Any]:
+        prog_rates = []
+        for tier in slot.get("progressive_rates", []):
+            start_min = int(tier.get("start_min", 0) or 0)
+            end_min = tier.get("end_min")
+            unit_minutes = int(tier.get("unit_minutes", slot.get("unit_minutes", 60)) or 60)
+            if end_min is None:
+                duration_minutes = unit_minutes
             else:
-                unit_price = int(slot.get("default_unit_price", 0) or 0)
-                # 以收費單位向上取整（即使不足一個單位）
-                units = math.ceil(max(0, cycle_minutes - effective_grace) / unit) if unit > 0 else 0
-                fee = units * unit_price
-                cycle_fee_detail = {"mode": "simple", "unit": unit, "unit_price": unit_price, "units": units}
+                duration_minutes = max(0, int(end_min - start_min))
+            prog_rates.append(
+                {
+                    "duration_minutes": duration_minutes,
+                    "rate": int(tier.get("unit_price", 0) or 0),
+                    "unit_time": unit_minutes,
+                }
+            )
+        return {
+            "unit_time": int(slot.get("unit_minutes", 60) or 60),
+            "simple_rate": int(slot.get("default_unit_price", 0) or 0),
+            "grace_time": int(slot.get("grace_minutes", 0) or 0)
+            if slot.get("grace_enabled", False)
+            else 0,
+            "progressive_enabled": bool(slot.get("progressive_enabled", False)),
+            "progressive_rates": prog_rates,
+            "segment_cap_enabled": bool(slot.get("cap_enabled", False)),
+            "segment_cap_amount": int(slot.get("cap_amount", 0) or 0),
+        }
 
-            # 區段上限（每日）
-            slot_label = slot.get("label", slot.get("time_slot_id", "slot"))
-            day_key = f"{current.date()}_{slot_label}"
-            if seg_cap_enabled and slot.get("cap_enabled", False):
-                cap_amount = int(slot.get("cap_amount", 0) or 0)
-                if cap_amount > 0:
-                    acc = cap_acc.get(day_key, 0)
-                    if acc + fee > cap_amount:
-                        fee = max(0, cap_amount - acc)
-                    cap_acc[day_key] = acc + fee
+    def _build_mdp_upe_plan(self, template) -> Dict[str, Any]:
+        segments_map: Dict[str, Dict[str, str]] = {}
+        rate_matrix: Dict[str, Any] = {}
+        category_plans = [
+            (DateCategory.UNIFIED.value, template.unified_plan),
+            (DateCategory.WEEKDAY.value, template.weekday_plan),
+            (DateCategory.HOLIDAY.value, template.weekend_plan),
+            (
+                DateCategory.FESTIVAL.value,
+                template.custom_holiday_plan
+                or template.national_holiday_plan
+                or template.weekend_plan,
+            ),
+        ]
+        for date_category, plan in category_plans:
+            if not plan:
+                continue
+            for slot in plan.get("time_slots", []):
+                seg_name = slot.get("label") or slot.get("time_slot_id")
+                segments_map[seg_name] = {
+                    "name": seg_name,
+                    "start": slot.get("start", "00:00"),
+                    "end": slot.get("end", "24:00"),
+                }
+                rate_matrix[f"{seg_name}_{date_category}"] = self._slot_to_upe_rate_config(
+                    slot
+                )
 
-            total_fee += fee
-            cycles.append({
-                "start": current,
-                "end": cycle_end,
-                "minutes": cycle_minutes,
-                "slot": slot_label,
-                "fee": fee,
-                "detail": cycle_fee_detail,
-            })
+        base_plan = (
+            template.weekday_plan
+            or template.unified_plan
+            or template.weekend_plan
+            or {}
+        )
+        global_caps = {
+            "daily_cap_enabled": bool(base_plan.get("daily_cap_enabled", False)),
+            "daily_cap_amount": int(base_plan.get("daily_cap_amount", 0) or 0),
+            "global_grace_time": int(base_plan.get("global_grace_time", 0) or 0),
+        }
+        return {
+            "segments": list(segments_map.values()),
+            "rate_matrix": rate_matrix,
+            "global_caps": global_caps,
+        }
 
-            current = cycle_end
-
-        return cycles, total_fee
+    def _upe_details_to_mdp_sessions(
+        self, upe_details: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        session_details: List[Dict[str, Any]] = []
+        for detail in upe_details:
+            if detail.get("progressive"):
+                rate_desc = "累進費率"
+            else:
+                unit = detail.get("unit", 60)
+                rate_desc = f"{detail.get('rate', 0)}元/{unit}分"
+            time_range = detail.get("time_range", "-")
+            parts = time_range.split("-")
+            session_details.append(
+                {
+                    "label": detail.get("label"),
+                    "start": parts[0] if parts else "",
+                    "end": parts[-1] if parts else "",
+                    "duration": detail.get("duration", 0),
+                    "fee": detail.get("fee", 0),
+                    "rate": rate_desc,
+                    "unit_price": detail.get("rate", 0),
+                }
+            )
+        return session_details
 
     def calculate_parking_fee(
         self, enter_time: datetime, exit_time: datetime, template_id: str
     ) -> ParkingCalculationResult:
         """計算停車費用（多維度版本）"""
-        if template_id not in self.rate_plan_templates:
-            raise ValueError(f"找不到費率範本: {template_id}")
-
+        template_id = self._resolve_template_id(template_id)
         template = self.rate_plan_templates[template_id]
 
-        # 判斷日期類別
         park_date = enter_time.date()
-        date_category = self.get_date_category(park_date)
+        date_category = self.get_date_category(park_date, template.holiday_type.value)
 
-        # 獲取適用的費率方案
-        rate_plan = self.get_applicable_plan(template_id, date_category)
+        rate_plan = self.get_applicable_plan(template_id, park_date)
 
         if not rate_plan:
             raise ValueError("無法找到適用的費率方案")
 
-        # 計算總停車時間
         total_duration = int((exit_time - enter_time).total_seconds() / 60)
+        upe_plan = self._build_mdp_upe_plan(template)
+        upe = UnifiedPricingEngine()
 
-        # 嘗試走統一引擎（UPE）
-        total_fee = None
-        session_details: List[Dict[str, Any]] = []
-        if UnifiedPricingEngine is not None and rate_plan:
-            try:
-                # 將多維度 time_slots 映射為 UPE 結構
-                segments = [
-                    {
-                        "name": s.get("label") or s.get("time_slot_id"),
-                        "start": s.get("start", "00:00"),
-                        "end": s.get("end", "24:00"),
-                    }
-                    for s in rate_plan.get("time_slots", [])
-                ]
+        def _resolver(dt: datetime) -> str:
+            if template.holiday_type == HolidayType.NO_HOLIDAY:
+                return DateCategory.UNIFIED.value
+            dc = self.get_date_category(dt.date(), template.holiday_type.value)
+            return dc.value
 
-                # 日期類別映射到字串
-                dc_map = {
-                    DateCategory.WEEKDAY: "平日",
-                    DateCategory.WEEKEND: "假日",
-                    DateCategory.NATIONAL_HOLIDAY: "國定假日",
-                    DateCategory.CUSTOM_HOLIDAY: "客製假日",
-                }
-                date_cat = dc_map.get(date_category, "平日")
+        res = upe.calculate(enter_time, exit_time, upe_plan, _resolver)
+        if not res.success:
+            raise ValueError(res.calculation_summary)
 
-                # 建立 rate_matrix（每個 slot 以當日類別為鍵）
-                rate_matrix: Dict[str, Any] = {}
-                for s in rate_plan.get("time_slots", []):
-                    seg_name = s.get("label") or s.get("time_slot_id")
-                    key = f"{seg_name}_{date_cat}"
-                    prog_rates = []
-                    for t in s.get("progressive_rates", []):
-                        start_min = int(t.get("start_min", 0) or 0)
-                        end_min = t.get("end_min")
-                        unit_minutes = int(t.get("unit_minutes", s.get("unit_minutes", 60)) or 60)
-                        if end_min is None:
-                            duration_minutes = unit_minutes
-                        else:
-                            duration_minutes = max(0, int(end_min - start_min))
-                        prog_rates.append(
-                            {
-                                "duration_minutes": duration_minutes,
-                                "rate": int(t.get("unit_price", 0) or 0),
-                                "unit_time": unit_minutes,
-                            }
-                        )
-
-                    rate_matrix[key] = {
-                        "unit_time": int(s.get("unit_minutes", 60) or 60),
-                        "simple_rate": int(s.get("default_unit_price", 0) or 0),
-                        "grace_time": int(s.get("grace_minutes", 0) or 0) if s.get("grace_enabled", False) else 0,
-                        "progressive_enabled": bool(s.get("progressive_enabled", False)),
-                        "progressive_rates": prog_rates,
-                        "segment_cap_enabled": bool(s.get("cap_enabled", False)),
-                        "segment_cap_amount": int(s.get("cap_amount", 0) or 0),
-                    }
-
-                global_caps = {
-                    "daily_cap_enabled": bool(rate_plan.get("daily_cap_enabled", False)),
-                    "daily_cap_amount": int(rate_plan.get("daily_cap_amount", 0) or 0),
-                    "global_grace_time": int(rate_plan.get("global_grace_time", 0) or 0),
-                }
-
-                upe_plan = {"segments": segments, "rate_matrix": rate_matrix, "global_caps": global_caps}
-                upe = UnifiedPricingEngine()
-                def _resolver(dt: datetime) -> str:
-                    dc = self.get_date_category(dt.date())
-                    return dc_map.get(dc, "平日")
-                res = upe.calculate(enter_time, exit_time, upe_plan, _resolver)
-                if res.success:
-                    total_fee = res.total_amount
-                    # 轉為舊格式明細並添加費率描述
-                    for d in res.session_details:
-                        # 構造費率描述
-                        rate_desc = ""
-                        if d.get("progressive"):
-                            rate_desc = "累進費率"
-                        else:
-                            unit_price = d.get("rate", 0)
-                            unit = d.get("unit", 60)
-                            rate_desc = f"{unit_price}元/{unit}分"
-                        
-                        session_details.append(
-                            {
-                                "label": d.get("label"),
-                                "start": d.get("time_range", "-").split("-")[0],
-                                "end": d.get("time_range", "-").split("-")[-1],
-                                "duration": d.get("duration", 0),
-                                "fee": d.get("fee", 0),
-                                "rate": rate_desc,
-                                "unit_price": d.get("rate", 0)
-                            }
-                        )
-            except Exception:
-                total_fee = None
-
-        if total_fee is None:
-            # 回退原本週期生成
-            time_slots = rate_plan.get("time_slots", [])
-            global_caps = rate_plan.get("global_caps", {})
-            global_grace_time = int(global_caps.get("global_grace_time", 0) or 0)
-            cycles, total_fee = self._generate_billing_cycles(
-                enter_time,
-                exit_time,
-                time_slots,
-                global_grace_time=global_grace_time,
-                seg_cap_enabled=True,
-            )
-
-        # 合併相鄰同一 slot 的週期方便顯示
-        if not session_details and 'cycles' in locals() and cycles:
-            current_group = None
-            for cy in cycles:
-                if current_group is None:
-                    rate_desc = self._extract_rate_description(cy)
-                    current_group = {
-                        "label": cy["slot"],
-                        "start": cy["start"].strftime("%H:%M"),
-                        "end": cy["end"].strftime("%H:%M"),
-                        "duration": cy["minutes"],
-                        "fee": cy["fee"],
-                        "rate": rate_desc,
-                    }
-                else:
-                    # 連續且同 slot
-                    prev_end_dt = datetime.strptime(current_group["end"], "%H:%M")
-                    if current_group["label"] == cy["slot"] and current_group["end"] == cy["start"].strftime("%H:%M"):
-                        current_group["end"] = cy["end"].strftime("%H:%M")
-                        current_group["duration"] += cy["minutes"]
-                        current_group["fee"] += cy["fee"]
-                    else:
-                        session_details.append(current_group)
-                        rate_desc = self._extract_rate_description(cy)
-                        current_group = {
-                            "label": cy["slot"],
-                            "start": cy["start"].strftime("%H:%M"),
-                            "end": cy["end"].strftime("%H:%M"),
-                            "duration": cy["minutes"],
-                            "fee": cy["fee"],
-                            "rate": rate_desc,
-                        }
-            if current_group:
-                session_details.append(current_group)
-
-        # 檢查每日上限（全域）
-        daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", rate_plan.get("daily_cap_enabled", False)))
-        daily_cap_amount = int(global_caps.get("daily_cap_amount", rate_plan.get("daily_cap_amount", 0)) or 0)
-        is_daily_capped = False
-
-        if daily_cap_enabled and daily_cap_amount > 0 and total_fee > daily_cap_amount:
-            total_fee = daily_cap_amount
-            is_daily_capped = True
+        total_fee = res.total_amount
+        session_details = self._upe_details_to_mdp_sessions(res.session_details)
+        global_caps = upe_plan.get("global_caps", {})
+        daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", False))
+        daily_cap_amount = int(global_caps.get("daily_cap_amount", 0) or 0)
+        is_daily_capped = (
+            daily_cap_enabled
+            and daily_cap_amount > 0
+            and res.original_amount > daily_cap_amount
+        )
 
         # 生成維度標籤
         dimension_tags = [
-            template.time_segment_type.value,
+            template.segment_type.value,
             template.holiday_type.value,
             date_category.value,
             f"總時段數: {len([s for s in session_details if s['duration'] > 0])}",
         ]
 
-        # 計算摘要
         calculation_summary = f"""
 多維度停車費計算結果 (週期基礎):
-- 時段類型: {template.time_segment_type.value}
+- 時段類型: {template.segment_type.value}
 - 假日類型: {template.holiday_type.value}
 - 日期類別: {date_category.value}
 - 停車時間: {total_duration}分鐘
@@ -691,7 +577,7 @@ class MultidimensionalParkingCalculator:
             original_amount=sum(detail["fee"] for detail in session_details),
             date_category=date_category,
             applied_rate_plan=rate_plan.get("label", "未知"),
-            time_segment_type=template.time_segment_type.value,
+            segment_type=template.segment_type.value,
             holiday_type=template.holiday_type.value,
             session_details=session_details,
             calculation_summary=calculation_summary,
@@ -699,11 +585,17 @@ class MultidimensionalParkingCalculator:
         )
 
     def get_available_templates(self) -> Dict[str, str]:
-        """獲取可用的費率範本列表"""
+        """獲取可用的費率範本列表（僅 canonical template_id）"""
         templates = {}
+        seen = set()
         for template_id, template in self.rate_plan_templates.items():
-            templates[template_id] = (
-                f"{template.label} ({template.time_segment_type.value} × {template.holiday_type.value})"
+            if template_id != template.template_id:
+                continue
+            if template.template_id in seen:
+                continue
+            seen.add(template.template_id)
+            templates[template.template_id] = (
+                f"{template.label} ({template.segment_type.value} × {template.holiday_type.value})"
             )
         return templates
 

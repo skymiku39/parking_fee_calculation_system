@@ -1,6 +1,6 @@
 {% extends "layout/base.html" %}
-{% block title %}方案設計器 - 智能停車系統{% endblock %}
-{% block page_title %}<i class="fas fa-drafting-compass me-2"></i> 方案設計器{% endblock %}
+{% block title %}MDP 設計器 - 智能停車費率計算系統{% endblock %}
+{% block page_title %}<i class="fas fa-drafting-compass me-2"></i> MDP 設計器{% endblock %}
 {% block content %}
 <div class="container-fluid">
   <!-- 步驟指示器 -->
@@ -68,15 +68,14 @@
           </div>
           
           <div class="form-group-modern">
-            <label for="time_segment_type">
+            <label for="segment_type">
               <i class="fas fa-clock me-2"></i>時段類型
             </label>
-            <select id="time_segment_type" class="form-control-modern" onchange="onTypeChange()">
-              <option value="一段">一段（全天統一）</option>
-              <option value="兩段" selected>兩段（日間/夜間）</option>
+            <select id="segment_type" class="form-control-modern" onchange="onTypeChange()">
+              <option value="全天">全天（24 小時統一）</option>
+              <option value="二段" selected>二段（日間/夜間）</option>
               <option value="三段">三段（早/日/夜）</option>
-              <option value="四段">四段（四個時段）</option>
-              <option value="自訂">自訂時段</option>
+              <option value="多時段">多時段（四段或以上）</option>
             </select>
           </div>
           
@@ -85,15 +84,15 @@
               <i class="fas fa-calendar me-2"></i>假日類型
             </label>
             <select id="holiday_type" class="form-control-modern" onchange="renderMatrix()">
-              <option value="六日費率">六日費率（平日/週末）</option>
-              <option value="國定假費率">國定假費率（平日/週末/國定）</option>
-              <option value="無假日費率">無假日（統一費率）</option>
+              <option value="平日假日">平日假日（平日/假日分價）</option>
+              <option value="完整假日">完整假日（平日/假日/節慶日）</option>
+              <option value="無假日">無假日（統一費率）</option>
             </select>
           </div>
           
           <div class="form-group-modern">
             <label for="global_grace">
-              <i class="fas fa-gift me-2"></i>全域免費時間（分鐘）
+              <i class="fas fa-gift me-2"></i>全域寬限時間（分鐘）
             </label>
             <input id="global_grace" type="number" class="form-control-modern" value="0" min="0" max="120" />
             <span class="form-help-text">首次進場免費時長，0 表示無免費時段</span>
@@ -102,9 +101,6 @@
           <div class="d-flex gap-2 flex-wrap">
             <button class="btn-modern btn-outline btn-sm" onclick="triggerImport()">
               <i class="fas fa-file-import"></i> 匯入
-            </button>
-            <button class="btn-modern btn-outline btn-sm" onclick="exportAllUserPlans()">
-              <i class="fas fa-file-archive"></i> 整包匯出
             </button>
             <button class="btn-modern btn-error btn-sm" onclick="confirmDelete()">
               <i class="fas fa-trash"></i> 刪除
@@ -210,6 +206,8 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<script src="/static/js/plan-designer-core.js"></script>
+<script src="/static/js/preview-result.js"></script>
     <script>
   // 內部狀態
   let segments = [ {name:'日間', start:'08:00', end:'22:00'}, {name:'夜間', start:'22:00', end:'08:00'} ];
@@ -224,13 +222,6 @@
     renderMatrix();
   });
 
-  function currentCategories(){
-    const ht = document.getElementById('holiday_type').value;
-    if (ht === '無假日費率') return ['統一'];
-    if (ht === '國定假費率') return ['平日','週末','國定假日'];
-    return ['平日','週末'];
-  }
-
   function bindForm(){ /* 填基本欄位，留空即可 */ }
 
   async function loadTemplate(id){
@@ -244,15 +235,15 @@
   }
 
   function renderSegments(){
-    const t = document.getElementById('time_segment_type').value;
+    const t = document.getElementById('segment_type').value;
     const addBtn = document.getElementById('btnAddSeg');
     const valBtn = document.getElementById('btnValidateSegs');
     const fullInfo = document.getElementById('fullDayInfo');
-    if (t === '一段'){
+    if (t === '全天'){
       if (addBtn) addBtn.style.display = 'none';
       if (valBtn) valBtn.style.display = 'none';
       if (fullInfo) fullInfo.style.display = 'block';
-    } else if (t === '兩段' || t === '三段') {
+    } else if (t === '二段' || t === '三段') {
       if (addBtn) addBtn.style.display = 'none';
       if (valBtn) valBtn.style.display = '';
       if (fullInfo) fullInfo.style.display = 'none';
@@ -265,7 +256,7 @@
     body.innerHTML = '';
     segments.forEach((s, i)=>{
       const tr = document.createElement('tr');
-      const showDelete = (t === '自訂');
+      const showDelete = (t === '多時段');
       const nameInput = `<input class="form-control form-control-sm" value="${escapeHtml(s.name)}" oninput="segEdit(${i},'name',this.value)"/>`;
       const startInput = `<input class="form-control form-control-sm" value="${escapeHtml(s.start)}" oninput="segEdit(${i},'start',this.value)" onchange="segTimeChange(${i},'start',this.value)" onblur="normalizeTime(this, ${i}, 'start')" placeholder="HH:MM"/>`;
       const endInput = `<input class="form-control form-control-sm" value="${escapeHtml(s.end)}" oninput="segEdit(${i},'end',this.value)" onchange="segTimeChange(${i},'end',this.value)" onblur="normalizeTime(this, ${i}, 'end')" placeholder="HH:MM"/>`;
@@ -278,15 +269,11 @@
       body.appendChild(tr);
     });
   }
-  function segEdit(i,k,v){ segments[i] = {...segments[i],[k]:v}; renderMatrix(); }
-  function segRemove(i){ segments.splice(i,1); renderSegments(); renderMatrix(); }
-  function addSegment(){ segments.push({name:'新時段', start:'09:00', end:'18:00'}); renderSegments(); renderMatrix(); }
-
   function onTypeChange(){
-    const t = document.getElementById('time_segment_type').value;
-    if (t === '一段') {
+    const t = document.getElementById('segment_type').value;
+    if (t === '全天') {
       segments = [{name:'全天', start:'00:00', end:'24:00'}];
-    } else if (t === '兩段') {
+    } else if (t === '二段') {
       segments = [{name:'日間', start:'08:00', end:'22:00'},{name:'夜間', start:'22:00', end:'08:00'}];
     } else if (t === '三段') {
       segments = [
@@ -294,7 +281,7 @@
         {name:'日間', start:'12:00', end:'20:00'},
         {name:'夜間', start:'20:00', end:'07:00'}
       ];
-    } else if (t === '四段') {
+    } else if (t === '多時段') {
       segments = [
         {name:'凌晨', start:'00:00', end:'06:00'},
         {name:'上午', start:'06:00', end:'12:00'},
@@ -310,8 +297,8 @@
 
   function segTimeChange(index, field, value){
     segments[index] = { ...segments[index], [field]: value };
-    const t = document.getElementById('time_segment_type').value;
-    if (t === '兩段' || t === '三段'){
+    const t = document.getElementById('segment_type').value;
+    if (t === '二段' || t === '三段'){
       if (field === 'end'){
         const next = (index + 1) % segments.length;
         segments[next] = { ...segments[next], start: value };
@@ -322,21 +309,6 @@
     }
     renderSegments();
     renderMatrix();
-  }
-
-  async function validateSegments(){
-    const t = document.getElementById('time_segment_type').value;
-    if (t === '一段') { alert('全天模式不需驗證'); return; }
-    try{
-      const resp = await fetch('/api/enhanced/segments/validate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({segments})});
-      const data = await resp.json();
-      if (data.success){
-        if (data.total_minutes === 1440) alert('✅ 驗證成功：完整覆蓋 24 小時');
-        else alert('⚠️ 覆蓋不足：目前 ' + data.total_minutes + ' 分鐘');
-        } else {
-        alert('❌ 驗證失敗：' + (data.message || '未知錯誤'));
-      }
-    }catch(e){ alert('驗證錯誤：' + (e.message || e)); }
   }
 
   function normalizeTime(inputEl, index, field){
@@ -372,43 +344,21 @@
     }catch(e){}
   }
 
-  function renderMatrix(){
-    const cats = currentCategories();
-    const host = document.getElementById('matrixHost');
-    let html = '<table class="table table-bordered table-sm align-middle"><thead><tr><th>日期類別 \\ 時段</th>';
-    segments.forEach(seg=>{ html += `<th>${escapeHtml(seg.name)}<br/><small>${escapeHtml(seg.start)}-${escapeHtml(seg.end)}</small></th>`; });
-    html += '</tr></thead><tbody>';
-    cats.forEach(cat=>{
-      html += `<tr><th style="white-space:nowrap">${cat}</th>`;
-      segments.forEach(seg=>{
-        const key = `${seg.name}_${cat}`;
-        const cell = matrix[key] || {unit:60, rate:0, grace:0, capEnabled:false, capAmount:0};
-        html += `<td>
-          <div class="row gx-1 gy-1">
-            <div class="col-6"><input class="form-control form-control-sm" type="number" min="1" value="${cell.unit}" onchange="setCell('${escapeAttr(key)}','unit',this.value)"><small class="text-muted">單位(分)</small></div>
-            <div class="col-6"><input class="form-control form-control-sm" type="number" min="0" value="${cell.rate}" onchange="setCell('${escapeAttr(key)}','rate',this.value)"><small class="text-muted">單價(元)</small></div>
-            <div class="col-6"><input class="form-control form-control-sm" type="number" min="0" value="${cell.grace}" onchange="setCell('${escapeAttr(key)}','grace',this.value)"><small class="text-muted">免費(分)</small></div>
-            <div class="col-6"><div class="input-group input-group-sm"><span class="input-group-text">上限</span><input class="form-control" type="number" min="0" value="${cell.capAmount}" onchange="setCell('${escapeAttr(key)}','capAmount',this.value)"><span class="input-group-text"><input type="checkbox" ${cell.capEnabled?'checked':''} onclick="setCell('${escapeAttr(key)}','capEnabled',this.checked)"></span></div></div>
-              </div>
-        </td>`;
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-    host.innerHTML = html;
+  function normalizeSegmentType(val){
+    const map = { '一段':'全天', '兩段':'二段', '四段':'多時段', '自訂':'多時段' };
+    return map[val] || val || '二段';
   }
-  function setCell(key, field, val){
-    const cur = matrix[key] || {unit:60, rate:0, grace:0, capEnabled:false, capAmount:0};
-    if (field==='unit' || field==='rate' || field==='grace' || field==='capAmount') val = parseInt(val)||0;
-    matrix[key] = {...cur, [field]: val};
+  function normalizeHolidayType(val){
+    const map = { '無假日費率':'無假日', '六日費率':'平日假日', '國定假費率':'完整假日' };
+    return map[val] || val || '平日假日';
   }
 
   function populateFromTemplateObject(tpl){
     document.getElementById('template_id').value = tpl.template_id||'';
     document.getElementById('label').value = tpl.label||'';
     document.getElementById('description').value = tpl.description||'';
-    document.getElementById('time_segment_type').value = tpl.time_segment_type||'兩段';
-    document.getElementById('holiday_type').value = tpl.holiday_type||'六日費率';
+    document.getElementById('segment_type').value = normalizeSegmentType(tpl.segment_type || tpl.time_segment_type);
+    document.getElementById('holiday_type').value = normalizeHolidayType(tpl.holiday_type);
     document.getElementById('global_grace').value = (tpl.weekday_plan?.global_grace_time) || (tpl.unified_plan?.global_grace_time) || 0;
 
     const cats = currentCategories();
@@ -419,8 +369,8 @@
     const planByCat = {
       '統一': tpl.unified_plan,
       '平日': tpl.weekday_plan,
-      '週末': tpl.weekend_plan,
-      '國定假日': tpl.national_holiday_plan,
+      '假日': tpl.weekend_plan || tpl.custom_holiday_plan,
+      '節慶日': tpl.national_holiday_plan || tpl.custom_holiday_plan,
     };
     cats.forEach(cat=>{
       const plan = planByCat[cat]||{};
@@ -441,126 +391,10 @@
     if (f) f.click();
   }
 
-  function legacyImportTemplateFromFile(evt){
-    try{
-      const file = evt.target.files && evt.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        try{
-          const raw = JSON.parse(reader.result);
-          if (!raw || typeof raw !== 'object') return showMsg('danger','匯入失敗：格式不正確');
-
-          // 兼容舊版 user_defined_plans.json 單檔或單一方案 JSON
-          if (raw && raw.plans && typeof raw.plans === 'object'){
-            const ids = Object.keys(raw.plans);
-            if (ids.length === 0) return showMsg('danger','檔案中沒有任何方案');
-            const plan = raw.plans[ids[0]];
-            const converted = archivedLegacyPlanToMDP(plan);
-            if (!converted) return showMsg('danger','無法從舊方案轉換');
-            populateFromTemplateObject(converted);
-          } else if (raw && raw.segment_type && raw.rate_matrix) {
-            // 舊版單一方案 JSON（非整包）
-            const converted = archivedLegacyPlanToMDP(raw);
-            if (!converted) return showMsg('danger','無法從舊方案轉換');
-            populateFromTemplateObject(converted);
-          } else {
-            // 視為新多維度模板
-            populateFromTemplateObject(raw);
-          }
-        }catch(e){ showMsg('danger','匯入失敗：' + (e.message||e)); }
-      };
-      reader.readAsText(file, 'utf-8');
-    }finally{
-      evt.target.value = '';
-    }
-  }
-
-  function archivedLegacyPlanToMDP(legacy){
-    try{
-      const name = legacy.name || legacy.template_id || '匯入方案';
-      const segTypeLegacy = legacy.segment_type || '二段';
-      const segTypeMap = { '全天':'一段', '二段':'兩段', '三段':'三段', '四段':'四段', '任意段':'自訂' };
-      const time_segment_type = segTypeMap[segTypeLegacy] || '兩段';
-
-      const holLegacy = legacy.holiday_type || '平日假日';
-      const holMap = { '無假日':'無假日費率', '平日假日':'六日費率', '完整假日':'國定假費率' };
-      const holiday_type = holMap[holLegacy] || '六日費率';
-
-      const segments = Array.isArray(legacy.segments) ? legacy.segments : [];
-      const rate_matrix = legacy.rate_matrix || {};
-      const gc = legacy.global_caps || {};
-      const global_grace_time = parseInt(gc.global_grace_time || 0);
-
-      const catKeys = holiday_type === '無假日費率'
-        ? ['統一']
-        : (holiday_type === '國定假費率' ? ['平日','週末','國定假日'] : ['平日','週末']);
-
-      function mapCat(old){ return old === '假日' ? '週末' : (old === '節慶日' ? '國定假日' : old); }
-
-      const planByCat = {};
-      catKeys.forEach(cat=>{
-        const time_slots = segments.map(seg=>{
-          const key = `${seg.name}_${cat}`;
-          // 也嘗試舊鍵名
-          const fallbackKey = `${seg.name}_${cat === '週末' ? '假日' : (cat === '國定假日' ? '節慶日' : cat)}`;
-          const cell = rate_matrix[key] || rate_matrix[fallbackKey] || {};
-          const unit = parseInt(cell.unit_time || cell.unit || 60) || 60;
-          const simple = parseInt(cell.simple_rate || cell.rate || 0) || 0;
-          const grace = parseInt(cell.grace_time || cell.grace || 0) || 0;
-          const capEnabled = !!(cell.segment_cap_enabled || cell.capEnabled);
-          const capAmount = parseInt(cell.segment_cap_amount || cell.capAmount || 0) || 0;
-          const progEnabled = !!cell.progressive_enabled;
-          const progRates = Array.isArray(cell.progressive_rates) ? cell.progressive_rates.map(r=>({
-            start_min: parseInt(r.start_min || 0) || 0,
-            end_min: (r.end_min == null ? null : parseInt(r.end_min)),
-            unit_minutes: parseInt(r.unit || r.unit_minutes || unit) || unit,
-            unit_price: parseInt(r.rate || 0) || 0,
-          })) : [];
-          return {
-            label: seg.name,
-            start: seg.start,
-            end: seg.end,
-            unit_minutes: unit,
-            default_unit_price: simple,
-            grace_minutes: grace,
-            grace_enabled: grace > 0,
-            cap_enabled: capEnabled,
-            cap_amount: capAmount,
-            progressive_enabled: progEnabled && progRates.length>0,
-            progressive_rates: progRates,
-          };
-        });
-        planByCat[cat] = { time_slots, global_grace_time };
-      });
-
-      const tpl = {
-        template_id: (name || 'template').replace(/\s+/g,'_'),
-        label: name,
-        description: legacy.description || '',
-        time_segment_type,
-        holiday_type,
-      };
-      if (holiday_type === '無假日費率') tpl.unified_plan = planByCat['統一'];
-      else if (holiday_type === '國定假費率') { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; tpl.national_holiday_plan = planByCat['國定假日']; }
-      else { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; }
-
-      return tpl;
-    }catch(e){ console.error('archivedLegacyPlanToMDP error:', e); return null; }
-  }
-
-  function legacyExportAllUserPlans(){
-    try{
-      showMsg('warning','舊版整包匯出已停用，請改用目前模板的下載或複製功能。');
-    }catch(e){
-      showMsg('danger','整包匯出失敗');
-    }
-  }
-
   function isMDPTemplatePayload(raw){
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
     const hasPlanContent = !!(raw.unified_plan || raw.weekday_plan || raw.weekend_plan || raw.national_holiday_plan);
-    return !!raw.template_id && !!raw.label && !!raw.time_segment_type && !!raw.holiday_type && hasPlanContent;
+    return !!raw.template_id && !!raw.label && !!(raw.segment_type || raw.time_segment_type) && !!raw.holiday_type && hasPlanContent;
   }
 
   function importTemplateFromFile(evt){
@@ -586,10 +420,6 @@
     }
   }
 
-  function exportAllUserPlans(){
-    showMsg('warning','舊版整包匯出已停用，請改用目前模板的下載或複製功能。');
-  }
-
   async function previewInline(){
     const enter = document.getElementById('preview_enter').value;
     const exit = document.getElementById('preview_exit').value;
@@ -602,7 +432,7 @@
       const data = await resp.json();
       if (!data.success){ box.className='alert alert-danger'; box.textContent = data.message || data.error || '試算失敗'; box.style.display='block'; return; }
       box.className='alert alert-success';
-      box.innerHTML = `<strong>成功</strong> 合計：${data.total_amount} 元　時長：${data.total_duration_display || ''}`;
+      box.innerHTML = renderPreviewDetails(data);
       box.style.display='block';
     }catch(e){ box.className='alert alert-danger'; box.textContent='請求失敗'; box.style.display='block'; }
   }
@@ -612,7 +442,7 @@
     const tpl_id = (document.getElementById('template_id').value||'').trim();
     const label = (document.getElementById('label').value||'').trim();
     const desc = (document.getElementById('description').value||'').trim();
-    const tseg = document.getElementById('time_segment_type').value;
+    const tseg = document.getElementById('segment_type').value;
     const htyp = document.getElementById('holiday_type').value;
     const gGrace = parseInt(document.getElementById('global_grace').value)||0;
     const cats = currentCategories();
@@ -635,12 +465,19 @@
       template_id: tpl_id || label.replace(/\s+/g,'_') || 'template_'+Date.now(),
       label: label || tpl_id || '未命名',
       description: desc,
-      time_segment_type: tseg,
+      segment_type: tseg,
       holiday_type: htyp,
     };
-    if (htyp==='無假日費率') tpl.unified_plan = planByCat['統一'];
-    else if (htyp==='國定假費率') { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; tpl.national_holiday_plan = planByCat['國定假日']; }
-    else { tpl.weekday_plan = planByCat['平日']; tpl.weekend_plan = planByCat['週末']; }
+    if (htyp==='無假日') tpl.unified_plan = planByCat['統一'];
+    else if (htyp==='完整假日') {
+      tpl.weekday_plan = planByCat['平日'];
+      tpl.weekend_plan = planByCat['假日'];
+      tpl.national_holiday_plan = planByCat['節慶日'];
+      tpl.custom_holiday_plan = planByCat['節慶日'];
+    } else {
+      tpl.weekday_plan = planByCat['平日'];
+      tpl.weekend_plan = planByCat['假日'];
+    }
     return tpl;
   }
 
@@ -675,7 +512,5 @@
   }
 
   function showMsg(type, text){ const el = document.getElementById('msg'); el.className = `mt-2 small text-${type==='success'?'success':'danger'}`; el.textContent = text; setTimeout(()=>{ el.textContent=''; }, 3000); }
-  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
-  function escapeAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
 </script>
 {% endblock %}

@@ -1,10 +1,23 @@
 from flask import Blueprint, jsonify, request
 
 from src.core.context import parking_system
+from src.core.paths import resolve_data_dir
+from src.core.version import get_version
 from src.web.utils import error_response
 
 
 system_bp = Blueprint("system_bp", __name__)
+
+
+@system_bp.route("/api/system/version", methods=["GET"])
+def api_system_version():
+    return jsonify(
+        {
+            "success": True,
+            "version": get_version(),
+            "data_dir": str(resolve_data_dir()),
+        }
+    )
 
 
 @system_bp.route("/api/system/config", methods=["GET", "POST"])

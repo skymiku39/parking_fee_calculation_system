@@ -1,16 +1,24 @@
 {% extends "layout/base.html" %}
-{% block title %}方案管理 - 智能停車系統{% endblock %}
+{% block title %}方案管理 - 智能停車費率計算系統{% endblock %}
 {% block page_title %}<i class="fas fa-folder-tree me-2"></i> 方案管理{% endblock %}
 {% block content %}
 <div class="container-fluid">
   <!-- 頂部工具列 -->
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div class="d-flex gap-2 flex-wrap">
-      <button class="btn-modern btn-gradient-primary" onclick="goDesigner()">
-        <i class="fas fa-plus"></i> 新增方案
-      </button>
+      <div class="btn-group">
+        <button class="btn-modern btn-gradient-primary" onclick="goMdpDesigner()">
+          <i class="fas fa-plus"></i> 新增 MDP 模板
+        </button>
+        <button class="btn-modern btn-outline" onclick="goUserDesigner()">
+          <i class="fas fa-plus"></i> 新增自訂方案
+        </button>
+      </div>
       <button class="btn-modern btn-outline" onclick="exportAll()">
-        <i class="fas fa-download"></i> 匯出全部
+        <i class="fas fa-download"></i> 匯出 MDP
+      </button>
+      <button class="btn-modern btn-outline" onclick="exportUserPlans()">
+        <i class="fas fa-download"></i> 匯出自訂方案
       </button>
       <button class="btn-modern btn-outline" onclick="refreshList()">
         <i class="fas fa-sync-alt"></i> 重新整理
@@ -42,8 +50,8 @@
       </div>
       <div class="empty-state-title">尚無費率方案</div>
       <div class="empty-state-description">建立您的第一個停車費率方案</div>
-      <button class="btn-modern btn-gradient-primary btn-lg mt-3" onclick="goDesigner()">
-        <i class="fas fa-plus"></i> 新增方案
+      <button class="btn-modern btn-gradient-primary btn-lg mt-3" onclick="goUserDesigner()">
+        <i class="fas fa-plus"></i> 新增自訂方案
       </button>
     </div>
   </div>
@@ -148,6 +156,7 @@
 {% block scripts %}
 <script>
   let templates = [];
+  let userPlans = [];
 
   document.addEventListener('DOMContentLoaded', () => {
     loadTemplates();
@@ -156,21 +165,30 @@
 
   async function loadTemplates() {
     try {
-      // 顯示載入骨架屏
       document.getElementById('loadingSkeletons').style.display = 'flex';
       document.getElementById('plansGrid').style.display = 'none';
       document.getElementById('emptyState').style.display = 'none';
 
-      const resp = await fetch('/api/mdp/templates');
-      const data = await resp.json();
-      
-      if (data.success) {
-        templates = data.templates || [];
-        renderCards();
+      const [mdpResp, userResp] = await Promise.all([
+        fetch('/api/mdp/templates'),
+        fetch('/api/rate_plans?all=1')
+      ]);
+      const mdpData = await mdpResp.json();
+      const userData = await userResp.json();
+
+      if (mdpData.success) {
+        templates = (mdpData.templates || []).map(t => ({ ...t, plan_kind: 'mdp' }));
       } else {
-        window.notify.error('載入失敗：' + (data.message || data.error || '未知錯誤'));
-        showEmptyState();
+        templates = [];
       }
+
+      if (userData.success) {
+        userPlans = (userData.plans || []).map(p => ({ ...p, plan_kind: 'user_defined' }));
+      } else {
+        userPlans = [];
+      }
+
+      renderCards();
     } catch (e) {
       console.error('Load error:', e);
       window.notify.error('載入失敗：' + (e.message || e));
@@ -180,32 +198,56 @@
 
   function renderCards() {
     const q = (document.getElementById('searchBox').value || '').toLowerCase();
-    const filteredTemplates = (templates || []).filter(t => {
-      const id = (t.template_id || '').toLowerCase();
-      const label = (t.label || '').toLowerCase();
+    const allPlans = [
+      ...templates.map(t => ({
+        kind: 'mdp',
+        id: t.template_id,
+        label: t.label,
+        segment_type: t.segment_type || t.time_segment_type,
+        time_segment_type: t.segment_type || t.time_segment_type,
+        holiday_type: t.holiday_type,
+        featured: false
+      })),
+      ...userPlans.map(p => ({
+        kind: 'user_defined',
+        id: p.plan_id || p.rate_plan_id,
+        label: p.label,
+        segment_type: p.segment_type,
+        time_segment_type: p.segment_type,
+        holiday_type: p.holiday_type,
+        featured: !!p.featured
+      }))
+    ];
+
+    const filteredPlans = allPlans.filter(p => {
+      const id = (p.id || '').toLowerCase();
+      const label = (p.label || '').toLowerCase();
       return !q || id.includes(q) || label.includes(q);
     });
 
-    // 隱藏載入中
     document.getElementById('loadingSkeletons').style.display = 'none';
-    
-    if (filteredTemplates.length === 0) {
+
+    if (filteredPlans.length === 0) {
       showEmptyState();
       return;
     }
 
-    // 顯示卡片網格
     document.getElementById('emptyState').style.display = 'none';
     document.getElementById('plansGrid').style.display = 'flex';
-    
-    const cards = filteredTemplates.map(t => createPlanCard(t)).join('');
+
+    const cards = filteredPlans.map(p => createPlanCard(p)).join('');
     document.getElementById('plansGrid').innerHTML = cards;
   }
 
   function createPlanCard(plan) {
-    const timeSegments = getTimeSegmentBadge(plan.time_segment_type);
+    const isUser = plan.kind === 'user_defined';
+    const timeSegments = getTimeSegmentBadge(plan.segment_type || plan.time_segment_type);
     const holidayType = getHolidayTypeBadge(plan.holiday_type);
-    
+    const kindBadge = isUser
+      ? '<span class="plan-stat-badge"><i class="fas fa-user-edit"></i> 自訂</span>'
+      : '<span class="plan-stat-badge"><i class="fas fa-cube"></i> MDP</span>';
+    const featuredBadge = plan.featured ? '<span class="plan-stat-badge"><i class="fas fa-star"></i> 精選</span>' : '';
+
     return `
       <div class="col-md-6 col-lg-4 fade-in">
         <div class="card-modern plan-card">
@@ -215,9 +257,11 @@
               <span>${escapeHtml(plan.label || '未命名方案')}</span>
             </div>
             <div class="plan-card-id">
-              <i class="fas fa-hashtag"></i> ${escapeHtml(plan.template_id || '')}
+              <i class="fas fa-hashtag"></i> ${escapeHtml(plan.id || '')}
             </div>
             <div class="plan-stats">
+              ${kindBadge}
+              ${featuredBadge}
               ${timeSegments}
               ${holidayType}
             </div>
@@ -225,27 +269,22 @@
           <div class="plan-card-body">
             <div class="plan-info-grid">
               <div class="plan-info-item">
-                <span class="plan-info-label">
-                  <i class="fas fa-clock"></i> 時段類型
-                </span>
-                <span class="plan-info-value">${escapeHtml(plan.time_segment_type || '-')}</span>
+                <span class="plan-info-label"><i class="fas fa-clock"></i> 時段類型</span>
+                <span class="plan-info-value">${escapeHtml(plan.segment_type || plan.time_segment_type || '-')}</span>
               </div>
               <div class="plan-info-item">
-                <span class="plan-info-label">
-                  <i class="fas fa-calendar"></i> 假日類型
-                </span>
+                <span class="plan-info-label"><i class="fas fa-calendar"></i> 假日類型</span>
                 <span class="plan-info-value">${escapeHtml(plan.holiday_type || '-')}</span>
               </div>
             </div>
-            
             <div class="plan-actions">
-              <button class="btn-modern btn-gradient-primary btn-sm" onclick="editTemplate('${encodeURIComponent(plan.template_id)}')">
+              <button class="btn-modern btn-gradient-primary btn-sm" onclick="editPlan('${encodeURIComponent(plan.id)}', '${plan.kind}')">
                 <i class="fas fa-pen"></i> 編輯
               </button>
-              <button class="btn-modern btn-outline btn-sm" onclick="downloadTemplate('${encodeURIComponent(plan.template_id)}')">
+              <button class="btn-modern btn-outline btn-sm" onclick="downloadPlan('${encodeURIComponent(plan.id)}', '${plan.kind}')">
                 <i class="fas fa-download"></i> 下載
               </button>
-              <button class="btn-modern btn-error btn-sm" onclick="confirmDelete('${encodeURIComponent(plan.template_id)}', '${escapeHtml(plan.label)}')">
+              <button class="btn-modern btn-error btn-sm" onclick="confirmDeletePlan('${encodeURIComponent(plan.id)}', '${escapeHtml(plan.label)}', '${plan.kind}')">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
@@ -257,10 +296,10 @@
 
   function getTimeSegmentBadge(type) {
     const icons = {
-      '一段': 'fa-circle',
-      '兩段': 'fa-adjust',
+      '一段': 'fa-circle', '全天': 'fa-circle',
+      '兩段': 'fa-adjust', '二段': 'fa-adjust',
       '三段': 'fa-align-center',
-      '四段': 'fa-bars',
+      '四段': 'fa-bars', '多時段': 'fa-bars', '任意段': 'fa-bars',
       '自訂': 'fa-sliders-h'
     };
     const icon = icons[type] || 'fa-clock';
@@ -269,9 +308,9 @@
 
   function getHolidayTypeBadge(type) {
     const icons = {
-      '六日費率': 'fa-calendar-week',
-      '國定假費率': 'fa-calendar-check',
-      '無假日費率': 'fa-calendar'
+      '六日費率': 'fa-calendar-week', '平日假日': 'fa-calendar-week',
+      '國定假費率': 'fa-calendar-check', '完整假日': 'fa-calendar-check',
+      '無假日費率': 'fa-calendar', '無假日': 'fa-calendar'
     };
     const icon = icons[type] || 'fa-calendar';
     return `<span class="plan-stat-badge"><i class="fas ${icon}"></i> ${type || '-'}</span>`;
@@ -287,17 +326,42 @@
     loadTemplates();
   }
 
-  function goDesigner() {
+  function goMdpDesigner() {
     window.location.href = '/rate_plan_designer';
+  }
+
+  function goUserDesigner() {
+    window.location.href = '/user_plan_designer';
   }
 
   function exportAll() {
     window.open('/api/mdp/export', '_blank');
   }
 
-  async function downloadTemplate(idEnc) {
+  function exportUserPlans() {
+    window.open('/api/rate_plans/export', '_blank');
+  }
+
+  async function downloadPlan(idEnc, kind) {
     const id = decodeURIComponent(idEnc);
     try {
+      if (kind === 'user_defined') {
+        const resp = await fetch(`/api/rate_plans/load/${encodeURIComponent(id)}`);
+        const data = await resp.json();
+        if (!data.success) return alert('下載失敗：' + (data.message || data.error || '未知錯誤'));
+        const plan = data.plan || {};
+        const fname = (plan.name || id) + '.json';
+        const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fname;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        return;
+      }
       const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`);
       const data = await resp.json();
       if (!data.success) return alert('下載失敗：' + (data.message || data.error || '未知錯誤'));
@@ -317,24 +381,31 @@
     }
   }
 
-  function confirmDelete(idEnc, planName) {
+  function confirmDeletePlan(idEnc, planName, kind) {
     const id = decodeURIComponent(idEnc);
     window.notify.confirm(
       `確定要刪除方案「${planName}」嗎？此操作無法復原。`,
-      () => deleteTemplate(id),
+      () => deletePlan(id, kind),
       null
     );
   }
 
-  async function deleteTemplate(id) {
+  async function deletePlan(id, kind) {
     const loadingToast = window.notify.loading('刪除中...');
     try {
-      const resp = await fetch(`/api/mdp/templates/${encodeURIComponent(id)}`, {method:'DELETE'});
+      const url = kind === 'user_defined'
+        ? `/api/rate_plans/${encodeURIComponent(id)}`
+        : `/api/mdp/templates/${encodeURIComponent(id)}`;
+      const resp = await fetch(url, { method: 'DELETE' });
       const data = await resp.json();
       loadingToast.close();
-      
+
       if (data.success) {
-        templates = templates.filter(t => t.template_id !== id);
+        if (kind === 'user_defined') {
+          userPlans = userPlans.filter(p => (p.plan_id || p.rate_plan_id) !== id);
+        } else {
+          templates = templates.filter(t => t.template_id !== id);
+        }
         renderCards();
         window.notify.success('方案已刪除');
       } else {
@@ -346,9 +417,13 @@
     }
   }
 
-  function editTemplate(idEnc) {
+  function editPlan(idEnc, kind) {
     const id = decodeURIComponent(idEnc);
-    window.location.href = `/rate_plan_designer?template_id=${encodeURIComponent(id)}`;
+    if (kind === 'user_defined') {
+      window.location.href = `/user_plan_designer?plan_id=${encodeURIComponent(id)}`;
+    } else {
+      window.location.href = `/rate_plan_designer?template_id=${encodeURIComponent(id)}`;
+    }
   }
 
   function escapeHtml(s){
