@@ -10,6 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from src.core.validation import ConfigValidationError, validate_plan_v2_json
 from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
 from src.domain.multidimensional_calculator import MultidimensionalParkingCalculator
 
@@ -168,6 +169,7 @@ class TestUnifiedPricingEngineDailyCap:
               "daily_cap_enabled": True,
               "daily_cap_amount": 150,
               "global_grace_time": 0,
+              "cap_priority": "segment",
           },
       }
       enter = datetime(2025, 6, 20, 7, 0)
@@ -178,6 +180,115 @@ class TestUnifiedPricingEngineDailyCap:
       assert result.success is True
       assert result.total_amount == 150
       assert result.original_amount == 480
+      assert _session_fee_sum(result) == result.total_amount
+
+  def test_cap_priority_daily_matches_segment_for_dual_caps(self):
+      engine = UnifiedPricingEngine()
+      base_plan = {
+          "segments": [
+              {"name": "日間", "start": "07:00", "end": "18:00"},
+              {"name": "夜間", "start": "18:00", "end": "07:00"},
+          ],
+          "rate_matrix": {
+              "日間_統一": {
+                  "unit_time": 60,
+                  "simple_rate": 30,
+                  "grace_time": 0,
+                  "progressive_enabled": False,
+                  "progressive_rates": [],
+                  "segment_cap_enabled": True,
+                  "segment_cap_amount": 100,
+              },
+              "夜間_統一": {
+                  "unit_time": 60,
+                  "simple_rate": 30,
+                  "grace_time": 0,
+                  "progressive_enabled": False,
+                  "progressive_rates": [],
+                  "segment_cap_enabled": True,
+                  "segment_cap_amount": 100,
+              },
+          },
+      }
+      enter = datetime(2025, 6, 20, 7, 0)
+      exit = datetime(2025, 6, 20, 23, 0)
+
+      seg_result = engine.calculate(
+          enter,
+          exit,
+          {
+              **base_plan,
+              "global_caps": {
+                  "daily_cap_enabled": True,
+                  "daily_cap_amount": 150,
+                  "global_grace_time": 0,
+                  "cap_priority": "segment",
+              },
+          },
+          lambda _dt: "統一",
+      )
+      daily_result = engine.calculate(
+          enter,
+          exit,
+          {
+              **base_plan,
+              "global_caps": {
+                  "daily_cap_enabled": True,
+                  "daily_cap_amount": 150,
+                  "global_grace_time": 0,
+                  "cap_priority": "daily",
+              },
+          },
+          lambda _dt: "統一",
+      )
+
+      assert seg_result.total_amount == 150
+      assert daily_result.total_amount == 100
+
+  def test_daily_caps_by_category_weekday_vs_holiday(self):
+      engine = UnifiedPricingEngine()
+      plan = {
+          "segments": [{"name": "全天", "start": "00:00", "end": "24:00"}],
+          "rate_matrix": {
+              "全天_平日": {
+                  "unit_time": 60,
+                  "simple_rate": 30,
+                  "grace_time": 0,
+                  "progressive_enabled": False,
+                  "progressive_rates": [],
+                  "segment_cap_enabled": False,
+                  "segment_cap_amount": 0,
+              },
+              "全天_假日": {
+                  "unit_time": 60,
+                  "simple_rate": 30,
+                  "grace_time": 0,
+                  "progressive_enabled": False,
+                  "progressive_rates": [],
+                  "segment_cap_enabled": False,
+                  "segment_cap_amount": 0,
+              },
+          },
+          "global_caps": {
+              "daily_cap_enabled": True,
+              "daily_cap_amount": 200,
+              "global_grace_time": 0,
+              "daily_caps_by_category": {
+                  "平日": {"daily_cap_enabled": True, "daily_cap_amount": 200},
+                  "假日": {"daily_cap_enabled": True, "daily_cap_amount": 300},
+              },
+          },
+      }
+      enter = datetime(2025, 6, 20, 0, 0)
+      exit = datetime(2025, 6, 22, 0, 0)
+
+      def resolver(dt):
+          return "假日" if dt.weekday() >= 5 else "平日"
+
+      result = engine.calculate(enter, exit, plan, resolver)
+
+      assert result.success is True
+      assert result.total_amount == 500  # 平日 200 + 假日 300
       assert _session_fee_sum(result) == result.total_amount
 
   def test_mdp_all_day_cross_midnight_daily_cap(self):
@@ -245,6 +356,29 @@ def test_user_defined_plan_daily_cap_via_api(isolated_client):
     assert payload["cap_applied"] is True
     detail_sum = sum(s.get("amount", 0) for s in payload.get("session_details", []))
     assert detail_sum == payload["total_amount"]
+
+
+def test_reject_removed_plan_fields():
+    with pytest.raises(ConfigValidationError, match="unit_pivot"):
+        validate_plan_v2_json(
+            {
+                "name": "x",
+                "segment_type": "全天",
+                "holiday_type": "無假日",
+                "segments": [{"name": "全天", "start": "00:00", "end": "24:00"}],
+                "unit_pivot": "start",
+            }
+        )
+    with pytest.raises(ConfigValidationError, match="segment_caps_enabled"):
+        validate_plan_v2_json(
+            {
+                "name": "x",
+                "segment_type": "全天",
+                "holiday_type": "無假日",
+                "segments": [{"name": "全天", "start": "00:00", "end": "24:00"}],
+                "global_caps": {"segment_caps_enabled": True},
+            }
+        )
 
 
 def test_user_defined_two_segment_daily_cap_cross_day_via_api(isolated_client):

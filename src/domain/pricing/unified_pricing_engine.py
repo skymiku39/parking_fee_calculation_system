@@ -24,6 +24,9 @@ class UnifiedPricingEngine:
     - 全域免費時間（global_grace_time）與時段免費時間（grace_time or grace_enabled/grace_minutes）
     - 區段上限（segment_cap_enabled / segment_cap_amount）每日累計
     - 全域每日上限（global_caps.daily_cap_enabled / daily_cap_amount）
+    - MDP 可依日期類別設定日上限（global_caps.daily_caps_by_category）
+    - 封頂順序由 global_caps.cap_priority 控制（segment|daily|lower|higher）
+    - 收費週期以進場時間對齊 unit_time 起點
     - 累進費率（progressive_enabled / progressive_rates）
 
     預期輸入 plan 結構（精簡）：
@@ -56,11 +59,19 @@ class UnifiedPricingEngine:
         return time(h, m)
 
     def _is_in_segment(self, t: time, seg: Dict[str, Any]) -> bool:
-        s = self._parse_hhmm(seg["start"])
-        e = self._parse_hhmm(seg["end"])
+        """半開區間 [start, end)：邊界時刻歸下一時段，避免四段相鄰邊界重疊。"""
+        start_str = seg["start"]
+        end_str = seg["end"]
+        if end_str == "24:00":
+            if start_str == "00:00":
+                return True
+            s = self._parse_hhmm(start_str)
+            return t >= s
+        s = self._parse_hhmm(start_str)
+        e = self._parse_hhmm(end_str)
         if s <= e:
-            return s <= t <= e
-        return t >= s or t <= e
+            return s <= t < e
+        return t >= s or t < e
 
     def _find_active_segment(self, dt: datetime, segments: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         for seg in segments:
@@ -71,17 +82,192 @@ class UnifiedPricingEngine:
     def _segment_key(self, seg_name: str, date_category: str) -> str:
         return f"{seg_name}_{date_category}"
 
+    def _resolve_daily_cap(
+        self, global_caps: Dict[str, Any], date_category: str
+    ) -> Tuple[bool, int]:
+        """依 date_category 解析日上限；支援 MDP 的 daily_caps_by_category。"""
+        by_cat = global_caps.get("daily_caps_by_category")
+        if by_cat:
+            cfg = by_cat.get(date_category)
+            if cfg is None:
+                for suffix in ("統一", "平日", "假日", "節慶日", "國定假日", "客製假日"):
+                    fb = by_cat.get(suffix)
+                    if fb is not None:
+                        cfg = fb
+                        break
+            if cfg is not None:
+                return (
+                    bool(cfg.get("daily_cap_enabled", False)),
+                    int(cfg.get("daily_cap_amount", 0) or 0),
+                )
+        return (
+            bool(global_caps.get("daily_cap_enabled", False)),
+            int(global_caps.get("daily_cap_amount", 0) or 0),
+        )
+
     def _resolve_rate_config(
         self, rate_matrix: Dict[str, Any], seg_name: str, date_category: str
     ) -> Tuple[str, Dict[str, Any]]:
         key = self._segment_key(seg_name, date_category)
         if key in rate_matrix:
             return key, rate_matrix[key]
-        for suffix in (date_category, "統一", "平日", "假日", "節慶日"):
+        for suffix in (
+            date_category,
+            "統一",
+            "平日",
+            "假日",
+            "節慶日",
+            "國定假日",
+            "客製假日",
+        ):
             fb_key = self._segment_key(seg_name, suffix)
             if fb_key in rate_matrix:
                 return fb_key, rate_matrix[fb_key]
         return key, {}
+
+    def _cap_priority(self, global_caps: Dict[str, Any]) -> str:
+        priority = global_caps.get("cap_priority") or "segment"
+        if priority not in ("daily", "segment", "lower", "higher"):
+            return "segment"
+        return priority
+
+    def _apply_segment_cap_fee(
+        self,
+        fee: int,
+        cap_acc: Dict[str, int],
+        seg_day_key: str,
+        cap_amount: int,
+    ) -> int:
+        acc = cap_acc.get(seg_day_key, 0)
+        if acc + fee > cap_amount:
+            fee = max(0, cap_amount - acc)
+        cap_acc[seg_day_key] = acc + fee
+        return fee
+
+    def _apply_daily_cap_fee(
+        self,
+        fee: int,
+        daily_cap_acc: Dict[str, int],
+        day_key: str,
+        cap_amount: int,
+    ) -> int:
+        acc = daily_cap_acc.get(day_key, 0)
+        if acc + fee > cap_amount:
+            fee = max(0, cap_amount - acc)
+        daily_cap_acc[day_key] = acc + fee
+        return fee
+
+    def _apply_caps_ordered(
+        self,
+        fee: int,
+        cap_acc: Dict[str, int],
+        daily_cap_acc: Dict[str, int],
+        seg_day_key: str,
+        day_key: str,
+        seg_cap_amount: int,
+        daily_cap_amount: int,
+        order: str,
+    ) -> int:
+        if order == "daily":
+            fee = self._apply_daily_cap_fee(fee, daily_cap_acc, day_key, daily_cap_amount)
+            fee = self._apply_segment_cap_fee(fee, cap_acc, seg_day_key, seg_cap_amount)
+        else:
+            fee = self._apply_segment_cap_fee(fee, cap_acc, seg_day_key, seg_cap_amount)
+            fee = self._apply_daily_cap_fee(fee, daily_cap_acc, day_key, daily_cap_amount)
+        return fee
+
+    def _simulate_caps_ordered(
+        self,
+        fee: int,
+        cap_acc: Dict[str, int],
+        daily_cap_acc: Dict[str, int],
+        seg_day_key: str,
+        day_key: str,
+        seg_cap_amount: int,
+        daily_cap_amount: int,
+        order: str,
+    ) -> int:
+        seg_acc = dict(cap_acc)
+        daily_acc = dict(daily_cap_acc)
+        return self._apply_caps_ordered(
+            fee,
+            seg_acc,
+            daily_acc,
+            seg_day_key,
+            day_key,
+            seg_cap_amount,
+            daily_cap_amount,
+            order,
+        )
+
+    def _apply_dual_caps(
+        self,
+        fee: int,
+        cap_acc: Dict[str, int],
+        daily_cap_acc: Dict[str, int],
+        seg_day_key: str,
+        day_key: str,
+        seg_cap_amount: int,
+        daily_cap_amount: int,
+        global_caps: Dict[str, Any],
+    ) -> int:
+        priority = self._cap_priority(global_caps)
+        if priority == "lower":
+            fee_sd = self._simulate_caps_ordered(
+                fee,
+                cap_acc,
+                daily_cap_acc,
+                seg_day_key,
+                day_key,
+                seg_cap_amount,
+                daily_cap_amount,
+                "segment",
+            )
+            fee_ds = self._simulate_caps_ordered(
+                fee,
+                cap_acc,
+                daily_cap_acc,
+                seg_day_key,
+                day_key,
+                seg_cap_amount,
+                daily_cap_amount,
+                "daily",
+            )
+            order = "segment" if fee_sd <= fee_ds else "daily"
+        elif priority == "higher":
+            fee_sd = self._simulate_caps_ordered(
+                fee,
+                cap_acc,
+                daily_cap_acc,
+                seg_day_key,
+                day_key,
+                seg_cap_amount,
+                daily_cap_amount,
+                "segment",
+            )
+            fee_ds = self._simulate_caps_ordered(
+                fee,
+                cap_acc,
+                daily_cap_acc,
+                seg_day_key,
+                day_key,
+                seg_cap_amount,
+                daily_cap_amount,
+                "daily",
+            )
+            order = "segment" if fee_sd >= fee_ds else "daily"
+        else:
+            order = priority
+        return self._apply_caps_ordered(
+            fee,
+            cap_acc,
+            daily_cap_acc,
+            seg_day_key,
+            day_key,
+            seg_cap_amount,
+            daily_cap_amount,
+            order,
+        )
 
     def _calc_progressive(self, minutes: int, rates: List[Dict[str, Any]], unit_time: int) -> int:
         """
@@ -129,8 +315,6 @@ class UnifiedPricingEngine:
             # 每日+時段累計 key
             cap_acc: Dict[str, int] = {}
             daily_cap_acc: Dict[str, int] = {}
-            daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", False))
-            daily_cap_amount = int(global_caps.get("daily_cap_amount", 0) or 0)
             is_daily_capped = False
 
             while current < exit_time:
@@ -169,22 +353,39 @@ class UnifiedPricingEngine:
 
                 original_fee += fee
 
-                # 區段上限（每日累計）
-                if cfg.get("segment_cap_enabled") and int(cfg.get("segment_cap_amount") or 0) > 0:
-                    day_key = f"{current.date()}_{seg['name']}_{date_category}"
-                    acc = cap_acc.get(day_key, 0)
-                    cap_amount = int(cfg.get("segment_cap_amount") or 0)
-                    if acc + fee > cap_amount:
-                        fee = max(0, cap_amount - acc)
-                    cap_acc[day_key] = acc + fee
+                seg_cap_enabled = bool(cfg.get("segment_cap_enabled")) and int(
+                    cfg.get("segment_cap_amount") or 0
+                ) > 0
+                seg_cap_amount = int(cfg.get("segment_cap_amount") or 0)
+                daily_cap_enabled, daily_cap_amount = self._resolve_daily_cap(
+                    global_caps, date_category
+                )
+                seg_day_key = f"{current.date()}_{seg['name']}_{date_category}"
+                day_key = str(current.date())
+                pre_cap_fee = fee
 
-                if daily_cap_enabled and daily_cap_amount > 0:
-                    day_key = str(current.date())
-                    acc = daily_cap_acc.get(day_key, 0)
-                    if acc + fee > daily_cap_amount:
-                        fee = max(0, daily_cap_amount - acc)
-                        is_daily_capped = True
-                    daily_cap_acc[day_key] = acc + fee
+                if seg_cap_enabled and daily_cap_enabled and daily_cap_amount > 0:
+                    fee = self._apply_dual_caps(
+                        fee,
+                        cap_acc,
+                        daily_cap_acc,
+                        seg_day_key,
+                        day_key,
+                        seg_cap_amount,
+                        daily_cap_amount,
+                        global_caps,
+                    )
+                elif seg_cap_enabled:
+                    fee = self._apply_segment_cap_fee(
+                        fee, cap_acc, seg_day_key, seg_cap_amount
+                    )
+                elif daily_cap_enabled and daily_cap_amount > 0:
+                    fee = self._apply_daily_cap_fee(
+                        fee, daily_cap_acc, day_key, daily_cap_amount
+                    )
+
+                if daily_cap_enabled and daily_cap_amount > 0 and fee < pre_cap_fee:
+                    is_daily_capped = True
 
                 total_fee += fee
                 cycles.append({
@@ -237,7 +438,17 @@ class UnifiedPricingEngine:
                 if grp:
                     session_details.append(grp)
 
-            summary = f"總費用: {total_fee} 元；每日上限: {'是' if is_daily_capped else '否'} ({daily_cap_amount}元)"
+            cap_note = (
+                "依日期類別"
+                if global_caps.get("daily_caps_by_category")
+                else str(
+                    int(global_caps.get("daily_cap_amount", 0) or 0)
+                )
+            )
+            summary = (
+                f"總費用: {total_fee} 元；每日上限: "
+                f"{'是' if is_daily_capped else '否'} ({cap_note})"
+            )
 
             return UnifiedEngineResult(
                 success=True,

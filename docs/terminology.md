@@ -44,6 +44,7 @@ rate_matrix 鍵名格式：`{區段名}_{date_category}`
 | 全域寬限 | `global_grace_time` | — |
 | 區段上限 | `segment_cap_enabled/amount` | `cap_enabled/amount` |
 | 日上限 | `daily_cap_enabled/amount` | — |
+| 封頂順序 | `global_caps.cap_priority` | — |
 | 方案 ID（API） | `plan_id` | `rate_plan_id` |
 | MDP 範本 ID | `template_id` | 格式 `{segment_type}_{holiday_type}` |
 | 總金額 | `total_amount` | `final_charge` |
@@ -73,5 +74,31 @@ API 短期仍接受舊 ID（透過 `resolve_template_id`）。
 ## 引擎差異說明
 
 - **自訂方案**：使用 `UnifiedPricingEngine`，schema 以本文件為準。
-- **MDP 多維度**：內部仍以 `weekday_plan` / `weekend_plan` 等子方案選擇費率，對外顯示 canonical `date_category`。
+- **MDP 多維度**：內部以 `weekday_plan` / `weekend_plan` / `national_holiday_plan` / `custom_holiday_plan` 組裝 `rate_matrix`；計費時依行事曆與 `dimension_configs.完整假日.custom_holidays` 選擇對應鍵。對外摘要仍顯示 canonical `date_category`（國定假與客製假皆可能顯示為 `節慶日`）。
 - **Legacy**（`rate_plans.json`）：僅工具腳本使用，輸出欄位逐步對齊 `total_amount` / `session_details`。
+
+## 計費引擎行為（UPE）
+
+| 項目 | 規則 |
+|------|------|
+| 時段歸屬 | 半開區間 `[start, end)`：邊界時刻歸下一時段（例：12:00 歸下午） |
+| 收費週期 | 以進場時間對齊 `unit_time` 週期起點 |
+| 全域寬限 | 整次停車僅第一個計費週期扣一次 `global_grace_time` |
+| 時段寬限 | 各 `rate_matrix` 格之 `grace_time`，無全域寬限時逐週期套用 |
+| 封頂順序 | `global_caps.cap_priority`：`segment`（先區段後日）、`daily`（先日後區段）、`lower`／`higher`（兩種順序取較低／較高當週期費） |
+| 日上限 | 按曆日累計；MDP 依計費鍵（平日/假日/國定假日/節慶日）取各子方案 `daily_cap_amount` |
+| 未覆蓋時段 | 無對應 segment 的分鐘不計費（缺口視為免費） |
+| rate_matrix 容錯 | 鍵名不符時 fallback：`{區段}_{類別}` → 統一 → 平日 → 假日 → 節慶日 → 國定假日 |
+
+### MDP 計費鍵與子方案
+
+| 計費鍵（rate_matrix 後綴） | 子方案 | 典型來源 |
+|---------------------------|--------|----------|
+| `平日` | `weekday_plan` | 週一至週五 |
+| `假日` | `weekend_plan` | 週六日 |
+| `國定假日` | `national_holiday_plan` | `system_calendar.national_holidays` 等 |
+| `節慶日` | `custom_holiday_plan` | `festival_holidays` 或 MDP `custom_holidays` |
+
+### 已移除欄位
+
+不再接受：`unit_pivot`、`global_caps.segment_caps_enabled`。區段封頂僅由 `rate_matrix` 各格之 `segment_cap_enabled` 控制。

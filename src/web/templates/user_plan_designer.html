@@ -67,6 +67,15 @@
             <label for="daily_cap_amount"><i class="fas fa-coins me-2"></i>日上限金額（元，0 表示無）</label>
             <input id="daily_cap_amount" type="number" class="form-control-modern" value="0" min="0" />
           </div>
+          <div class="form-group-modern" id="cap_priority_group" style="display:none">
+            <label for="cap_priority"><i class="fas fa-sort-amount-down me-2"></i>封頂順序（同時有日上限與區段上限時）</label>
+            <select id="cap_priority" class="form-control-modern">
+              <option value="segment">先區段上限，再日上限</option>
+              <option value="daily">先日上限，再區段上限</option>
+              <option value="lower">兩種順序取較低費</option>
+              <option value="higher">兩種順序取較高費</option>
+            </select>
+          </div>
           <div class="form-check mb-2">
             <input id="featured" type="checkbox" class="form-check-input" />
             <label for="featured" class="form-check-label">標記為精選方案</label>
@@ -152,8 +161,25 @@
   ];
   let matrix = {};
 
+  function hasSegmentCap() {
+    return Object.values(matrix).some((c) => c && (c.capEnabled || Number(c.capAmount) > 0));
+  }
+
+  function updateCapPriorityVisibility() {
+    const dailyCap = parseInt(document.getElementById('daily_cap_amount').value, 10) || 0;
+    const show = dailyCap > 0 && hasSegmentCap();
+    document.getElementById('cap_priority_group').style.display = show ? '' : 'none';
+  }
+
+  const _setCell = setCell;
+  setCell = function (key, field, val) {
+    _setCell(key, field, val);
+    if (field === 'capEnabled' || field === 'capAmount') updateCapPriorityVisibility();
+  };
+
   document.addEventListener('DOMContentLoaded', async () => {
     initPreviewTimes();
+    document.getElementById('daily_cap_amount').addEventListener('input', updateCapPriorityVisibility);
     const url = new URL(window.location.href);
     const planId = url.searchParams.get('plan_id');
     if (planId) {
@@ -200,7 +226,9 @@
     const caps = plan.global_caps || {};
     document.getElementById('global_grace').value = caps.global_grace_time || plan.global_grace_time || 0;
     document.getElementById('daily_cap_amount').value = caps.daily_cap_amount || 0;
+    document.getElementById('cap_priority').value = caps.cap_priority || 'segment';
     document.getElementById('featured').checked = !!plan.featured;
+    updateCapPriorityVisibility();
     document.getElementById('active').checked = plan.active !== false;
 
     segments = (plan.segments || []).map(s => ({
@@ -299,13 +327,17 @@
         holiday_type: document.getElementById('holiday_type').value,
         segments: segments.map(s => ({ name: s.name, start: s.start, end: s.end })),
         rate_matrix,
-        global_caps: {
-          daily_cap_enabled: dailyCap > 0,
-          daily_cap_amount: dailyCap > 0 ? dailyCap : null,
-          segment_caps_enabled: false,
-          cap_priority: 'daily',
-          global_grace_time: globalGrace
-        },
+        global_caps: (() => {
+          const caps = {
+            daily_cap_enabled: dailyCap > 0,
+            daily_cap_amount: dailyCap > 0 ? dailyCap : null,
+            global_grace_time: globalGrace
+          };
+          if (dailyCap > 0 && hasSegmentCap()) {
+            caps.cap_priority = document.getElementById('cap_priority').value;
+          }
+          return caps;
+        })(),
         featured: document.getElementById('featured').checked,
         active: document.getElementById('active').checked
       }

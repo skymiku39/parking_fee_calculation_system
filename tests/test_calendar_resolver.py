@@ -81,3 +81,32 @@ def test_multidimensional_calculator_reads_calendar(
 
     assert calculator.get_date_category(date(2025, 10, 10), "完整假日") == DateCategory.FESTIVAL
     assert calculator.get_date_category(date(2025, 12, 25), "完整假日") == DateCategory.FESTIVAL
+    # MDP dimension_configs 的 custom_holidays 應在行事曆未登錄時仍生效
+    assert calculator.get_date_category(date(2024, 12, 25), "完整假日") == DateCategory.FESTIVAL
+    assert (
+        calculator._mdp_billing_category(date(2025, 10, 10), "完整假日")
+        == "國定假日"
+    )
+    assert (
+        calculator._mdp_billing_category(date(2024, 12, 25), "完整假日")
+        == DateCategory.FESTIVAL.value
+    )
+
+    result = calculator.calculate_parking_fee(
+        datetime(2025, 10, 10, 8, 0),
+        datetime(2025, 10, 10, 20, 0),
+        "多時段_完整假日",
+    )
+    assert result.total_amount == 450
+
+
+def test_classify_date_honors_extra_custom_holidays(calendar_file: Path):
+    cal = HolidayCalendar(calendar_file)
+    assert (
+        cal.classify_date(
+            date(2024, 12, 25),
+            "完整假日",
+            extra_custom_holidays=["2024-12-25"],
+        )
+        == DateCategory.FESTIVAL.value
+    )

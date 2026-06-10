@@ -32,8 +32,6 @@
       "global_caps": {
         "daily_cap_enabled": false,
         "daily_cap_amount": null,
-        "segment_caps_enabled": false,
-        "cap_priority": "daily",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:30:00.000000",
@@ -76,8 +74,6 @@
       "global_caps": {
         "daily_cap_enabled": false,
         "daily_cap_amount": null,
-        "segment_caps_enabled": false,
-        "cap_priority": "daily",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:28:35.014820",
@@ -118,8 +114,6 @@
       "global_caps": {
         "daily_cap_enabled": true,
         "daily_cap_amount": 200,
-        "segment_caps_enabled": false,
-        "cap_priority": "daily",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:28:47.231748",
@@ -173,8 +167,6 @@
       "global_caps": {
         "daily_cap_enabled": false,
         "daily_cap_amount": null,
-        "segment_caps_enabled": true,
-        "cap_priority": "daily",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:34:00.628193",
@@ -228,8 +220,6 @@
       "global_caps": {
         "daily_cap_enabled": true,
         "daily_cap_amount": 200,
-        "segment_caps_enabled": false,
-        "cap_priority": "daily",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:29:15.964424",
@@ -283,8 +273,6 @@
       "global_caps": {
         "daily_cap_enabled": false,
         "daily_cap_amount": null,
-        "segment_caps_enabled": true,
-        "cap_priority": "segment",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:33:40.587893",
@@ -346,8 +334,6 @@
       "global_caps": {
         "daily_cap_enabled": false,
         "daily_cap_amount": null,
-        "segment_caps_enabled": true,
-        "cap_priority": "segment",
         "global_grace_time": 15
       },
       "created_date": "2025-06-20T14:33:26.315497",
@@ -421,12 +407,9 @@
       "global_caps": {
         "daily_cap_enabled": false,
         "daily_cap_amount": null,
-        "segment_caps_enabled": true,
-        "cap_priority": "segment",
         "global_grace_time": 0
       },
       "global_grace_time": 0,
-      "unit_pivot": "start",
       "created_date": "2025-08-15T16:39:43.764251",
       "modified_date": "2025-08-15T16:39:43.764251",
       "version": "2.0",

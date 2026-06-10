@@ -122,7 +122,7 @@ def test_plan_兩段有上限_two_days_daily_cap(parking_system):
 def test_plan_兩段有分段上限_segment_cap_day_only(parking_system):
     payload = _calc_user(parking_system, "兩段有分段上限", "2025-06-20T07:00", "2025-06-20T19:00")
     assert_billing_invariants_user(payload)
-    assert payload["total_amount"] == 100
+    assert payload["total_amount"] == 130
     assert payload["cap_applied"] is True
     assert payload["original_amount"] > payload["total_amount"]
 
@@ -188,16 +188,47 @@ def test_mdp_二段_平日假日_two_weekdays_daily_cap(mdp_calculator):
 def test_mdp_二段_平日假日_weekend_cross_midnight(mdp_calculator):
     result = _calc_mdp(mdp_calculator, "二段_平日假日", "2024-12-21T20:00", "2024-12-22T02:00")
     assert_billing_invariants_mdp(result)
-    assert result.total_amount == 162
+    assert result.total_amount == 144
+
+
+def test_mdp_多時段_完整假日_weekend_daily_cap(mdp_calculator):
+    result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-21T08:00", "2024-12-21T22:00")
+    assert_billing_invariants_mdp(result)
+    assert result.total_amount == 360
 
 
 def test_mdp_多時段_完整假日_festival_day_cap(mdp_calculator):
     result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-25T08:00", "2024-12-25T20:00")
     assert_billing_invariants_mdp(result)
-    assert result.total_amount == 300
+    assert result.total_amount == 540
 
 
 def test_mdp_多時段_完整假日_two_weekdays_daily_cap(mdp_calculator):
     result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-18T00:00", "2024-12-20T00:00")
     assert_billing_invariants_mdp(result)
     assert result.total_amount == 600
+
+
+def test_mdp_多時段_完整假日_afternoon_only_no_morning_bleed(mdp_calculator):
+    result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-19T12:00", "2024-12-19T18:00")
+    assert_billing_invariants_mdp(result)
+    assert result.total_amount == 150
+    assert len(result.session_details) == 1
+    assert result.session_details[0]["label"] == "下午時段"
+
+
+def test_mdp_多時段_完整假日_boundary_at_noon_splits_segments(mdp_calculator):
+    result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-19T11:30", "2024-12-19T12:30")
+    assert_billing_invariants_mdp(result)
+    assert result.total_amount == 55
+    labels = [s["label"] for s in result.session_details]
+    assert labels == ["上午時段", "下午時段"]
+    assert sum(s["duration"] for s in result.session_details) == 60
+
+
+def test_mdp_多時段_完整假日_evening_only_no_afternoon_bleed(mdp_calculator):
+    result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-19T18:00", "2024-12-19T22:00")
+    assert_billing_invariants_mdp(result)
+    assert result.total_amount == 120
+    assert len(result.session_details) == 1
+    assert result.session_details[0]["label"] == "傍晚時段"

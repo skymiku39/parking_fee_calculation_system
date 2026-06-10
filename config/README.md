@@ -60,3 +60,15 @@
 由 MDP 方案設計器（`/rate_plan_designer`）管理，API 前綴為 `/api/mdp/*`。
 
 與自訂方案一致：皆使用 `segment_type` + `holiday_type`（`無假日` / `平日假日` / `完整假日`）。詳見 [docs/terminology.md](../docs/terminology.md)。
+
+`dimension_configs.完整假日.custom_holidays` 為 MDP 內建客製假日清單（與 `system_calendar.json` 合併判定）；計費時國定假走 `national_holiday_plan`（鍵 `國定假日`），客製假走 `custom_holiday_plan`（鍵 `節慶日`），日上限亦各自獨立。
+
+## 計費驗證工具
+
+```bash
+uv run pytest
+uv run python tools/validate_configs.py
+uv run python tools/validate_time_boundaries.py
+uv run python tools/audit_billing.py
+uv run python tools/audit_api.py
+```

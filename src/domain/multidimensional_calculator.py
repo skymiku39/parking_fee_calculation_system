@@ -166,6 +166,39 @@ class MultidimensionalParkingCalculator:
             return canonical
         raise ValueError(f"找不到費率範本: {template_id}")
 
+    def _mdp_billing_category(self, check_date: date, holiday_type: str) -> str:
+        """UPE rate_matrix / 日上限查表用的日期類別鍵（可區分國定假）。"""
+        hol = normalize_holiday_type(holiday_type)
+        if hol == HolidayType.NO_HOLIDAY.value:
+            return DateCategory.UNIFIED.value
+
+        if self.holiday_calendar is not None:
+            tier = self.holiday_calendar.get_mdp_plan_tier(
+                check_date, hol, extra_custom_holidays=self.custom_holidays
+            )
+        else:
+            dc = self.get_date_category(check_date, hol)
+            if dc == DateCategory.UNIFIED:
+                tier = MdpPlanTier.UNIFIED
+            elif dc == DateCategory.FESTIVAL:
+                tier = MdpPlanTier.CUSTOM_HOLIDAY
+            elif dc == DateCategory.HOLIDAY:
+                tier = MdpPlanTier.WEEKEND
+            else:
+                tier = MdpPlanTier.WEEKDAY
+
+        if tier == MdpPlanTier.UNIFIED:
+            return DateCategory.UNIFIED.value
+        if tier == MdpPlanTier.WEEKDAY:
+            return DateCategory.WEEKDAY.value
+        if tier == MdpPlanTier.WEEKEND:
+            return DateCategory.HOLIDAY.value
+        if tier == MdpPlanTier.NATIONAL_HOLIDAY:
+            return "國定假日"
+        if tier == MdpPlanTier.CUSTOM_HOLIDAY:
+            return DateCategory.FESTIVAL.value
+        return DateCategory.WEEKDAY.value
+
     def get_date_category(
         self, check_date: date, holiday_type: Optional[str] = None
     ) -> DateCategory:
@@ -452,13 +485,17 @@ class MultidimensionalParkingCalculator:
             (DateCategory.UNIFIED.value, template.unified_plan),
             (DateCategory.WEEKDAY.value, template.weekday_plan),
             (DateCategory.HOLIDAY.value, template.weekend_plan),
-            (
-                DateCategory.FESTIVAL.value,
-                template.custom_holiday_plan
-                or template.national_holiday_plan
-                or template.weekend_plan,
-            ),
         ]
+        if template.national_holiday_plan:
+            category_plans.append(("國定假日", template.national_holiday_plan))
+        if template.custom_holiday_plan:
+            category_plans.append(
+                (DateCategory.FESTIVAL.value, template.custom_holiday_plan)
+            )
+        elif template.national_holiday_plan:
+            category_plans.append(
+                (DateCategory.FESTIVAL.value, template.national_holiday_plan)
+            )
         for date_category, plan in category_plans:
             if not plan:
                 continue
@@ -479,10 +516,19 @@ class MultidimensionalParkingCalculator:
             or template.weekend_plan
             or {}
         )
+        daily_caps_by_category: Dict[str, Dict[str, Any]] = {}
+        for date_category, plan in category_plans:
+            if not plan:
+                continue
+            daily_caps_by_category[date_category] = {
+                "daily_cap_enabled": bool(plan.get("daily_cap_enabled", False)),
+                "daily_cap_amount": int(plan.get("daily_cap_amount", 0) or 0),
+            }
         global_caps = {
             "daily_cap_enabled": bool(base_plan.get("daily_cap_enabled", False)),
             "daily_cap_amount": int(base_plan.get("daily_cap_amount", 0) or 0),
             "global_grace_time": int(base_plan.get("global_grace_time", 0) or 0),
+            "daily_caps_by_category": daily_caps_by_category,
         }
         return {
             "segments": list(segments_map.values()),
@@ -535,10 +581,9 @@ class MultidimensionalParkingCalculator:
         upe = UnifiedPricingEngine()
 
         def _resolver(dt: datetime) -> str:
-            if template.holiday_type == HolidayType.NO_HOLIDAY:
-                return DateCategory.UNIFIED.value
-            dc = self.get_date_category(dt.date(), template.holiday_type.value)
-            return dc.value
+            return self._mdp_billing_category(
+                dt.date(), template.holiday_type.value
+            )
 
         res = upe.calculate(enter_time, exit_time, upe_plan, _resolver)
         if not res.success:
@@ -547,12 +592,11 @@ class MultidimensionalParkingCalculator:
         total_fee = res.total_amount
         session_details = self._upe_details_to_mdp_sessions(res.session_details)
         global_caps = upe_plan.get("global_caps", {})
-        daily_cap_enabled = bool(global_caps.get("daily_cap_enabled", False))
-        daily_cap_amount = int(global_caps.get("daily_cap_amount", 0) or 0)
-        is_daily_capped = (
-            daily_cap_enabled
-            and daily_cap_amount > 0
-            and res.original_amount > daily_cap_amount
+        is_daily_capped = res.original_amount > res.total_amount
+        cap_note = (
+            "依日期類別"
+            if global_caps.get("daily_caps_by_category")
+            else str(int(global_caps.get("daily_cap_amount", 0) or 0))
         )
 
         # 生成維度標籤
@@ -569,12 +613,12 @@ class MultidimensionalParkingCalculator:
 - 假日類型: {template.holiday_type.value}
 - 日期類別: {date_category.value}
 - 停車時間: {total_duration}分鐘
-- 總費用: {total_fee}元（每日上限: {'是' if is_daily_capped else '否'} {daily_cap_amount}元）
+- 總費用: {total_fee}元（每日上限: {'是' if is_daily_capped else '否'} {cap_note}）
 """.strip()
 
         return ParkingCalculationResult(
             total_amount=total_fee,
-            original_amount=sum(detail["fee"] for detail in session_details),
+            original_amount=res.original_amount,
             date_category=date_category,
             applied_rate_plan=rate_plan.get("label", "未知"),
             segment_type=template.segment_type.value,

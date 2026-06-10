@@ -128,23 +128,17 @@ class HolidayCalendar:
         if hol == HolidayType.NO_HOLIDAY.value:
             return DateCategory.UNIFIED.value
 
-        if self.is_custom_workday(check_date):
-            return DateCategory.WEEKDAY.value
-
-        is_festival = self.is_festival(check_date)
-        is_national = self.is_national_holiday(check_date)
-        is_custom = self.is_custom_holiday(check_date)
-        is_weekend = self.is_weekend(check_date)
+        tier = self._raw_mdp_tier(check_date, extra_custom_holidays)
 
         if hol == HolidayType.FULL_HOLIDAY.value:
-            if is_festival or is_national:
+            if tier in (MdpPlanTier.CUSTOM_HOLIDAY, MdpPlanTier.NATIONAL_HOLIDAY):
                 return DateCategory.FESTIVAL.value
-            if is_custom or is_weekend:
+            if tier == MdpPlanTier.WEEKEND:
                 return DateCategory.HOLIDAY.value
             return DateCategory.WEEKDAY.value
 
         if hol == HolidayType.WEEKDAY_WEEKEND.value:
-            if is_festival or is_national or is_custom or is_weekend:
+            if tier != MdpPlanTier.WEEKDAY:
                 return DateCategory.HOLIDAY.value
             return DateCategory.WEEKDAY.value
 

@@ -535,10 +535,10 @@ class SmartParkingSystem:
             if is_fullday:
                 return segment
             elif start_time <= end_time:
-                if start_time <= check_time_only <= end_time:
+                if start_time <= check_time_only < end_time:
                     return segment
             else:
-                if check_time_only >= start_time or check_time_only <= end_time:
+                if check_time_only >= start_time or check_time_only < end_time:
                     return segment
         return None
 
