@@ -1,0 +1,63 @@
+/* 欄位說明提示圖示 */
+.field-label-with-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.field-hint-icon {
+  color: var(--color-info, #3b82f6);
+  font-size: 0.85em;
+  cursor: help;
+  opacity: 0.85;
+  vertical-align: middle;
+}
+
+.field-hint-icon:hover,
+.field-hint-icon:focus {
+  opacity: 1;
+  outline: none;
+}
+
+.btn-modern .field-hint-icon,
+.plan-info-label .field-hint-icon {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.cap-design-note {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-gray-50, #f9fafb);
+  border: 1px solid var(--color-gray-200, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.875rem;
+  color: var(--color-gray-700, #374151);
+}
+
+.cap-design-note summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-gray-800, #1f2937);
+}
+
+.cap-design-note ul {
+  margin: 0.5rem 0 0 1.1rem;
+  padding: 0;
+}
+
+.rate-matrix-field small .field-hint-icon {
+  margin-left: 0.2rem;
+}
+
+.matrix-daily-cap-col,
+.matrix-daily-cap-cell {
+  background: #fffbeb;
+  vertical-align: middle;
+}
+
+.matrix-daily-cap-cell input {
+  max-width: 100px;
+  display: inline-block;
+}

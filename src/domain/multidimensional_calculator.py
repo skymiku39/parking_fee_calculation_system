@@ -133,7 +133,10 @@ class MultidimensionalParkingCalculator:
                     weekend_plan=template.get("weekend_plan"),
                     national_holiday_plan=template.get("national_holiday_plan"),
                     custom_holiday_plan=template.get("custom_holiday_plan"),
-                    unified_plan=template.get("rate_plan_id") and template or None,
+                    unified_plan=(
+                        template.get("unified_plan")
+                        or (template if template.get("rate_plan_id") else None)
+                    ),
                 )
                 self.rate_plan_templates[template_id] = plan
                 if raw_id != template_id:
@@ -548,15 +551,20 @@ class MultidimensionalParkingCalculator:
                 rate_desc = f"{detail.get('rate', 0)}元/{unit}分"
             time_range = detail.get("time_range", "-")
             parts = time_range.split("-")
+            fee = int(detail.get("fee", 0) or 0)
             session_details.append(
                 {
                     "label": detail.get("label"),
                     "start": parts[0] if parts else "",
                     "end": parts[-1] if parts else "",
                     "duration": detail.get("duration", 0),
-                    "fee": detail.get("fee", 0),
+                    "fee": fee,
+                    "amount": fee,
+                    "raw_amount": int(detail.get("raw_fee", fee) or fee),
                     "rate": rate_desc,
                     "unit_price": detail.get("rate", 0),
+                    "billing_explanation": detail.get("billing_explanation") or "",
+                    "cycles_count": detail.get("cycles_count", 1),
                 }
             )
         return session_details

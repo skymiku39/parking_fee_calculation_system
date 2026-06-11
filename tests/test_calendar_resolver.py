@@ -97,7 +97,7 @@ def test_multidimensional_calculator_reads_calendar(
         datetime(2025, 10, 10, 20, 0),
         "多時段_完整假日",
     )
-    assert result.total_amount == 450
+    assert result.total_amount == 451
 
 
 def test_classify_date_honors_extra_custom_holidays(calendar_file: Path):

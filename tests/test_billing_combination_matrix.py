@@ -194,7 +194,7 @@ def test_mdp_二段_平日假日_weekend_cross_midnight(mdp_calculator):
 def test_mdp_多時段_完整假日_weekend_daily_cap(mdp_calculator):
     result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-21T08:00", "2024-12-21T22:00")
     assert_billing_invariants_mdp(result)
-    assert result.total_amount == 360
+    assert result.total_amount == 420
 
 
 def test_mdp_多時段_完整假日_festival_day_cap(mdp_calculator):
@@ -206,7 +206,7 @@ def test_mdp_多時段_完整假日_festival_day_cap(mdp_calculator):
 def test_mdp_多時段_完整假日_two_weekdays_daily_cap(mdp_calculator):
     result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-18T00:00", "2024-12-20T00:00")
     assert_billing_invariants_mdp(result)
-    assert result.total_amount == 600
+    assert result.total_amount == 860
 
 
 def test_mdp_多時段_完整假日_afternoon_only_no_morning_bleed(mdp_calculator):
@@ -232,3 +232,14 @@ def test_mdp_多時段_完整假日_evening_only_no_afternoon_bleed(mdp_calculat
     assert result.total_amount == 120
     assert len(result.session_details) == 1
     assert result.session_details[0]["label"] == "傍晚時段"
+
+
+def test_mdp_多時段_完整假日_full_weekday_evening_charges_after_night_morning_afternoon(
+    mdp_calculator,
+):
+    """日上限須涵蓋四段區段上限之和，否則完整曆日傍晚會被日上限提前用盡。"""
+    result = _calc_mdp(mdp_calculator, "多時段_完整假日", "2024-12-18T22:00", "2024-12-19T22:00")
+    assert_billing_invariants_mdp(result)
+    evening = [s for s in result.session_details if s["label"] == "傍晚時段"]
+    assert evening
+    assert sum(s["fee"] for s in evening) > 0

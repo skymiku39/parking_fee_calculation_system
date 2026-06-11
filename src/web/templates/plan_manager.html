@@ -7,25 +7,26 @@
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div class="d-flex gap-2 flex-wrap">
       <div class="btn-group">
-        <button class="btn-modern btn-gradient-primary" onclick="goMdpDesigner()">
+        <button class="btn-modern btn-gradient-primary" data-hint="pm_add_mdp" onclick="goMdpDesigner()">
           <i class="fas fa-plus"></i> 新增 MDP 模板
         </button>
-        <button class="btn-modern btn-outline" onclick="goUserDesigner()">
+        <button class="btn-modern btn-outline" data-hint="pm_add_user" onclick="goUserDesigner()">
           <i class="fas fa-plus"></i> 新增自訂方案
         </button>
       </div>
-      <button class="btn-modern btn-outline" onclick="exportAll()">
+      <button class="btn-modern btn-outline" data-hint="pm_export_mdp" onclick="exportAll()">
         <i class="fas fa-download"></i> 匯出 MDP
       </button>
-      <button class="btn-modern btn-outline" onclick="exportUserPlans()">
+      <button class="btn-modern btn-outline" data-hint="pm_export_user" onclick="exportUserPlans()">
         <i class="fas fa-download"></i> 匯出自訂方案
       </button>
-      <button class="btn-modern btn-outline" onclick="refreshList()">
+      <button class="btn-modern btn-outline" data-hint="pm_refresh" onclick="refreshList()">
         <i class="fas fa-sync-alt"></i> 重新整理
       </button>
     </div>
     <div class="form-group-modern mb-0" style="max-width: 320px; width: 100%;">
-      <input id="searchBox" type="text" class="form-control-modern" placeholder="搜尋名稱或 ID..." />
+      <label for="searchBox" class="visually-hidden">搜尋</label>
+      <input id="searchBox" type="text" class="form-control-modern" placeholder="搜尋名稱或 ID..." data-hint-key="pm_search" title="" />
     </div>
   </div>
 
@@ -161,6 +162,12 @@
   document.addEventListener('DOMContentLoaded', () => {
     loadTemplates();
     document.getElementById('searchBox').addEventListener('input', renderCards);
+    document.querySelectorAll('[data-hint]').forEach((el) => {
+      if (!el.querySelector('[data-hint-key]') && typeof hintIcon === 'function') {
+        el.insertAdjacentHTML('beforeend', hintIcon(el.getAttribute('data-hint')));
+      }
+    });
+    if (typeof initFieldHints === 'function') initFieldHints();
   });
 
   async function loadTemplates() {
@@ -236,7 +243,15 @@
     document.getElementById('plansGrid').style.display = 'flex';
 
     const cards = filteredPlans.map(p => createPlanCard(p)).join('');
-    document.getElementById('plansGrid').innerHTML = cards;
+    const grid = document.getElementById('plansGrid');
+    grid.innerHTML = cards;
+    if (typeof initFieldHints === 'function') initFieldHints(grid);
+    document.querySelectorAll('#plansContainer [data-hint]').forEach((el) => {
+      if (!el.querySelector('[data-hint-key]') && typeof hintIcon === 'function') {
+        el.insertAdjacentHTML('beforeend', hintIcon(el.getAttribute('data-hint')));
+      }
+    });
+    if (typeof initFieldHints === 'function') initFieldHints(document.getElementById('plansContainer'));
   }
 
   function createPlanCard(plan) {
@@ -244,9 +259,9 @@
     const timeSegments = getTimeSegmentBadge(plan.segment_type || plan.time_segment_type);
     const holidayType = getHolidayTypeBadge(plan.holiday_type);
     const kindBadge = isUser
-      ? '<span class="plan-stat-badge"><i class="fas fa-user-edit"></i> 自訂</span>'
-      : '<span class="plan-stat-badge"><i class="fas fa-cube"></i> MDP</span>';
-    const featuredBadge = plan.featured ? '<span class="plan-stat-badge"><i class="fas fa-star"></i> 精選</span>' : '';
+      ? '<span class="plan-stat-badge" data-hint-key="pm_kind_user"><i class="fas fa-user-edit"></i> 自訂</span>'
+      : '<span class="plan-stat-badge" data-hint-key="pm_kind_mdp"><i class="fas fa-cube"></i> MDP</span>';
+    const featuredBadge = plan.featured ? '<span class="plan-stat-badge" data-hint-key="pm_featured"><i class="fas fa-star"></i> 精選</span>' : '';
 
     return `
       <div class="col-md-6 col-lg-4 fade-in">
@@ -278,13 +293,13 @@
               </div>
             </div>
             <div class="plan-actions">
-              <button class="btn-modern btn-gradient-primary btn-sm" onclick="editPlan('${encodeURIComponent(plan.id)}', '${plan.kind}')">
+              <button class="btn-modern btn-gradient-primary btn-sm" data-hint-key="pm_edit" onclick="editPlan('${encodeURIComponent(plan.id)}', '${plan.kind}')">
                 <i class="fas fa-pen"></i> 編輯
               </button>
-              <button class="btn-modern btn-outline btn-sm" onclick="downloadPlan('${encodeURIComponent(plan.id)}', '${plan.kind}')">
+              <button class="btn-modern btn-outline btn-sm" data-hint-key="pm_download" onclick="downloadPlan('${encodeURIComponent(plan.id)}', '${plan.kind}')">
                 <i class="fas fa-download"></i> 下載
               </button>
-              <button class="btn-modern btn-error btn-sm" onclick="confirmDeletePlan('${encodeURIComponent(plan.id)}', '${escapeHtml(plan.label)}', '${plan.kind}')">
+              <button class="btn-modern btn-error btn-sm" data-hint-key="pm_delete" onclick="confirmDeletePlan('${encodeURIComponent(plan.id)}', '${escapeHtml(plan.label)}', '${plan.kind}')">
                 <i class="fas fa-trash"></i>
               </button>
             </div>

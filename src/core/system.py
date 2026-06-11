@@ -1,6 +1,8 @@
 import json
 import logging
+import math
 import os
+import time as _time
 from datetime import datetime, timedelta, time
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple, Union
@@ -341,18 +343,27 @@ class SmartParkingSystem:
             period = f"{label} ({time_range})" if time_range else label
             duration_minutes = int(detail.get("duration", 0) or 0)
             fee = int(detail.get("fee", 0) or 0)
+            raw_fee = int(detail.get("raw_fee", fee) or fee)
+            billing_explanation = detail.get("billing_explanation") or ""
             session_details.append(
                 {
                     "period": period,
                     "duration": format_duration_display(duration_minutes),
                     "rate": rate_desc,
                     "amount": fee,
+                    "raw_amount": raw_fee,
+                    "billing_explanation": billing_explanation,
                     "segment_label": label,
                 }
             )
-            summary_parts.append(
-                f"{label}: {format_duration_display(duration_minutes)} × {rate_desc} = {fee}元"
-            )
+            if billing_explanation:
+                summary_parts.append(
+                    f"{label}: {format_duration_display(duration_minutes)} — {fee}元（{billing_explanation}）"
+                )
+            else:
+                summary_parts.append(
+                    f"{label}: {format_duration_display(duration_minutes)} × {rate_desc} = {fee}元"
+                )
         calculation_summary = " | ".join(summary_parts) if summary_parts else "無計費明細"
         return session_details, calculation_summary
 

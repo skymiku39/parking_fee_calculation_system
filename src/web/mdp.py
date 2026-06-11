@@ -248,6 +248,8 @@ def api_mdp_preview():
         result = {
             "success": True,
             "total_amount": res.total_amount,
+            "original_amount": res.original_amount,
+            "cap_applied": res.original_amount > res.total_amount,
             "total_duration_minutes": total_minutes,
             "total_duration_display": parking_system.format_duration_display(total_minutes),
             "session_details": res.session_details,

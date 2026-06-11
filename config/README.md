@@ -63,6 +63,8 @@
 
 `dimension_configs.完整假日.custom_holidays` 為 MDP 內建客製假日清單（與 `system_calendar.json` 合併判定）；計費時國定假走 `national_holiday_plan`（鍵 `國定假日`），客製假走 `custom_holiday_plan`（鍵 `節慶日`），日上限亦各自獨立。
 
+**日上限設計**：`daily_cap_amount` 應 ≥ 同一曆日內各時段 `cap_amount` 之和（含跨午夜夜間在該曆日計費的部分），否則較晚時段（常為傍晚）會在日上限用盡後顯示 0 元。
+
 ## 計費驗證工具
 
 ```bash

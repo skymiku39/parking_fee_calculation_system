@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.2.0] - 2026-06-10
+
+### Added
+
+- 計費明細顯示牌價、封頂原因（區段上限／日上限）與計費週期說明
+- 欄位懸停提示（`field-hints.js`）套用於設計器與方案管理
+- MDP 設計器：依日期類別設定日上限並正確讀寫 `unified_plan`
+- 整合驗證腳本 `tools/verify_integration_scenarios.py`
+- `docs/terminology.md` 日上限與區段上限設計專節
+
+### Changed
+
+- 試算明細 UI：牌價合計 vs 封頂後實收、逐段 `billing_explanation`
+- 修正 MDP 多時段完整假日日上限，避免傍晚時段 0 元
+
+### Fixed
+
+- MDP `unified_plan` 格式範本無法計費（載入邏輯支援設計器輸出）
+- MDP 設計器刪除按鈕 `confirmDelete` 未綁定
+
 ## [3.1.0] - 2026-06-09
 
 ### Added

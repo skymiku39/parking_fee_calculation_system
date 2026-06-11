@@ -23,10 +23,10 @@
         </div>
       </div>
       <div class="d-flex gap-2">
-        <button class="btn-modern btn-outline btn-sm" onclick="downloadTemplate()">
+        <button class="btn-modern btn-outline btn-sm" data-hint="export_plan" onclick="downloadTemplate()">
           <i class="fas fa-download"></i> 匯出
         </button>
-        <button class="btn-modern btn-gradient-primary btn-sm" onclick="saveTemplate()">
+        <button class="btn-modern btn-gradient-primary btn-sm" data-hint="save_plan" onclick="saveTemplate()">
           <i class="fas fa-save"></i> 儲存
         </button>
       </div>
@@ -97,12 +97,21 @@
             <input id="global_grace" type="number" class="form-control-modern" value="0" min="0" max="120" />
             <span class="form-help-text">首次進場免費時長，0 表示無免費時段</span>
           </div>
+
+          <details class="cap-design-note">
+            <summary>日上限與區段上限如何運作？</summary>
+            <ul>
+              <li>MDP 可依<strong>日期類別</strong>（平日/假日/節慶日）在費率矩陣右側設定各自的日上限。</li>
+              <li><strong>區段上限</strong>在矩陣各格設定，限制單一時段當日累計。</li>
+              <li>日上限應 ≥ 同類別各時段區段上限之和，否則後段時段可能因封頂顯示 0 元。</li>
+            </ul>
+          </details>
           
           <div class="d-flex gap-2 flex-wrap">
-            <button class="btn-modern btn-outline btn-sm" onclick="triggerImport()">
+            <button class="btn-modern btn-outline btn-sm" data-hint="import_mdp" onclick="triggerImport()">
               <i class="fas fa-file-import"></i> 匯入
             </button>
-            <button class="btn-modern btn-error btn-sm" onclick="confirmDelete()">
+            <button class="btn-modern btn-error btn-sm" data-hint="delete_mdp" onclick="confirmDelete()">
               <i class="fas fa-trash"></i> 刪除
             </button>
             <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importTemplateFromFile(event)" />
@@ -119,10 +128,10 @@
             時間區段
           </div>
           <div class="d-flex gap-2">
-            <button id="btnValidateSegs" class="btn-modern btn-success btn-sm" onclick="validateSegments()" title="驗證是否完整覆蓋 24 小時">
+            <button id="btnValidateSegs" class="btn-modern btn-success btn-sm" data-hint="validate_segments" onclick="validateSegments()">
               <i class="fas fa-check"></i> 驗證
             </button>
-            <button id="btnAddSeg" class="btn-modern btn-outline btn-sm" onclick="addSegment()">
+            <button id="btnAddSeg" class="btn-modern btn-outline btn-sm" data-hint="add_segment" onclick="addSegment()">
               <i class="fas fa-plus"></i> 新增
             </button>
           </div>
@@ -136,9 +145,9 @@
             <table class="table table-hover mb-0">
               <thead class="table-light">
                 <tr>
-                  <th>名稱</th>
-                  <th>開始時間</th>
-                  <th>結束時間</th>
+                  <th data-hint-key="segment_name">名稱</th>
+                  <th data-hint-key="segment_start">開始時間</th>
+                  <th data-hint-key="segment_end">結束時間</th>
                   <th style="width:60px" class="text-center">操作</th>
                 </tr>
               </thead>
@@ -193,7 +202,7 @@
               </div>
             </div>
             <div class="col-md-2">
-              <button class="btn-modern btn-gradient-secondary btn-full" onclick="previewInline()">
+              <button class="btn-modern btn-gradient-secondary btn-full" data-hint="preview_enter" onclick="previewInline()">
                 <i class="fas fa-bolt"></i> 試算
               </button>
             </div>
@@ -212,12 +221,15 @@
   // 內部狀態
   let segments = [ {name:'日間', start:'08:00', end:'22:00'}, {name:'夜間', start:'22:00', end:'08:00'} ];
   let matrix = {}; // key: `${seg}_${cat}` -> {unit, rate, grace, capEnabled, capAmount}
+  window.matrixDailyCapMode = 'per_category';
+  window.dailyCapsByCategory = {};
 
   document.addEventListener('DOMContentLoaded', async () => {
     const url = new URL(window.location.href);
     const tid = url.searchParams.get('template_id');
     if (tid) await loadTemplate(tid);
     bindForm();
+    if (typeof decorateDesignerForms === 'function') decorateDesignerForms();
     renderSegments();
     renderMatrix();
   });
@@ -378,11 +390,14 @@
         matrix[`${s.label||s.time_slot_id}_${cat}`] = {
           unit: Number(s.unit_minutes||60), rate: Number(s.default_unit_price||0), grace: Number(s.grace_minutes||0), capEnabled: !!s.cap_enabled, capAmount: Number(s.cap_amount||0)
         };
-            });
-          });
+      });
+      const capAmt = plan.daily_cap_enabled ? Number(plan.daily_cap_amount || 0) : 0;
+      dailyCapsByCategory[cat] = capAmt;
+    });
 
     renderSegments();
     renderMatrix();
+    if (typeof initFieldHints === 'function') initFieldHints();
     showMsg('success', '✅ 範本已載入');
   }
 
@@ -459,7 +474,13 @@
           progressive_enabled: false, progressive_rates: []
         };
       });
-      planByCat[cat] = { time_slots, global_grace_time: gGrace };
+      const dailyCap = getDailyCap(cat) || 0;
+      planByCat[cat] = {
+        time_slots,
+        global_grace_time: gGrace,
+        daily_cap_enabled: dailyCap > 0,
+        daily_cap_amount: dailyCap > 0 ? dailyCap : 0,
+      };
     });
     const tpl = {
       template_id: tpl_id || label.replace(/\s+/g,'_') || 'template_'+Date.now(),
@@ -510,6 +531,8 @@
       else showMsg('danger','刪除失敗：' + (data.message||data.error||'未知錯誤'));
     }catch(e){ showMsg('danger','刪除失敗：' + (e.message||e)); }
   }
+
+  function confirmDelete(){ delTemplate(); }
 
   function showMsg(type, text){ const el = document.getElementById('msg'); el.className = `mt-2 small text-${type==='success'?'success':'danger'}`; el.textContent = text; setTimeout(()=>{ el.textContent=''; }, 3000); }
 </script>

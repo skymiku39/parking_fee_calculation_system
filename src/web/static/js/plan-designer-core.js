@@ -1,8 +1,16 @@
 /**
  * 方案設計器共用邏輯（MDP / 自訂方案）。
- * 依賴頁面全域變數：segments、matrix
+ * 依賴頁面全域變數：segments、matrix；可選 dailyCapsByCategory（MDP 日上限）
  */
 (function () {
+  if (typeof window.dailyCapsByCategory === 'undefined') {
+    window.dailyCapsByCategory = {};
+  }
+
+  function hi(key) {
+    return typeof hintIcon === 'function' ? hintIcon(key) : '';
+  }
+
   function defaultCell() {
     return { unit: 60, rate: 0, grace: 0, capEnabled: false, capAmount: 0 };
   }
@@ -25,25 +33,33 @@
     return (s || '').replace(/"/g, '&quot;');
   }
 
+  function getDailyCap(cat) {
+    return window.dailyCapsByCategory[cat] || 0;
+  }
+
+  function setDailyCap(cat, val) {
+    window.dailyCapsByCategory[cat] = parseInt(val, 10) || 0;
+  }
+
   function renderMatrixCellFields(key, cell) {
     return `
       <div class="rate-matrix-fields">
         <div class="rate-matrix-field">
           <input class="form-control form-control-sm" type="number" min="1" value="${cell.unit}" onchange="setCell('${escapeAttr(key)}','unit',this.value)">
-          <small>單位(分)</small>
+          <small>單位(分)${hi('matrix_unit')}</small>
         </div>
         <div class="rate-matrix-field">
           <input class="form-control form-control-sm" type="number" min="0" value="${cell.rate}" onchange="setCell('${escapeAttr(key)}','rate',this.value)">
-          <small>單價(元)</small>
+          <small>單價(元)${hi('matrix_rate')}</small>
         </div>
         <div class="rate-matrix-field">
           <input class="form-control form-control-sm" type="number" min="0" value="${cell.grace}" onchange="setCell('${escapeAttr(key)}','grace',this.value)">
-          <small>免費(分)</small>
+          <small>免費(分)${hi('matrix_grace')}</small>
         </div>
         <div class="rate-matrix-field rate-matrix-field-cap">
           <div class="rate-matrix-cap-head">
             <input type="checkbox" class="form-check-input m-0" ${cell.capEnabled ? 'checked' : ''} onclick="setCell('${escapeAttr(key)}','capEnabled',this.checked)">
-            <small>區段上限(元)</small>
+            <small>區段上限(元)${hi('segment_cap_amount')}</small>
           </div>
           <input class="form-control form-control-sm" type="number" min="0" value="${cell.capAmount}" onchange="setCell('${escapeAttr(key)}','capAmount',this.value)">
         </div>
@@ -58,6 +74,10 @@
     segments.forEach((seg) => {
       html += `<th>${escapeHtml(seg.name)}<br/><small>${escapeHtml(seg.start)}-${escapeHtml(seg.end)}</small></th>`;
     });
+    const perCatDailyCap = window.matrixDailyCapMode === 'per_category';
+    if (perCatDailyCap) {
+      html += '<th class="matrix-daily-cap-col">' + (typeof hintLabel === 'function' ? hintLabel('日上限', 'matrix_daily_cap') : '日上限') + '</th>';
+    }
     html += '</tr></thead><tbody>';
     cats.forEach((cat) => {
       html += `<tr><th style="white-space:nowrap">${cat}</th>`;
@@ -66,10 +86,19 @@
         const cell = matrix[key] || defaultCell();
         html += `<td class="rate-matrix-cell">${renderMatrixCellFields(key, cell)}</td>`;
       });
+      if (perCatDailyCap) {
+        const capVal = getDailyCap(cat);
+        html += `<td class="matrix-daily-cap-cell">
+          <input class="form-control form-control-sm" type="number" min="0" value="${capVal}" placeholder="0"
+            title="此日期類別的曆日總上限" onchange="setDailyCap('${escapeAttr(cat)}', this.value)" />
+          <small class="text-muted">元/日</small>
+        </td>`;
+      }
       html += '</tr>';
     });
     html += '</tbody></table>';
     host.innerHTML = html;
+    if (typeof initFieldHints === 'function') initFieldHints(host);
   }
 
   function setCell(key, field, val) {
@@ -128,6 +157,8 @@
   window.renderMatrixCellFields = renderMatrixCellFields;
   window.renderMatrix = renderMatrix;
   window.setCell = setCell;
+  window.getDailyCap = getDailyCap;
+  window.setDailyCap = setDailyCap;
   window.segEdit = segEdit;
   window.segRemove = segRemove;
   window.addSegment = addSegment;

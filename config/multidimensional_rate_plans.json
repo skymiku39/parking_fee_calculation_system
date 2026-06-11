@@ -237,7 +237,7 @@
         "label": "平日四段費率",
         "apply_on_holiday": false,
         "daily_cap_enabled": true,
-        "daily_cap_amount": 300,
+        "daily_cap_amount": 430,
         "time_slots": [
           {
             "time_slot_id": "morning",
@@ -321,7 +321,7 @@
         "label": "週末四段費率",
         "apply_on_holiday": true,
         "daily_cap_enabled": true,
-        "daily_cap_amount": 360,
+        "daily_cap_amount": 516,
         "time_slots": [
           {
             "time_slot_id": "morning",
@@ -405,7 +405,7 @@
         "label": "國定假日四段費率",
         "apply_on_holiday": true,
         "daily_cap_enabled": true,
-        "daily_cap_amount": 450,
+        "daily_cap_amount": 645,
         "time_slots": [
           {
             "time_slot_id": "morning",
@@ -489,7 +489,7 @@
         "label": "客製假日四段費率",
         "apply_on_holiday": true,
         "daily_cap_enabled": true,
-        "daily_cap_amount": 540,
+        "daily_cap_amount": 774,
         "time_slots": [
           {
             "time_slot_id": "morning",

@@ -131,6 +131,56 @@ class UnifiedPricingEngine:
             return "segment"
         return priority
 
+    def _build_billing_explanation(
+        self,
+        raw_fee: int,
+        fee: int,
+        *,
+        progressive: bool,
+        cycles_count: int,
+        billed_minutes: int,
+        unit: int,
+        rate: int,
+        seg_cap_enabled: bool,
+        seg_cap_amount: int,
+        daily_cap_enabled: bool,
+        daily_cap_amount: int,
+    ) -> str:
+        """產生單段明細的計費說明（牌價、週期數、封頂原因）。"""
+        parts: List[str] = []
+        if progressive:
+            parts.append("累進費率，非固定單價×時數")
+        elif unit > 0 and rate >= 0 and (billed_minutes > 0 or cycles_count > 0):
+            cycle_est = cycles_count if cycles_count > 0 else (
+                math.ceil(billed_minutes / unit) if unit else 0
+            )
+            naive = cycle_est * rate
+            if raw_fee > 0:
+                parts.append(
+                    f"牌價 {raw_fee} 元（{cycle_est} 個計費週期 × {rate} 元"
+                    + (f"，與時數估算 {naive} 元一致" if naive == raw_fee else "")
+                    + "）"
+                )
+            elif fee == 0:
+                parts.append("寬限時間內免收費")
+
+        if raw_fee > fee:
+            cap_parts: List[str] = []
+            if seg_cap_enabled and seg_cap_amount > 0:
+                cap_parts.append(f"區段上限 {seg_cap_amount} 元")
+            if daily_cap_enabled and daily_cap_amount > 0:
+                cap_parts.append(f"日上限 {daily_cap_amount} 元")
+            if cap_parts:
+                parts.append(f"實收 {fee} 元（已達{'、'.join(cap_parts)}）")
+            else:
+                parts.append(f"實收 {fee} 元（已封頂）")
+        elif fee == 0 and raw_fee > 0:
+            parts.append("累計已達封頂，本段不另收費")
+        elif not progressive and fee > 0 and raw_fee == fee and cycles_count > 1:
+            parts.append(f"共 {cycles_count} 個計費週期，無封頂")
+
+        return "；".join(parts)
+
     def _apply_segment_cap_fee(
         self,
         fee: int,
@@ -395,8 +445,13 @@ class UnifiedPricingEngine:
                     "billed_minutes": billed_minutes,
                     "unit": unit,
                     "rate": simple_rate,
+                    "raw_fee": pre_cap_fee,
                     "fee": fee,
                     "progressive": bool(cfg.get("progressive_enabled")),
+                    "seg_cap_enabled": seg_cap_enabled,
+                    "seg_cap_amount": seg_cap_amount if seg_cap_enabled else 0,
+                    "daily_cap_enabled": daily_cap_enabled,
+                    "daily_cap_amount": daily_cap_amount if daily_cap_enabled else 0,
                 })
 
                 current = cycle_end
@@ -408,35 +463,66 @@ class UnifiedPricingEngine:
                 for c in cycles:
                     if grp is None:
                         grp = dict(
-                            label=c["segment"], 
-                            time_range=c["time_range"], 
-                            duration=c["minutes"], 
+                            label=c["segment"],
+                            time_range=c["time_range"],
+                            duration=c["minutes"],
+                            billed_minutes=c["billed_minutes"],
+                            raw_fee=c["raw_fee"],
                             fee=c["fee"],
                             rate=c["rate"],
                             unit=c["unit"],
-                            progressive=c["progressive"]
+                            progressive=c["progressive"],
+                            cycles_count=1,
+                            seg_cap_enabled=c["seg_cap_enabled"],
+                            seg_cap_amount=c["seg_cap_amount"],
+                            daily_cap_enabled=c["daily_cap_enabled"],
+                            daily_cap_amount=c["daily_cap_amount"],
                         )
                     else:
                         if grp["label"] == c["segment"] and grp["time_range"].split('-')[-1] == c["time_range"].split('-')[0]:
-                            # 連續
                             start = grp["time_range"].split('-')[0]
                             end = c["time_range"].split('-')[1]
                             grp["time_range"] = f"{start}-{end}"
                             grp["duration"] += c["minutes"]
+                            grp["billed_minutes"] += c["billed_minutes"]
+                            grp["raw_fee"] += c["raw_fee"]
                             grp["fee"] += c["fee"]
+                            grp["cycles_count"] += 1
                         else:
                             session_details.append(grp)
                             grp = dict(
-                                label=c["segment"], 
-                                time_range=c["time_range"], 
-                                duration=c["minutes"], 
+                                label=c["segment"],
+                                time_range=c["time_range"],
+                                duration=c["minutes"],
+                                billed_minutes=c["billed_minutes"],
+                                raw_fee=c["raw_fee"],
                                 fee=c["fee"],
                                 rate=c["rate"],
                                 unit=c["unit"],
-                                progressive=c["progressive"]
+                                progressive=c["progressive"],
+                                cycles_count=1,
+                                seg_cap_enabled=c["seg_cap_enabled"],
+                                seg_cap_amount=c["seg_cap_amount"],
+                                daily_cap_enabled=c["daily_cap_enabled"],
+                                daily_cap_amount=c["daily_cap_amount"],
                             )
                 if grp:
                     session_details.append(grp)
+
+            for s in session_details:
+                s["billing_explanation"] = self._build_billing_explanation(
+                    int(s.get("raw_fee", 0) or 0),
+                    int(s.get("fee", 0) or 0),
+                    progressive=bool(s.get("progressive")),
+                    cycles_count=int(s.get("cycles_count", 1) or 1),
+                    billed_minutes=int(s.get("billed_minutes", 0) or 0),
+                    unit=int(s.get("unit", 60) or 60),
+                    rate=int(s.get("rate", 0) or 0),
+                    seg_cap_enabled=bool(s.get("seg_cap_enabled")),
+                    seg_cap_amount=int(s.get("seg_cap_amount", 0) or 0),
+                    daily_cap_enabled=bool(s.get("daily_cap_enabled")),
+                    daily_cap_amount=int(s.get("daily_cap_amount", 0) or 0),
+                )
 
             cap_note = (
                 "依日期類別"
