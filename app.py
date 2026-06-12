@@ -8,7 +8,6 @@ import sys
 import logging
 from pathlib import Path
 from flask import Flask, render_template
-from src.core.utils import DEFAULT_DATETIME_DISPLAY_FORMAT
 
 def _resolve_resource_dirs() -> tuple[str, str]:
     """Dev 用 src/web/*；PyInstaller 打包後用 bundle 內 templates/、static/。"""

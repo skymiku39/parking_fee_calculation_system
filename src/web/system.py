@@ -35,8 +35,6 @@ def api_system_config():
             )
 
         parking_system.update_system_config(new_config)
-        if "system_mode" in new_config:
-            parking_system.init_multidimensional_calculator()
 
         return jsonify({"success": True, "message": "System config updated successfully."})
     except ValueError as e:

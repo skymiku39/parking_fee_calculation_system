@@ -167,7 +167,7 @@ def api_delete_user_plan(plan_id: str):
 @user_plans_bp.route("/api/rate_plans/export", methods=["GET"])
 def api_export_user_plans():
     try:
-        path = parking_system._user_plans_path()
+        path = parking_system.user_plans_path()
         if path.exists():
             return send_from_directory(
                 path.parent.as_posix(),

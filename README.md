@@ -1,4 +1,4 @@
-# 智能停車費率計算系統 v2.0
+# 智能停車費率計算系統 v3.2
 
 現代化的停車場收費管理解決方案
 
@@ -53,12 +53,16 @@ parking_fee_calculation_system/
 ├── pyproject.toml          # 專案定義與依賴（uv 管理）
 │
 ├── src/                    # 核心程式碼
-│   ├── core/               # 系統啟動、設定、工具
-│   │   ├── context.py
-│   │   ├── system.py
-│   │   ├── utils.py
+│   ├── application/        # 應用服務（計費策略、自訂方案 UPE 橋接）
+│   ├── core/               # 系統啟動、事件匯流排、Repository、工具
+│   │   ├── context.py      # 全域 SmartParkingSystem 單例
+│   │   ├── events.py       # Publish/Subscribe EventBus
+│   │   ├── ports.py        # 抽象介面（DIP / ISP）
+│   │   ├── repositories/   # JSON 設定持久化（SRP）
+│   │   ├── subscribers/    # 事件訂閱者（日曆/MDP 重載）
+│   │   ├── system.py       # Composition root
 │   │   └── validation.py
-│   ├── domain/             # 業務邏輯
+│   ├── domain/             # 領域邏輯
 │   │   ├── multidimensional_calculator.py
 │   │   ├── terminology.py
 │   │   └── pricing/        # UnifiedPricingEngine
@@ -82,6 +86,36 @@ parking_fee_calculation_system/
     ├── openapi.yaml
     └── ...
 ```
+
+---
+
+## 架構設計（SOLID + Pub/Sub）
+
+本專案採用分層架構，並以 in-process **Publish/Subscribe** 解耦「設定變更」與「執行時重載」：
+
+| 原則 | 實作 |
+|------|------|
+| **S** 單一職責 | `repositories/` 只管 JSON 讀寫；`UserDefinedBillingService` 只管自訂方案計費 |
+| **O** 開放封閉 | `fee_strategies.py` 以策略註冊計費引擎，新增方案類型無需改 `calculate_parking_fee` |
+| **L** 里氏替換 | `FeeCalculationStrategy` 協定；各策略可互換 |
+| **I** 介面隔離 | `ports.py` 定義 `ConfigRepository`、`DateCategoryResolver` 等窄介面 |
+| **D** 依賴反轉 | Web 藍圖透過 `SmartParkingSystem` 公開 API 存取資料，不再直接寫 JSON 檔 |
+
+**事件流（設定變更）**
+
+```
+calendar/mdp/system 儲存
+  → SmartParkingSystem.publish(CalendarPersisted | MdpConfigSaved | …)
+  → subscribers/runtime.py 訂閱
+  → refresh_runtime_state() 重載日曆與 MDP 計算器
+```
+
+計費成功時另發布 `ParkingFeeCalculated`；`subscribers/audit.py` 訂閱並寫入應用日誌。
+
+**共用領域邏輯**
+
+- `domain/segment_utils.py`：時段邊界判斷（UPE 與自訂方案日期解析共用）
+- `MultidimensionalParkingCalculator.calculate_with_inline_template()`：MDP 試算不修改已載入範本登錄表
 
 ---
 
@@ -209,7 +243,7 @@ POST /api/calculate
 
 ## 打包與發佈
 
-版本號以 `pyproject.toml` 的 `version` 為唯一來源（目前 **3.0.0**）。
+版本號以 `pyproject.toml` 的 `version` 為唯一來源（目前 **3.2.0**）。
 
 ### 建置可執行檔
 

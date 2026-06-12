@@ -17,8 +17,7 @@ calendar_bp = Blueprint("calendar_bp", __name__)
 
 
 def _calendar_file() -> Path:
-    base_path = getattr(parking_system, "base_path", Path("."))
-    return Path(base_path) / "system_calendar.json"
+    return parking_system.calendar_path
 
 
 def _fetch_gov_tw_official_holidays(year: int) -> Optional[List[Dict[str, Any]]]:
@@ -143,15 +142,7 @@ def api_calendar():
     else:
         try:
             data = request.get_json() or {}
-            calendar_file.parent.mkdir(parents=True, exist_ok=True)
-            calendar_file.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-            try:
-                parking_system.reload_holiday_calendar()
-                parking_system.init_multidimensional_calculator()
-            except Exception:
-                pass
+            parking_system.save_calendar(data, source="manual")
             return jsonify({"success": True, "message": "calendar saved"})
         except Exception as e:
             return error_response("CAL_WRITE_ERROR", str(e), 500)
@@ -249,13 +240,7 @@ def api_calendar_sync_official_v2():
         added_workdays = _merge_workdays(cal, workday_items)
         added_total = added_national + added_festival + added_workdays
 
-        calendar_file.parent.mkdir(parents=True, exist_ok=True)
-        calendar_file.write_text(json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8")
-        try:
-            parking_system.reload_holiday_calendar()
-            parking_system.init_multidimensional_calculator()
-        except Exception:
-            pass
+        parking_system.save_calendar(cal, source="sync_official_v2")
 
         response: Dict[str, Any] = {
             "success": True,
@@ -366,15 +351,7 @@ def api_calendar_sync_official():
             if key and key not in existing_n:
                 cal["national_holidays"].append(f)
 
-        calendar_file.parent.mkdir(parents=True, exist_ok=True)
-        calendar_file.write_text(
-            json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        try:
-            parking_system.reload_holiday_calendar()
-            parking_system.init_multidimensional_calculator()
-        except Exception:
-            pass
+        parking_system.save_calendar(cal, source="sync_official_legacy")
 
         return jsonify(
             {
@@ -429,13 +406,7 @@ def api_calendar_generate_weekends():
                 cal["weekend_holidays"].append(dt)
                 added += 1
 
-        calendar_file.parent.mkdir(parents=True, exist_ok=True)
-        calendar_file.write_text(json.dumps(cal, ensure_ascii=False, indent=2), encoding="utf-8")
-        try:
-            parking_system.reload_holiday_calendar()
-            parking_system.init_multidimensional_calculator()
-        except Exception:
-            pass
+        parking_system.save_calendar(cal, source="generate_weekends")
 
         return jsonify({"success": True, "generated_year": year, "added": added})
     except Exception as e:

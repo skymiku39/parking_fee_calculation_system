@@ -228,7 +228,11 @@ class MultidimensionalParkingCalculator:
         """根據範本ID和日期獲取適用的費率方案"""
         template_id = self._resolve_template_id(template_id)
         template = self.rate_plan_templates[template_id]
+        return self._resolve_applicable_plan_dict(template, check_date)
 
+    def _resolve_applicable_plan_dict(
+        self, template: MultidimensionalRatePlan, check_date: date
+    ) -> Dict[str, Any]:
         if template.holiday_type == HolidayType.NO_HOLIDAY:
             if template.unified_plan:
                 return template.unified_plan
@@ -569,17 +573,70 @@ class MultidimensionalParkingCalculator:
             )
         return session_details
 
-    def calculate_parking_fee(
-        self, enter_time: datetime, exit_time: datetime, template_id: str
-    ) -> ParkingCalculationResult:
-        """計算停車費用（多維度版本）"""
-        template_id = self._resolve_template_id(template_id)
-        template = self.rate_plan_templates[template_id]
+    @staticmethod
+    def rate_plan_from_template_dict(
+        template: Dict[str, Any],
+        *,
+        template_id: Optional[str] = None,
+    ) -> MultidimensionalRatePlan:
+        """Build a rate plan from API/designer payload without mutating loaded templates."""
+        temp_id = template_id or template.get("template_id") or "inline_preview"
+        seg_raw = template.get("segment_type") or template.get("time_segment_type", "二段")
+        hol_raw = template.get("holiday_type", "平日假日")
+        plan_variants = {
+            "weekday_plan": template.get("weekday_plan"),
+            "weekend_plan": template.get("weekend_plan"),
+            "national_holiday_plan": template.get("national_holiday_plan"),
+            "custom_holiday_plan": template.get("custom_holiday_plan"),
+            "unified_plan": template.get("unified_plan"),
+        }
+        if not any(plan_variants.values()) and template.get("time_slots"):
+            flat_plan = {
+                "label": template.get("label", temp_id),
+                "time_slots": template.get("time_slots", []),
+                "daily_cap_enabled": bool(template.get("daily_cap_enabled", False)),
+                "daily_cap_amount": int(template.get("daily_cap_amount", 0) or 0),
+                "global_grace_time": int(template.get("global_grace_time", 0) or 0),
+                "global_caps": {
+                    "daily_cap_enabled": bool(template.get("daily_cap_enabled", False)),
+                    "daily_cap_amount": int(template.get("daily_cap_amount", 0) or 0),
+                    "global_grace_time": int(template.get("global_grace_time", 0) or 0),
+                },
+            }
+            plan_variants = {key: flat_plan for key in plan_variants}
+        return MultidimensionalRatePlan(
+            template_id=temp_id,
+            label=template.get("label", temp_id),
+            description=template.get("description", ""),
+            segment_type=SegmentType(normalize_segment_type(seg_raw)),
+            holiday_type=HolidayType(normalize_holiday_type(hol_raw)),
+            dimension_combination=temp_id,
+            weekday_plan=plan_variants["weekday_plan"],
+            weekend_plan=plan_variants["weekend_plan"],
+            national_holiday_plan=plan_variants["national_holiday_plan"],
+            custom_holiday_plan=plan_variants["custom_holiday_plan"],
+            unified_plan=plan_variants["unified_plan"],
+        )
 
+    def calculate_with_inline_template(
+        self,
+        enter_time: datetime,
+        exit_time: datetime,
+        template: Dict[str, Any],
+    ) -> ParkingCalculationResult:
+        """Preview billing for an unsaved MDP template (no registry mutation)."""
+        rate_plan = self.rate_plan_from_template_dict(template)
+        return self._calculate_with_rate_plan(enter_time, exit_time, rate_plan)
+
+    def _calculate_with_rate_plan(
+        self,
+        enter_time: datetime,
+        exit_time: datetime,
+        template: MultidimensionalRatePlan,
+    ) -> ParkingCalculationResult:
         park_date = enter_time.date()
         date_category = self.get_date_category(park_date, template.holiday_type.value)
-
-        rate_plan = self.get_applicable_plan(template_id, park_date)
+        rate_plan = self._resolve_applicable_plan_dict(template, park_date)
 
         if not rate_plan:
             raise ValueError("無法找到適用的費率方案")
@@ -589,9 +646,7 @@ class MultidimensionalParkingCalculator:
         upe = UnifiedPricingEngine()
 
         def _resolver(dt: datetime) -> str:
-            return self._mdp_billing_category(
-                dt.date(), template.holiday_type.value
-            )
+            return self._mdp_billing_category(dt.date(), template.holiday_type.value)
 
         res = upe.calculate(enter_time, exit_time, upe_plan, _resolver)
         if not res.success:
@@ -607,7 +662,6 @@ class MultidimensionalParkingCalculator:
             else str(int(global_caps.get("daily_cap_amount", 0) or 0))
         )
 
-        # 生成維度標籤
         dimension_tags = [
             template.segment_type.value,
             template.holiday_type.value,
@@ -635,6 +689,14 @@ class MultidimensionalParkingCalculator:
             calculation_summary=calculation_summary,
             dimension_tags=dimension_tags,
         )
+
+    def calculate_parking_fee(
+        self, enter_time: datetime, exit_time: datetime, template_id: str
+    ) -> ParkingCalculationResult:
+        """計算停車費用（多維度版本）"""
+        template_id = self._resolve_template_id(template_id)
+        template = self.rate_plan_templates[template_id]
+        return self._calculate_with_rate_plan(enter_time, exit_time, template)
 
     def get_available_templates(self) -> Dict[str, str]:
         """獲取可用的費率範本列表（僅 canonical template_id）"""

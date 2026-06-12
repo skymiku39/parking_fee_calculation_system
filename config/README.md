@@ -71,6 +71,5 @@
 uv run pytest
 uv run python tools/validate_configs.py
 uv run python tools/validate_time_boundaries.py
-uv run python tools/audit_billing.py
-uv run python tools/audit_api.py
+uv run python tools/verify_integration_scenarios.py
 ```

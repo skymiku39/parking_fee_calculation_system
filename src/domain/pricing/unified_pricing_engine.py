@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
+
+from src.domain.segment_utils import find_active_segment_at
 
 
 @dataclass
@@ -51,33 +53,6 @@ class UnifiedPricingEngine:
 
     def __init__(self) -> None:
         pass
-
-    def _parse_hhmm(self, hhmm: str) -> time:
-        if hhmm == "24:00":
-            return time(23, 59, 59)
-        h, m = map(int, hhmm.split(":"))
-        return time(h, m)
-
-    def _is_in_segment(self, t: time, seg: Dict[str, Any]) -> bool:
-        """半開區間 [start, end)：邊界時刻歸下一時段，避免四段相鄰邊界重疊。"""
-        start_str = seg["start"]
-        end_str = seg["end"]
-        if end_str == "24:00":
-            if start_str == "00:00":
-                return True
-            s = self._parse_hhmm(start_str)
-            return t >= s
-        s = self._parse_hhmm(start_str)
-        e = self._parse_hhmm(end_str)
-        if s <= e:
-            return s <= t < e
-        return t >= s or t < e
-
-    def _find_active_segment(self, dt: datetime, segments: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-        for seg in segments:
-            if self._is_in_segment(dt.time(), seg):
-                return seg
-        return None
 
     def _segment_key(self, seg_name: str, date_category: str) -> str:
         return f"{seg_name}_{date_category}"
@@ -368,7 +343,7 @@ class UnifiedPricingEngine:
             is_daily_capped = False
 
             while current < exit_time:
-                seg = self._find_active_segment(current, segments)
+                seg = find_active_segment_at(current, segments)
                 if not seg:
                     current += timedelta(minutes=1)
                     continue
