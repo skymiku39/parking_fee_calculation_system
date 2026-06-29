@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Parking Fee Calculation API
-  version: 0.1.0
+  version: 3.2.0
 servers:
   - url: /
 paths:
@@ -86,6 +86,29 @@ paths:
       responses:
         '200':
           description: 成功
+  /api/rate_plans/preview:
+    post:
+      summary: 自訂方案即時試算（不需先儲存）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enter_time:
+                  type: string
+                  example: '2025-09-01T08:00'
+                exit_time:
+                  type: string
+                  example: '2025-09-01T10:00'
+                plan:
+                  type: object
+      responses:
+        '200':
+          description: 成功
+        '400':
+          description: 輸入錯誤
   /api/rate_plans/export:
     get:
       summary: 匯出自訂方案設定檔
@@ -207,6 +230,29 @@ paths:
           application/json:
             schema:
               type: object
+      responses:
+        '200':
+          description: 成功
+  /api/system/config:
+    get:
+      summary: 取得系統設定
+      responses:
+        '200':
+          description: 成功
+    post:
+      summary: 更新系統設定
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 成功
+  /api/system/version:
+    get:
+      summary: 取得應用版本與資料目錄資訊
       responses:
         '200':
           description: 成功

@@ -43,6 +43,8 @@ cd parking_fee_calculation_system
 
 啟動後開啟瀏覽器：`http://127.0.0.1:5000`
 
+> 預設以正式模式啟動（`debug` 關閉）。如需開發除錯，設定環境變數 `FLASK_DEBUG=1`，或用 `./tools/start.ps1 -Debug`；變更埠號可用 `-Port 5001` 或設定 `PORT`。
+
 ---
 
 ## 專案結構
@@ -229,6 +231,7 @@ POST /api/calculate
 | `/api/plans` | GET | 獲取可用方案列表（含多維度模板與自訂方案） |
 | `/api/rate_plans` | GET | 自訂方案列表 |
 | `/api/rate_plans/load/<plan_id>` | GET | 讀取單一自訂方案 |
+| `/api/rate_plans/preview` | POST | 自訂方案即時試算（免儲存） |
 | `/api/rate_plans/save` | POST | 儲存自訂方案 |
 | `/api/rate_plans/<plan_id>` | DELETE | 刪除自訂方案 |
 | `/api/rate_plans/export` | GET | 匯出自訂方案設定檔 |
@@ -300,6 +303,12 @@ uv sync --group dev
 
 # 執行測試並產出覆蓋率
 uv run pytest --cov=src
+
+# 靜態檢查（lint）
+uv run ruff check .
+
+# 一鍵健康檢查（lint + 測試 + 覆蓋率 + 設定/邊界/整合驗證）
+./tools/health_check.ps1
 ```
 
 歷史資料（舊 demo、報告等）已在 git tag `pre-reorganization` 中保留。

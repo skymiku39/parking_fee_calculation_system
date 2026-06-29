@@ -71,6 +71,8 @@ rate_matrix 鍵名格式：`{區段名}_{date_category}`
 
 API 短期仍接受舊 ID（透過 `resolve_template_id`）。
 
+> 棄用時程：舊 ID alias 與 legacy 端點（`/api/calendar/_legacy/sync_official`）目前保留以維持相容，計畫於下一個主要版本（4.0）移除。新整合請一律使用 canonical ID 與 `/api/calendar/sync_official_v2`。
+
 ## 引擎差異說明
 
 - **自訂方案**：使用 `UnifiedPricingEngine`，schema 以本文件為準。
