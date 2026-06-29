@@ -8,39 +8,42 @@ def main():
     if str(root) not in sys.path:
         sys.path.append(str(root))
 
+    from src.core.utils import validate_and_normalize_system_config
     from src.core.validation import (
-        validate_user_defined_plans_json,
         validate_multidimensional_config_json,
+        validate_system_calendar_json,
+        validate_user_defined_plans_json,
     )
     from src.domain.terminology import collect_deprecated_warnings
 
     errors = []
     warnings = []
 
-    user_plans = root / "config" / "user_defined_plans.json"
-    multi_cfg = root / "config" / "multidimensional_rate_plans.json"
-
-    if user_plans.exists():
+    def _check(filename: str, validator, *, collect_warnings: bool = False) -> None:
+        path = root / "config" / filename
+        if not path.exists():
+            print(f"{filename}: MISSING (skip)")
+            return
         try:
-            obj = json.loads(user_plans.read_text(encoding="utf-8"))
-            validate_user_defined_plans_json(obj)
-            warnings.extend(collect_deprecated_warnings(obj, "user_defined_plans.json"))
-            print("user_defined_plans.json: OK")
+            obj = json.loads(path.read_text(encoding="utf-8"))
+            validator(obj)
+            if collect_warnings:
+                warnings.extend(collect_deprecated_warnings(obj, filename))
+            print(f"{filename}: OK")
         except Exception as e:
-            errors.append(f"user_defined_plans.json: {e}")
-    else:
-        print("user_defined_plans.json: MISSING (skip)")
+            errors.append(f"{filename}: {e}")
 
-    if multi_cfg.exists():
-        try:
-            obj = json.loads(multi_cfg.read_text(encoding="utf-8"))
-            validate_multidimensional_config_json(obj)
-            warnings.extend(collect_deprecated_warnings(obj, "multidimensional_rate_plans.json"))
-            print("multidimensional_rate_plans.json: OK")
-        except Exception as e:
-            errors.append(f"multidimensional_rate_plans.json: {e}")
-    else:
-        print("multidimensional_rate_plans.json: MISSING (skip)")
+    _check("user_defined_plans.json", validate_user_defined_plans_json, collect_warnings=True)
+    _check(
+        "multidimensional_rate_plans.json",
+        validate_multidimensional_config_json,
+        collect_warnings=True,
+    )
+    _check("system_calendar.json", validate_system_calendar_json)
+    _check(
+        "system_config.json",
+        lambda obj: validate_and_normalize_system_config(obj, include_env_overrides=False),
+    )
 
     if warnings:
         print("\nDeprecated terminology warnings:")

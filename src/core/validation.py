@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
@@ -83,6 +83,47 @@ MULTIDIMENSIONAL_SCHEMA: Dict[str, Any] = {
         "rate_plan_templates": {"type": "array"},
     },
     "required": ["rate_plan_templates"],
+}
+
+
+_DATE_STRING_ARRAY = {
+    "type": "array",
+    "items": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+}
+
+# festival/national 條目允許純日期字串或 {date, name} 物件
+_NAMED_DATE_ARRAY = {
+    "type": "array",
+    "items": {
+        "oneOf": [
+            {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+            {
+                "type": "object",
+                "required": ["date"],
+                "properties": {
+                    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+                    "name": {"type": ["string", "null"]},
+                },
+                "additionalProperties": True,
+            },
+        ]
+    },
+}
+
+SYSTEM_CALENDAR_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "description": {"type": "string"},
+        "weekend_as_holiday": {"type": "boolean"},
+        "custom_holidays": _DATE_STRING_ARRAY,
+        "custom_workdays": _DATE_STRING_ARRAY,
+        "weekend_holidays": _DATE_STRING_ARRAY,
+        "festival_holidays": _NAMED_DATE_ARRAY,
+        "national_holidays": _NAMED_DATE_ARRAY,
+        "lunar_festivals": {"type": "array"},
+        "special_events": {"type": "array"},
+    },
+    "additionalProperties": True,
 }
 
 
@@ -184,6 +225,13 @@ def validate_multidimensional_config_json(config_obj: Dict[str, Any]) -> None:
         validate(instance=config_obj, schema=MULTIDIMENSIONAL_SCHEMA)
     except ValidationError as e:
         raise ConfigValidationError("多維度方案配置不符合Schema", [e.message])
+
+
+def validate_system_calendar_json(config_obj: Dict[str, Any]) -> None:
+    try:
+        validate(instance=config_obj, schema=SYSTEM_CALENDAR_SCHEMA)
+    except ValidationError as e:
+        raise ConfigValidationError("系統日曆配置不符合Schema", [e.message])
 
 
 def validate_plan_v2_json(plan_obj: Dict[str, Any]) -> None:

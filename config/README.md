@@ -39,7 +39,7 @@
 
 - **UI**：方案管理 → 編輯 / 自訂方案設計器
 - **API**：`GET/POST/DELETE /api/rate_plans/*`
-- **驗證**：`uv run python tools/validate_configs.py`
+- **驗證**：`uv run python tools/validate_configs.py`（驗證本目錄全部四個 JSON）
 
 ## system_calendar.json — 假日日曆
 

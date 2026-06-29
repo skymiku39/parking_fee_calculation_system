@@ -6,6 +6,7 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(ROOT)
 
+from src.core.paths import resolve_data_dir
 from src.core.system import SmartParkingSystem
 from src.domain.multidimensional_calculator import MultidimensionalParkingCalculator
 
@@ -18,7 +19,7 @@ def assert_equal(name, a, b):
 
 def run_user_defined_billing_cycle_checks():
     print("\n=== 用戶自訂收費週期（跨日/跨時段）驗證 ===")
-    sps = SmartParkingSystem()
+    sps = SmartParkingSystem(base_path=resolve_data_dir())
 
     plan_data = {
         "name": "驗證方案",
@@ -58,7 +59,9 @@ def run_user_defined_billing_cycle_checks():
 
 def run_multidimensional_checks():
     print("\n=== 多維度計算器（跨日/跨時段）驗證 ===")
-    calc = MultidimensionalParkingCalculator("config/multidimensional_rate_plans.json")
+    calc = MultidimensionalParkingCalculator(
+        str(resolve_data_dir() / "multidimensional_rate_plans.json")
+    )
 
     cases = [
         ("全天_無假日費率", datetime(2024, 12, 19, 10, 0), datetime(2024, 12, 19, 14, 30), "全天無假日"),
