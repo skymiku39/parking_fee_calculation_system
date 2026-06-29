@@ -16,9 +16,25 @@ dev = [
     "pandas>=2.1.4",
     "openpyxl>=3.1.2",
     "pyinstaller>=6.0.0",
+    "ruff>=0.15.17",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["archive", "dist", "release", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# app.py 於設定 logging 後才註冊藍圖；tests/tools 於 import 前調整 sys.path，皆為刻意安排
+"app.py" = ["E402"]
+"tests/**" = ["E402"]
+"tools/**" = ["E402"]

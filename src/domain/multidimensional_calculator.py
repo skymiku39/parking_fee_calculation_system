@@ -5,24 +5,23 @@
 
 import json
 import math
-from datetime import datetime, date, time, timedelta
-from typing import List, Dict, Optional, Tuple, Any, Union
 from dataclasses import dataclass
-from enum import Enum
-from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
+from datetime import date, datetime, time, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
 from src.core.calendar_resolver import HolidayCalendar
+from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
 from src.domain.terminology import (
+    TEMPLATE_ID_ALIASES,
     DateCategory,
     HolidayType,
     MdpPlanTier,
     SegmentType,
-    TEMPLATE_ID_ALIASES,
     normalize_holiday_type,
     normalize_segment_type,
     normalize_template_id,
     resolve_template_id,
 )
-import calendar
 
 # Backward-compatible re-exports
 TimeSegmentType = SegmentType
@@ -285,7 +284,7 @@ class MultidimensionalParkingCalculator:
                 return time(23, 59, 59)
             hour, minute = map(int, time_str.split(":"))
             return time(hour, minute)
-        except:
+        except Exception:
             return time(0, 0)
 
     def calculate_slot_duration(
@@ -789,7 +788,7 @@ def main():
 
             print(f"\n{result.calculation_summary}")
             print(f"\n維度標籤: {', '.join(result.dimension_tags)}")
-            print(f"\n時段明細:")
+            print("\n時段明細:")
             for detail in result.session_details:
                 if detail["duration"] > 0:
                     print(

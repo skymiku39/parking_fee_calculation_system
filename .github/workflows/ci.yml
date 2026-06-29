@@ -23,8 +23,17 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev
 
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
       - name: Run unit tests
         run: uv run pytest -q
 
       - name: Validate configuration JSONs
         run: uv run python tools/validate_configs.py
+
+      - name: Validate time boundaries
+        run: uv run python tools/validate_time_boundaries.py
+
+      - name: Verify integration scenarios
+        run: uv run python tools/verify_integration_scenarios.py

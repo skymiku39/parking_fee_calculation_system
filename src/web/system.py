@@ -5,7 +5,6 @@ from src.core.paths import resolve_data_dir
 from src.core.version import get_version
 from src.web.utils import error_response
 
-
 system_bp = Blueprint("system_bp", __name__)
 
 

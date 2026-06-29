@@ -4,7 +4,6 @@ import os
 from copy import deepcopy
 from typing import Any, Dict, Optional
 
-
 DEFAULT_DATE_FORMAT = "%Y-%m-%d"
 DEFAULT_TIME_FORMAT = "%H:%M"
 DEFAULT_DATETIME_DISPLAY_FORMAT = "%Y-%m-%d %H:%M"

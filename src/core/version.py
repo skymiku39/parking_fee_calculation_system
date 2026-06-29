@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
-from pathlib import Path
 
 from src.core.paths import bundle_dir, is_frozen, project_root
 

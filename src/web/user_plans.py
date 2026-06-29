@@ -7,7 +7,6 @@ from src.core.utils import format_duration_display
 from src.core.validation import ConfigValidationError
 from src.web.utils import error_response
 
-
 user_plans_bp = Blueprint("user_plans_bp", __name__)
 
 

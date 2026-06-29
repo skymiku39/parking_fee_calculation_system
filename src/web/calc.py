@@ -1,12 +1,11 @@
-from datetime import datetime
 import uuid
-import time as _pytime
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 
 from src.core.context import parking_system
+from src.core.utils import DEFAULT_DATETIME_DISPLAY_FORMAT, format_duration_display
 from src.web.utils import error_response
-from src.core.utils import format_duration_display, DEFAULT_DATETIME_DISPLAY_FORMAT
-
 
 calc_bp = Blueprint("calc_bp", __name__)
 
@@ -34,14 +33,12 @@ def get_all_available_plans():
 @calc_bp.route("/api/calculate", methods=["POST"])
 def api_calculate_fee():
     request_id = str(uuid.uuid4())
-    start_ts = _pytime.perf_counter()
     try:
         data = request.get_json() or {}
         enter_time_str = data.get("enter_time")
         exit_time_str = data.get("exit_time")
         plan_id = data.get("rate_plan_id") or data.get("plan_id")
         manual_adjustment = int(data.get("manual_adjustment", 0))
-        vehicle_type_str = data.get("vehicle_type", "car")
         context = data.get("context", {})
 
         if not all([enter_time_str, exit_time_str]):

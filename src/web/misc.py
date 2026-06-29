@@ -1,7 +1,6 @@
 from pathlib import Path
-from flask import Blueprint
-from src.web.utils import error_response
 
+from flask import Blueprint
 
 misc_bp = Blueprint("misc_bp", __name__)
 

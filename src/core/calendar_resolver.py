@@ -12,7 +12,6 @@ from src.domain.terminology import (
     normalize_holiday_type,
 )
 
-
 DateEntry = Union[str, Dict[str, Any]]
 
 

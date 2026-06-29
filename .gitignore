@@ -10,6 +10,9 @@ log/app.log
 
 # Python
 .pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
 __pycache__/
 *.py[cod]
 *$py.class

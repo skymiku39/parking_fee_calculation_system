@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from src.core.utils import format_duration_display
 from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine

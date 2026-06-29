@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from src.application.fee_strategies import build_fee_strategies
 from src.application.user_defined_billing import UserDefinedBillingService
@@ -22,21 +22,20 @@ from src.core.repositories import (
     UserPlansRepository,
 )
 from src.core.subscribers import register_default_subscribers
-from src.domain.segment_utils import find_active_segment_at
 from src.core.utils import (
     format_duration_display,
     get_rate_description,
     merge_system_config,
 )
 from src.core.validation import (
+    ConfigValidationError,
     validate_multidimensional_config_json,
     validate_plan_v2_json,
-    ConfigValidationError,
 )
 from src.domain.multidimensional_calculator import (
     MultidimensionalParkingCalculator,
 )
-
+from src.domain.segment_utils import find_active_segment_at
 
 logger = logging.getLogger(__name__)
 

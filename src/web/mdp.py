@@ -1,16 +1,14 @@
-import time as _pytime
 import uuid
 from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 
 from src.core.context import parking_system
 from src.domain.terminology import (
     normalize_holiday_type,
     normalize_segment_type,
-    resolve_template_id,
 )
 from src.web.utils import error_response
-
 
 mdp_bp = Blueprint("mdp_bp", __name__)
 
@@ -115,8 +113,9 @@ def api_mdp_delete_template(template_id: str):
 
 @mdp_bp.route("/api/mdp/export", methods=["GET"])
 def api_mdp_export_config():
-    from flask import send_from_directory
     import json
+
+    from flask import send_from_directory
     try:
         p = _mdp_config_path()
         if p.exists():
@@ -133,7 +132,6 @@ def api_mdp_export_config():
 @mdp_bp.route("/api/mdp/preview", methods=["POST"])
 def api_mdp_preview():
     request_id = str(uuid.uuid4())
-    start_ts = _pytime.perf_counter()
     try:
         data = request.get_json() or {}
         enter_time_str = data.get("enter_time")
