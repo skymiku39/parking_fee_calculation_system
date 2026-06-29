@@ -3,24 +3,15 @@
 """
 
 import unittest
-import sys
-import os
-from datetime import datetime, date
+from datetime import date, datetime
+from pathlib import Path
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.domain.multidimensional_calculator import (
+    DateCategory,
+    MultidimensionalParkingCalculator,
+)
 
-try:
-    from src.domain.multidimensional_calculator import (
-        MultidimensionalParkingCalculator,
-        TimeSegmentType,
-        HolidayType,
-        DateCategory,
-    )
-    from src.domain.terminology import TEMPLATE_ID_ALIASES
-except ImportError as e:
-    print(f"導入錯誤: {e}")
-    sys.exit(1)
-
+CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "multidimensional_rate_plans.json"
 
 CANONICAL_TEMPLATES = {
     "全天_無假日": "全天_無假日",
@@ -33,13 +24,7 @@ class TestMultidimensionalCalculator(unittest.TestCase):
     """多維度標籤計算器測試類"""
 
     def setUp(self):
-        try:
-            self.calculator = MultidimensionalParkingCalculator(
-                "config/multidimensional_rate_plans.json"
-            )
-        except Exception as e:
-            print(f"初始化計算器失敗: {e}")
-            self.calculator = None
+        self.calculator = MultidimensionalParkingCalculator(str(CONFIG_PATH))
 
     def test_calculator_initialization(self):
         self.assertIsNotNone(self.calculator, "計算器初始化失敗")
@@ -48,9 +33,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         )
 
     def test_date_category_detection(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         weekday = date(2024, 12, 19)
         self.assertEqual(
             self.calculator.get_date_category(weekday, "平日假日"),
@@ -70,9 +52,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         )
 
     def test_all_day_no_holiday_rate(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         enter_time = datetime(2024, 12, 19, 10, 0)
         exit_time = datetime(2024, 12, 19, 14, 30)
 
@@ -87,9 +66,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertEqual(result.date_category, DateCategory.WEEKDAY)
 
     def test_legacy_template_id_alias(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         enter_time = datetime(2024, 12, 19, 10, 0)
         exit_time = datetime(2024, 12, 19, 14, 30)
         result = self.calculator.calculate_parking_fee(
@@ -98,9 +74,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertGreater(result.total_amount, 0)
 
     def test_two_segment_weekend_rate(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         enter_time = datetime(2024, 12, 21, 20, 0)
         exit_time = datetime(2024, 12, 22, 2, 0)
 
@@ -118,9 +91,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertGreaterEqual(len(day_segments), 1)
 
     def test_multi_segment_full_holiday_rate(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         enter_time = datetime(2024, 12, 25, 9, 0)
         exit_time = datetime(2024, 12, 25, 17, 0)
 
@@ -138,9 +108,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertGreaterEqual(len(active_segments), 2)
 
     def test_cross_midnight_calculation(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         enter_time = datetime(2024, 12, 19, 21, 0)
         exit_time = datetime(2024, 12, 20, 3, 0)
 
@@ -156,9 +123,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertEqual(total_duration, expected_duration)
 
     def test_dimension_combinations(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         combinations = self.calculator.get_dimension_combinations()
         self.assertIsInstance(combinations, list)
         self.assertGreater(len(combinations), 0)
@@ -171,9 +135,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
             self.assertIn("total_variants", combo)
 
     def test_available_templates(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         templates = self.calculator.get_available_templates()
         self.assertIsInstance(templates, dict)
         self.assertGreater(len(templates), 0)
@@ -182,9 +143,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
             self.assertIn(template_id, templates)
 
     def test_calculation_result_structure(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         enter_time = datetime(2024, 12, 19, 10, 0)
         exit_time = datetime(2024, 12, 19, 14, 0)
 
@@ -207,9 +165,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertGreater(len(result.dimension_tags), 0)
 
     def test_time_slot_duration_calculation(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         start_time = datetime(2024, 12, 19, 10, 0)
         end_time = datetime(2024, 12, 19, 12, 0)
 
@@ -227,9 +182,6 @@ class TestMultidimensionalCalculator(unittest.TestCase):
         self.assertEqual(duration, 120)
 
     def test_progressive_fee_calculation(self):
-        if not self.calculator:
-            self.skipTest("計算器未初始化")
-
         progressive_rates = [
             {"start_min": 0, "end_min": 60, "unit_minutes": 30, "unit_price": 25},
             {"start_min": 60, "end_min": 120, "unit_minutes": 30, "unit_price": 35},

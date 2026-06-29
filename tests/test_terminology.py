@@ -11,13 +11,13 @@ from src.domain.terminology import (
     HolidayType,
     SegmentType,
     build_template_id,
+    collect_deprecated_warnings,
     migrate_rate_matrix_key,
     normalize_date_category,
     normalize_holiday_type,
     normalize_segment_type,
     normalize_template_id,
     resolve_template_id,
-    collect_deprecated_warnings,
 )
 
 

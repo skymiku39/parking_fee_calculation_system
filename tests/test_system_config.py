@@ -12,7 +12,6 @@ from src.core.utils import (
     validate_and_normalize_system_config,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

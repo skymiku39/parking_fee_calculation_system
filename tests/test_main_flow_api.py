@@ -1,49 +1,10 @@
 import json
 from pathlib import Path
-from shutil import copy2
-import sys
 from unittest.mock import patch
 
-import pytest
+from app import app
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from app import app
-import src.core.context as context_module
-import src.web.calc as calc_module
-import src.web.calendar as calendar_module
-import src.web.mdp as mdp_module
-import src.web.system as system_module
-from src.core.system import SmartParkingSystem
-
-
-def _build_isolated_system(tmp_path: Path) -> SmartParkingSystem:
-    data_dir = tmp_path
-    data_dir.mkdir(parents=True, exist_ok=True)
-    for filename in (
-        "multidimensional_rate_plans.json",
-        "system_config.json",
-        "user_defined_plans.json",
-    ):
-        copy2(REPO_ROOT / "config" / filename, data_dir / filename)
-    return SmartParkingSystem(base_path=data_dir)
-
-
-@pytest.fixture
-def isolated_client(tmp_path, monkeypatch):
-    system = _build_isolated_system(tmp_path)
-    for module in (
-        context_module,
-        calc_module,
-        calendar_module,
-        mdp_module,
-        system_module,
-    ):
-        monkeypatch.setattr(module, "parking_system", system)
-
-    return system, app.test_client(), tmp_path
 
 
 def test_public_api_surface_keeps_only_current_calendar_sync_route():
@@ -55,6 +16,7 @@ def test_public_api_surface_keeps_only_current_calendar_sync_route():
         "/api/rate_plans",
         "/api/rate_plans/export",
         "/api/rate_plans/load/<path:plan_id>",
+        "/api/rate_plans/preview",
         "/api/rate_plans/save",
         "/api/rate_plans/<path:plan_id>",
         "/api/mdp/templates",
@@ -62,10 +24,13 @@ def test_public_api_surface_keeps_only_current_calendar_sync_route():
         "/api/mdp/templates/save",
         "/api/mdp/export",
         "/api/mdp/preview",
+        "/api/enhanced/segments/validate",
+        "/api/multidimensional/combinations",
         "/api/calendar",
         "/api/calendar/generate_weekends",
         "/api/calendar/sync_official_v2",
         "/api/system/config",
+        "/api/system/version",
     }
 
     assert expected_routes.issubset(routes)

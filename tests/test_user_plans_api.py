@@ -1,51 +1,6 @@
-import json
-from pathlib import Path
-from shutil import copy2
-import sys
+from conftest import build_isolated_system
 
-import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from app import app
-import src.core.context as context_module
-import src.web.calc as calc_module
 import src.web.user_plans as user_plans_module
-from src.core.system import SmartParkingSystem
-
-
-def _build_isolated_system(tmp_path: Path, **system_config_overrides) -> SmartParkingSystem:
-    data_dir = tmp_path
-    data_dir.mkdir(parents=True, exist_ok=True)
-    for filename in (
-        "multidimensional_rate_plans.json",
-        "system_config.json",
-        "user_defined_plans.json",
-    ):
-        copy2(REPO_ROOT / "config" / filename, data_dir / filename)
-
-    if system_config_overrides:
-        cfg_path = data_dir / "system_config.json"
-        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-        cfg.update(system_config_overrides)
-        if "ui_settings" in system_config_overrides:
-            cfg["ui_settings"] = {
-                **cfg.get("ui_settings", {}),
-                **system_config_overrides["ui_settings"],
-            }
-        cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    return SmartParkingSystem(base_path=tmp_path)
-
-
-@pytest.fixture
-def isolated_client(tmp_path, monkeypatch):
-    system = _build_isolated_system(tmp_path)
-    for module in (context_module, calc_module, user_plans_module):
-        monkeypatch.setattr(module, "parking_system", system)
-    return system, app.test_client(), tmp_path
 
 
 def test_plans_api_includes_user_defined(isolated_client):
@@ -162,7 +117,7 @@ def test_save_and_delete_user_defined_plan(isolated_client):
 
 
 def test_featured_filter(tmp_path, monkeypatch):
-    system = _build_isolated_system(
+    system = build_isolated_system(
         tmp_path,
         ui_settings={
             "show_only_featured_user_plans": True,

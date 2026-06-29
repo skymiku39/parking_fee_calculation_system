@@ -1,8 +1,8 @@
 """UnifiedPricingEngine 單元測試（含每日上限）。"""
 
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 
 import pytest
 
@@ -11,8 +11,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from src.core.validation import ConfigValidationError, validate_plan_v2_json
-from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
 from src.domain.multidimensional_calculator import MultidimensionalParkingCalculator
+from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine
 
 
 def _all_day_plan_with_daily_cap(*, daily_cap_enabled: bool = True) -> dict:
@@ -308,12 +308,12 @@ class TestUnifiedPricingEngineDailyCap:
 def isolated_client(tmp_path, monkeypatch):
     from shutil import copy2
 
-    from app import app
     import src.core.context as context_module
     import src.web.calc as calc_module
     import src.web.calendar as calendar_module
     import src.web.mdp as mdp_module
     import src.web.system as system_module
+    from app import app
     from src.core.system import SmartParkingSystem
 
     data_dir = tmp_path

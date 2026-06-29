@@ -11,8 +11,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from src.core.calendar_resolver import HolidayCalendar
 from src.core.system import SmartParkingSystem
-from src.domain.terminology import DateCategory
 from src.domain.multidimensional_calculator import MultidimensionalParkingCalculator
+from src.domain.terminology import DateCategory
 
 
 @pytest.fixture

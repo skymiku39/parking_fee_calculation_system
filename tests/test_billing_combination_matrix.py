@@ -1,8 +1,8 @@
 """全組合計費獨立驗證：自訂方案與 MDP 範本各場景 golden 值 + 結構不變量。"""
 
+import sys
 from datetime import datetime
 from pathlib import Path
-import sys
 
 import pytest
 
