@@ -3,11 +3,13 @@
 職責：建立 Flask 應用、註冊藍圖與頁面路由
 """
 
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
+
 from flask import Flask, render_template
+
 
 def _resolve_resource_dirs() -> tuple[str, str]:
     """Dev 用 src/web/*；PyInstaller 打包後用 bundle 內 templates/、static/。"""
@@ -39,8 +41,8 @@ logging.basicConfig(
 
 # 藍圖註冊
 from src.web.calc import calc_bp
-from src.web.mdp import mdp_bp
 from src.web.calendar import calendar_bp
+from src.web.mdp import mdp_bp
 from src.web.misc import misc_bp
 from src.web.system import system_bp
 from src.web.user_plans import user_plans_bp
@@ -55,8 +57,8 @@ app.register_blueprint(user_plans_bp)
 
 @app.route("/")
 def index():
-    from src.web.calc import get_all_available_plans
     from src.core.context import parking_system
+    from src.web.calc import get_all_available_plans
 
     plans = get_all_available_plans()
     system_config = parking_system.system_config
@@ -93,6 +95,8 @@ if __name__ == "__main__":
         os.makedirs("src/web/templates")
     if not os.path.exists("log"):
         os.makedirs("log")
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    debug = os.environ.get("FLASK_DEBUG", "0").lower() in ("1", "true", "yes", "on")
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=debug, host="0.0.0.0", port=port)
 
 

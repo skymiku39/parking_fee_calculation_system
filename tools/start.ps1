@@ -1,6 +1,7 @@
 param(
   [switch]$NoInstall,
   [switch]$NoRun,
+  [switch]$Debug,
   [string]$Port = "5000"
 )
 
@@ -38,6 +39,8 @@ if (-not $NoRun) {
     Start-Process "http://127.0.0.1:$Port"
   } else {
     Write-Host '未偵測到服務，啟動 Flask 應用 ...'
+    $env:PORT = $Port
+    if ($Debug) { $env:FLASK_DEBUG = '1' }
     $p = Start-Process -FilePath "python" -ArgumentList "app.py" -PassThru
     Start-Sleep -Seconds 2
     try {

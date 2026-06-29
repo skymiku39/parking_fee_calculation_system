@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-import json
+import logging
 import math
 import sys
 import tempfile
@@ -12,15 +12,19 @@ from datetime import datetime
 from pathlib import Path
 from shutil import copy2
 
+# 先設定 root logger 為 WARNING 並佔用 handler，使後續 app.py 的 logging.basicConfig 成為 no-op，
+# 避免 INFO 日誌污染 stderr 並造成 CI / PowerShell 誤判 exit code。
+logging.basicConfig(level=logging.WARNING)
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from app import app
 import src.core.context as context_module
 import src.web.calc as calc_module
 import src.web.mdp as mdp_module
 import src.web.user_plans as user_plans_module
+from app import app
 from src.core.system import SmartParkingSystem
 from src.domain.multidimensional_calculator import MultidimensionalParkingCalculator
 from src.domain.pricing.unified_pricing_engine import UnifiedPricingEngine

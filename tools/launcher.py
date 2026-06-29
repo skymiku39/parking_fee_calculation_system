@@ -1,10 +1,8 @@
 import os
-import sys
 import threading
 import time
 import webbrowser
 from urllib.request import urlopen
-
 
 DEFAULT_PORT = int(os.getenv("PORT", "5000"))
 SERVER_URL = f"http://127.0.0.1:{DEFAULT_PORT}/"

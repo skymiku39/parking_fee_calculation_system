@@ -30,8 +30,8 @@ $TagName = "v$Version"
 Write-Host "=== Release $TagName ==="
 
 if (-not $SkipBuild) {
-  Write-Host 'Running tests ...'
-  uv run pytest
+  Write-Host 'Running health checks ...'
+  & (Join-Path $ScriptDir 'health_check.ps1') -NoInstall -NoCoverage
   & (Join-Path $ScriptDir 'build_exe.ps1')
 }
 
