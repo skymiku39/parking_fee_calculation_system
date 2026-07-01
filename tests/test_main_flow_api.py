@@ -31,6 +31,7 @@ def test_public_api_surface_keeps_only_current_calendar_sync_route():
         "/api/calendar/sync_official_v2",
         "/api/system/config",
         "/api/system/version",
+        "/static/openapi.yaml",
     }
 
     assert expected_routes.issubset(routes)
