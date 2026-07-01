@@ -99,6 +99,19 @@ def test_export_returns_attachment(isolated_client):
     assert "attachment" in resp.headers.get("Content-Disposition", "")
 
 
+def test_export_returns_default_when_file_missing(isolated_client):
+    _, client, tmp_path = isolated_client
+    mdp_file = tmp_path / "multidimensional_rate_plans.json"
+    if mdp_file.exists():
+        mdp_file.unlink()
+
+    resp = client.get("/api/mdp/export")
+    assert resp.status_code == 200
+    assert "attachment" in resp.headers.get("Content-Disposition", "")
+    body = resp.get_data(as_text=True)
+    assert "rate_plan_templates" in body
+
+
 def test_segments_validate_full_coverage(isolated_client):
     _, client, _ = isolated_client
     resp = client.post(

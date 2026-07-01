@@ -1,0 +1,29 @@
+"""系統 API 測試：版本資訊與設定錯誤分支。"""
+
+import json
+import re
+from pathlib import Path
+
+
+def test_system_version_endpoint(isolated_client):
+    _, client, _ = isolated_client
+    resp = client.get("/api/system/version")
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["success"] is True
+
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    match = re.search(r'^version\s*=\s*"([^"]+)"', pyproject.read_text(encoding="utf-8"), re.M)
+    assert payload["version"] == match.group(1)
+    assert payload["data_dir"]
+
+
+def test_system_config_rejects_non_object_payload(isolated_client):
+    _, client, _ = isolated_client
+    resp = client.post(
+        "/api/system/config",
+        data=json.dumps([]),
+        content_type="application/json",
+    )
+    assert resp.status_code == 400
+    assert resp.get_json()["code"] == "INVALID_INPUT"

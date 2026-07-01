@@ -98,3 +98,17 @@ def test_preview_invalid_range_returns_400(isolated_client):
     )
     assert resp.status_code == 400
     assert resp.get_json()["code"] == "INVALID_TIME_RANGE"
+
+
+def test_export_user_plans_returns_default_when_file_missing(isolated_client):
+    _, client, tmp_path = isolated_client
+    plans_file = tmp_path / "user_defined_plans.json"
+    if plans_file.exists():
+        plans_file.unlink()
+
+    resp = client.get("/api/rate_plans/export")
+    assert resp.status_code == 200
+    assert "attachment" in resp.headers.get("Content-Disposition", "")
+    body = resp.get_data(as_text=True)
+    assert '"plans"' in body
+    assert '"metadata"' in body
