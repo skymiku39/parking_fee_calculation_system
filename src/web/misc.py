@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Blueprint
+from flask import Blueprint, current_app
 
 misc_bp = Blueprint("misc_bp", __name__)
 
@@ -44,7 +44,7 @@ def serve_openapi_yaml():
         "      responses:\n"
         "        '200': { description: 成功 }\n"
     )
-    resp = misc_bp.response_class(minimal, mimetype="text/yaml")
+    resp = current_app.response_class(minimal, mimetype="text/yaml")
     return resp, 200
 
 

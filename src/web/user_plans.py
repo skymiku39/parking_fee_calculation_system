@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request, send_from_directory
+from flask import Blueprint, current_app, jsonify, request, send_from_directory
 
 from src.core.context import parking_system
 from src.core.utils import format_duration_display
@@ -179,7 +179,7 @@ def api_export_user_plans():
 
         default_cfg = {"plans": {}, "metadata": {}}
         data = json.dumps(default_cfg, ensure_ascii=False, indent=2)
-        resp = user_plans_bp.response_class(data, mimetype="application/json")
+        resp = current_app.response_class(data, mimetype="application/json")
         resp.headers["Content-Disposition"] = (
             "attachment; filename=user_defined_plans.json"
         )

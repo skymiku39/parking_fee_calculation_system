@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from src.core.context import parking_system
 from src.domain.terminology import (
@@ -122,7 +122,7 @@ def api_mdp_export_config():
             return send_from_directory(p.parent.as_posix(), p.name, as_attachment=True, download_name="multidimensional_rate_plans.json")
         default_cfg = {"dimension_configs": {}, "rate_plan_templates": []}
         data = json.dumps(default_cfg, ensure_ascii=False, indent=2)
-        resp = mdp_bp.response_class(data, mimetype="application/json")
+        resp = current_app.response_class(data, mimetype="application/json")
         resp.headers["Content-Disposition"] = "attachment; filename=multidimensional_rate_plans.json"
         return resp
     except Exception as e:
