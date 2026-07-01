@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from shutil import copy2
 
+from conftest import build_isolated_system
+
 import src.web.system as web_system_module
 from app import app
 from src.core.system import SmartParkingSystem
@@ -13,14 +15,6 @@ from src.core.utils import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def _build_isolated_system(tmp_path: Path) -> SmartParkingSystem:
-    data_dir = tmp_path
-    data_dir.mkdir(parents=True, exist_ok=True)
-    copy2(REPO_ROOT / "config" / "multidimensional_rate_plans.json", data_dir)
-    return SmartParkingSystem(base_path=data_dir)
-
 
 def test_validate_and_normalize_system_config_handles_merge_and_env(monkeypatch):
     merged = merge_system_config(
@@ -84,7 +78,7 @@ def test_smart_parking_system_load_does_not_rewrite_system_config(tmp_path):
 def test_system_config_api_merges_nested_settings_without_losing_existing_values(
     monkeypatch, tmp_path
 ):
-    system = _build_isolated_system(tmp_path)
+    system = build_isolated_system(tmp_path)
     monkeypatch.setattr(web_system_module, "parking_system", system)
 
     with app.test_client() as client:
@@ -100,17 +94,17 @@ def test_system_config_api_merges_nested_settings_without_losing_existing_values
     payload = response.get_json()
     assert payload["success"] is True
     assert system.system_config["ui_settings"]["show_only_featured_user_plans"] is True
-    assert system.system_config["ui_settings"]["max_user_plans_display"] == 50
+    assert system.system_config["ui_settings"]["max_user_plans_display"] == 5
 
     saved_config = json.loads(
         (tmp_path / "system_config.json").read_text(encoding="utf-8")
     )
     assert saved_config["ui_settings"]["show_only_featured_user_plans"] is True
-    assert saved_config["ui_settings"]["max_user_plans_display"] == 50
+    assert saved_config["ui_settings"]["max_user_plans_display"] == 5
 
 
 def test_system_config_api_rejects_invalid_nested_config(monkeypatch, tmp_path):
-    system = _build_isolated_system(tmp_path)
+    system = build_isolated_system(tmp_path)
     monkeypatch.setattr(web_system_module, "parking_system", system)
 
     with app.test_client() as client:

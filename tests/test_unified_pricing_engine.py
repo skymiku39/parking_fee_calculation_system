@@ -304,42 +304,8 @@ class TestUnifiedPricingEngineDailyCap:
       assert sum(s["fee"] for s in result.session_details) == result.total_amount
 
 
-@pytest.fixture
-def isolated_client(tmp_path, monkeypatch):
-    from shutil import copy2
-
-    import src.core.context as context_module
-    import src.web.calc as calc_module
-    import src.web.calendar as calendar_module
-    import src.web.mdp as mdp_module
-    import src.web.system as system_module
-    from app import app
-    from src.core.system import SmartParkingSystem
-
-    data_dir = tmp_path
-    data_dir.mkdir(parents=True, exist_ok=True)
-    for filename in (
-        "multidimensional_rate_plans.json",
-        "system_config.json",
-        "user_defined_plans.json",
-    ):
-        copy2(REPO_ROOT / "config" / filename, data_dir / filename)
-
-    system = SmartParkingSystem(base_path=data_dir)
-    for module in (
-        context_module,
-        calc_module,
-        calendar_module,
-        mdp_module,
-        system_module,
-    ):
-        monkeypatch.setattr(module, "parking_system", system)
-
-    return system, app.test_client()
-
-
 def test_user_defined_plan_daily_cap_via_api(isolated_client):
-    _, client = isolated_client
+    _, client, _ = isolated_client
 
     response = client.post(
         "/api/calculate",
@@ -382,7 +348,7 @@ def test_reject_removed_plan_fields():
 
 
 def test_user_defined_two_segment_daily_cap_cross_day_via_api(isolated_client):
-    _, client = isolated_client
+    _, client, _ = isolated_client
 
     response = client.post(
         "/api/calculate",
