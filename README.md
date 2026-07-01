@@ -278,7 +278,7 @@ dist/ParkingCalculator/
 ./tools/release.ps1
 ```
 
-會依序：執行 pytest → 打包 → 產生 `release/ParkingCalculator-{version}-win64.zip` → 建立 git tag `v{version}`。
+會依序：執行 `health_check.ps1`（lint、測試、設定與整合驗證）→ 打包 → 產生 `release/ParkingCalculator-{version}-win64.zip` → 建立 git tag `v{version}`。
 
 發佈新版本時，先更新 `pyproject.toml` 的 `version`，再執行 `./tools/release.ps1`。
 

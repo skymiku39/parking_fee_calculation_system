@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, master, AI優化 ]
+    branches: [ main, master, AI優化, 超級大改版 ]
   pull_request:
-    branches: [ main, master, AI優化 ]
+    branches: [ main, master, AI優化, 超級大改版 ]
 
 jobs:
   test:
