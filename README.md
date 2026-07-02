@@ -246,7 +246,7 @@ POST /api/calculate
 
 ## 打包與發佈
 
-版本號以 `pyproject.toml` 的 `version` 為唯一來源（目前 **3.2.0**）。
+版本號以 `pyproject.toml` 的 `version` 為唯一來源（目前 **3.3.0**）。
 
 ### 建置可執行檔
 

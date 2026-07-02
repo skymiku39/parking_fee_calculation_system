@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.3.0] - 2026-06-16
+
+### Added
+
+- 一鍵健康檢查腳本 `tools/health_check.ps1`（ruff、pytest、設定驗證、邊界與整合情境）
+- 四個設定檔 JSON Schema 驗證（`validate_configs.py`）並納入 CI
+- 共用測試隔離 fixture（`tests/conftest.py`），190 項測試、整體覆蓋率 86%
+- ruff 靜態檢查與 `.github/workflows/ci.yml` 擴充驗證步驟
+
+### Changed
+
+- `release.ps1` 改呼叫 `health_check.ps1` 作為發行前品質閘門
+- OpenAPI、README、`config/README.md` 與實際 API 路由對齊
+- `start.ps1` 支援 `-Debug`、`-Port`；`app.py` 支援 `FLASK_DEBUG` / `PORT` 環境變數
+
+### Fixed
+
+- Flask 3 下 Blueprint 匯出 fallback 誤回 500（misc / user_plans / mdp）
+- 驗證腳本路徑解析與 health_check 日誌 stderr 誤判失敗
+
 ## [3.2.0] - 2026-06-10
 
 ### Added

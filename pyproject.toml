@@ -1,6 +1,6 @@
 [project]
 name = "parking-fee-calculation-system"
-version = "3.2.0"
+version = "3.3.0"
 description = "智能停車費率計算系統"
 requires-python = ">=3.10"
 dependencies = [

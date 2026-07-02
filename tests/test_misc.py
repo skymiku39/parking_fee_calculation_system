@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 from app import app
+from src.core.version import get_version
 
 
 def test_serve_openapi_yaml_returns_spec():
@@ -12,7 +13,7 @@ def test_serve_openapi_yaml_returns_spec():
     body = resp.get_data(as_text=True)
     assert "openapi" in body
     assert "/api/calculate" in body
-    assert "3.2.0" in body
+    assert get_version() in body
 
 
 def test_serve_openapi_yaml_fallback_when_file_missing():
